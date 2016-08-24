@@ -1,11 +1,13 @@
 # ---< I M P U T E >---
 
 set(IMPUTE_HEADERS
-  haplotypepair.h
+  haplotypepair.h  # So far, this is a test framework dummy class.
+  samples.h
 )
 
 set(IMPUTE_SOURCES
   haplotypepair.cpp
+  samples.cpp
 )
 
 find_package(Qt5Core REQUIRED)
@@ -41,7 +43,7 @@ set_target_properties(impute PROPERTIES AUTOMOC TRUE)
 target_link_libraries(impute
   Qt5::Core
   Qt5::Xml
-
+  ghicore
   sqlite
   jansson
 )
