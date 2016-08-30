@@ -5,6 +5,7 @@
 #include "ghicore/cstring.h"
 
 #include <QList>
+#include <QSharedData>
 
 class ChromeIds
 {
@@ -17,57 +18,82 @@ public:
   int getIndexIfIndexed(CString name);
 };
 
+
+class MarkerSharedData : public QSharedData
+{
+public:
+  MarkerSharedData() : chromIndex(-1) {}
+  MarkerSharedData(const MarkerSharedData &other)
+    : QSharedData(other), chromIndex(-1)
+  {
+    throw("Resetting a MarkerSharedData instance....");
+  }
+  ~MarkerSharedData() { }
+
+  int chromIndex;
+  int pos;
+  CString id;
+  QList<CString> alleles;
+  int nGenotypes;
+};
+
 class Marker
 {
 public:
-  Marker() : _chromIndex(-1) {}
+  Marker() { d = new MarkerSharedData; }
+
+  // Let's see if the copy constructor can be automatically compiled.
+  // Let's see if the assignment operator can be automatically compiled.
 
   void setIdInfo(int chromIndex, int pos, CString id);
   void setAllele(CString allele);
 
-  CString chrom();
+  CString chrom() const;
 
-  int chromIndex() { return _chromIndex; }
-  int pos() { return _pos; }
+  int chromIndex() const { return d->chromIndex; }
+  int pos() const { return d->pos; }
+
   /**
    * Returns the marker identifier if there is
    * one, else returns chrome + ":" + pos.
    */
-  CString id();
+  CString id() const;
 
   /**
    * Returns the number of alleles for the marker, including the REF
    * allele.
    */
-  int nAlleles() { return _alleles.length(); }
+  int nAlleles() const { return d->alleles.length(); }
+
   /**
    * Returns the specified allele.  The reference allele has index 0.
    */
-  CString allele(int index) { return _alleles[index]; }
+  CString allele(int index) const { return d->alleles[index]; }
+
   /**
    * Returns the alleles.
    */
-  QList<CString> alleles() { return _alleles; }
+  QList<CString> alleles() const { return d->alleles; }
+
   /**
    * Returns the number of distinct genotypes, which equals
    * nAlleles()*(1 + nAlleles())/2.
    */
-  int nGenotypes();
+  int nGenotypes() const { return d->nGenotypes; }
 
   /**
    * Returns true if the other Marker has the same chromosome,
    * position, and allele lists, and returns false otherwise.
    * Equality does not depend on the value of the ID field.
    */
-  bool operator==(Marker otherMarker);
+  bool operator==(Marker otherMarker) const;
 
 private:
-  int _chromIndex;
-  int _pos;
-  CString _id;
-  QList<CString> _alleles;
-  int _nGenotypes;
+  QSharedDataPointer<MarkerSharedData> d;
 };
+
+Q_DECLARE_TYPEINFO(Marker, Q_MOVABLE_TYPE);
+
 
 /*
 class Markers

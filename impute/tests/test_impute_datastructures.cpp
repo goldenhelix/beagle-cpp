@@ -170,6 +170,32 @@ void TestImputeDataStructures::testMarker()
   QCOMPARE(m7->nAlleles(), 2);
   QCOMPARE(m7->allele(0).constData(), "T");
   QCOMPARE(m7->allele(1).constData(), "C");
+
+  QList<Marker> lm;
+  lm.append(Marker());
+  lm.append(Marker());
+  lm[0].setIdInfo(c17, 23465, "RS76542");
+  lm[0].setAllele("G");
+  lm[0].setAllele("C");
+  lm[1].setIdInfo(cx, 5462, "RS6541");
+  lm[1].setAllele("T");
+  lm[1].setAllele("A");
+
+  QCOMPARE(lm[0].chrom().constData(), "17");
+  QCOMPARE(lm[0].pos(), 23465);
+  QCOMPARE(lm[0].id().constData(), "RS76542");
+  QCOMPARE(lm[0].nAlleles(), 2);
+  QCOMPARE(lm[0].allele(0).constData(), "G");
+  QCOMPARE(lm[0].allele(1).constData(), "C");
+
+  QList<Marker> lmb = lm;
+
+  QCOMPARE(lmb[1].chrom().constData(), "X");
+  QCOMPARE(lmb[1].pos(), 5462);
+  QCOMPARE(lmb[1].id().constData(), "RS6541");
+  QCOMPARE(lmb[1].nAlleles(), 2);
+  QCOMPARE(lmb[1].allele(0).constData(), "T");
+  QCOMPARE(lmb[1].allele(1).constData(), "A");
 }
 
 QTEST_MAIN(TestImputeDataStructures)

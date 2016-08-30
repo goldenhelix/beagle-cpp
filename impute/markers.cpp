@@ -47,45 +47,43 @@ int ChromeIds::getIndexIfIndexed(CString name)
 
 void Marker::setIdInfo(int chromIndex, int pos, CString id)
 {
-  _chromIndex = chromIndex;
-  _pos = pos;
-  _id = id;
-  _nGenotypes = 0;
+  d->chromIndex = chromIndex;
+  d->pos = pos;
+  d->id = id;
+  d->nGenotypes = 0;
 }
 
 void Marker::setAllele(CString allele)
 {
-  _alleles.append(allele);
+  d->alleles.append(allele);
 
-  int l = _alleles.length();
-  _nGenotypes = (l * (1 + l)) / 2;
+  int l = d->alleles.length();
+  d->nGenotypes = (l * (1 + l)) / 2;
 }
 
-CString Marker::chrom()
+CString Marker::chrom() const
 {
-  return ChromeIds::chromeId(_chromIndex);
+  return ChromeIds::chromeId(d->chromIndex);
 }
 
-CString Marker::id()
+CString Marker::id() const
 {
-  if (_id.length())
-    return _id;
+  if (d->id.length())
+    return d->id;
   else
     return CString(QString("%1:%2").arg((QString) chrom()).arg(pos()));
 }
 
-int Marker::nGenotypes() {return _nGenotypes;}
-
 // Do not be concerned about equality of the marker ID's.
-bool Marker::operator==(Marker otherMarker)
+bool Marker::operator==(Marker otherMarker) const
 {
-  if (_chromIndex != otherMarker.chromIndex()) {
+  if (d->chromIndex != otherMarker.chromIndex()) {
     return false;
   }
-  if (_pos != otherMarker.pos()) {
+  if (d->pos != otherMarker.pos()) {
     return false;
   }
-  if (_alleles != otherMarker.alleles()) {
+  if (d->alleles != otherMarker.alleles()) {
     return false;
   }
   return true;
