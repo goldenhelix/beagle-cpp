@@ -20,9 +20,10 @@ public:
 class Marker
 {
 public:
-  Marker(int chromIndex, int pos, CString id, QList<CString> alleles);
-  // Marker(Marker m);
-  // Marker operator=(Marker otherMarker);
+  Marker() : _chromIndex(-1) {}
+
+  void setIdInfo(int chromIndex, int pos, CString id);
+  void setAllele(CString allele);
 
   CString chrom();
 

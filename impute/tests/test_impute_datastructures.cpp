@@ -1,6 +1,7 @@
 /* Copyright 2016 Golden Helix, Inc. */
 #include "impute/haplotypepair.h"
 #include "impute/samples.h"
+#include "impute/markers.h"
 
 #include <QObject>
 #include <QtTest/QtTest>
@@ -13,7 +14,7 @@ private slots:
   void testHaplotypePairs();
   void testSamples();
   void testMarker();
-  void testMarkers();
+  // void testMarkers();
 };
 
 void TestImputeDataStructures::testHaplotypePairs()
@@ -103,10 +104,6 @@ void TestImputeDataStructures::testMarker()
   QCOMPARE(c1a, 0);
   QCOMPARE(c2, -1);
 
-  QList<CString> als;
-  als.append("A");
-  als.append("C");
-
   // To use objects of a class (such as Marker) in a QList, etc., the
   // class must have:
   //
@@ -114,7 +111,7 @@ void TestImputeDataStructures::testMarker()
   // * a copy constructor, and
   // * an assignment operator.
 
-  Marker m();
+  Marker m;
   m.setIdInfo(c1, 7632, "RS72351");
   m.setAllele("A");
   m.setAllele("C");
@@ -126,15 +123,14 @@ void TestImputeDataStructures::testMarker()
   QCOMPARE(m.allele(0).constData(), "A");
   QCOMPARE(m.allele(1).constData(), "C");
 
-  Marker m2();
+  Marker m2;
   m2.setIdInfo(c1, 7632, "RS72351");
   m2.setAllele("A");
   m2.setAllele("C");
 
   QCOMPARE(m == m2, true);
-  QCOMPARE(m, m2);
 
-  Marker m3();
+  Marker m3;
   m3.setIdInfo(c17, 5432, "RS89351");
   m3.setAllele("G");
   m3.setAllele("T");
@@ -148,11 +144,32 @@ void TestImputeDataStructures::testMarker()
 
   Marker m4 = m2;
   QCOMPARE(m4 == m2, true);
-  QCOMPARE(m4, m2);
 
   Marker m5(m2);
   QCOMPARE(m5.pos(), 7632);
-  QCOMPARE(m5, m2);
+
+  // But, additionally, we want Marker to be a "Moveable" type of
+  // class, with its data remotely located (and managed by Qt) as a
+  // "QSharedData" class. (Now, the following test would pass if we
+  // just had explicit data and copied it around, but since we're
+  // using "QSharedData", let's test that shared data is being used
+  // successfully.)
+
+  Marker *m6 = new Marker();
+  m6->setIdInfo(cx, 23654, "RS93756");
+  m6->setAllele("T");
+  m6->setAllele("C");
+
+  Marker *m7 = new Marker;
+  *m7 = *m6;  // Assign a "copy of m7" itself, rather than assigning a pointer.
+  delete m6;  // The original m6 data should still be around after
+	      // deleting this "Marker" instance.
+
+  QCOMPARE(m7->chrom().constData(), "X");
+  QCOMPARE(m7->pos(), 23654);
+  QCOMPARE(m7->nAlleles(), 2);
+  QCOMPARE(m7->allele(0).constData(), "T");
+  QCOMPARE(m7->allele(1).constData(), "C");
 }
 
 QTEST_MAIN(TestImputeDataStructures)
