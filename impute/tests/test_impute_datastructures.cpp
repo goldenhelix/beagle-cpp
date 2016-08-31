@@ -13,8 +13,7 @@ private slots:
 
   void testHaplotypePairs();
   void testSamples();
-  void testMarker();
-  // void testMarkers();
+  void testMarkers();
 };
 
 void TestImputeDataStructures::testHaplotypePairs()
@@ -86,7 +85,7 @@ void TestImputeDataStructures::testSamples()
   QCOMPARE(samples2.name(1).constData(), "SAMP085");
 }
 
-void TestImputeDataStructures::testMarker()
+void TestImputeDataStructures::testMarkers()
 {
   ChromeIds chIds;
   int c1 = chIds.getIndex("1");
@@ -196,6 +195,75 @@ void TestImputeDataStructures::testMarker()
   QCOMPARE(lmb[1].nAlleles(), 2);
   QCOMPARE(lmb[1].allele(0).constData(), "T");
   QCOMPARE(lmb[1].allele(1).constData(), "A");
+
+  Marker m8;
+  m8.setIdInfo(c1, 7635, "RS72351");
+  m8.setAllele("A");
+  m8.setAllele("C");
+
+  Marker m9;
+  m9.setIdInfo(c1, 7632, "RS72355");   // Should not make it any "different" from marker m.
+  m9.setAllele("A");
+  m9.setAllele("C");
+
+  Marker m10;
+  m10.setIdInfo(c1, 7632, "RS72351");
+  m10.setAllele("A");
+
+  Marker m11;
+  m11.setIdInfo(c1, 7632, "RS72351");
+  m11.setAllele("G");
+  m11.setAllele("C");
+
+  Marker m12;
+  m12.setIdInfo(c1, 7632, "RS72351");
+  m12.setAllele("A");
+  m12.setAllele("G");
+
+  QCOMPARE(m == m8, false);
+  QCOMPARE(m == m9, true);
+  QCOMPARE(m == m10, false);
+  QCOMPARE(m == m11, false);
+  QCOMPARE(m == m12, false);
+
+  QList<Marker> biglist;
+  biglist.append(m);
+  biglist.append(m8);
+  biglist.append(m3);
+  biglist.append(lm[0]);
+  biglist.append(lm[1]);
+  biglist.append(*m7);
+
+  delete m7;
+
+  Markers marksfwd(biglist);
+  Markers marksrev = marksfwd.reverse();
+
+  QCOMPARE(marksfwd.nMarkers(), 6);
+  QCOMPARE(marksrev.nMarkers(), 6);
+  QCOMPARE(marksfwd.marker(2).pos(), 5432);
+  QCOMPARE(marksrev.marker(2).pos(), 23465);
+  QCOMPARE(marksfwd.markers()[1].id().constData(), "RS72351");
+
+  QCOMPARE(marksfwd.restrict(3, 5).markers() == lm, true);
+  QList<Marker> restrictedList = marksfwd.restrict(3, 5).markers();
+  QCOMPARE(restrictedList.length(), 2);
+  QCOMPARE(restrictedList[0] == lm[0], true);
+  QCOMPARE(restrictedList[1] == lm[1], true);
+  QCOMPARE(restrictedList == lm, true);
+
+  QCOMPARE(marksfwd.sumAlleles(2), 4);
+  QCOMPARE(marksfwd.sumAlleles(), 12);
+  QCOMPARE(marksfwd.sumGenotypes(2), 6);
+  QCOMPARE(marksfwd.sumGenotypes(), 18);
+  QCOMPARE(marksfwd.sumHaplotypeBits(2), 2);
+  QCOMPARE(marksfwd.sumHaplotypeBits(), 6);
+
+  Markers markers2(marksfwd);
+  QCOMPARE(markers2.marker(3) == marksfwd.marker(3), true);
+
+  Markers markers3 = markers2;
+  QCOMPARE(markers3.marker(2) == marksfwd.marker(2), true);
 }
 
 QTEST_MAIN(TestImputeDataStructures)

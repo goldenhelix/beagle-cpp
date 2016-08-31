@@ -40,18 +40,18 @@ public:
 class Marker
 {
 public:
-  Marker() { d = new MarkerSharedData; }
+  Marker() { _d = new MarkerSharedData; }
 
-  // Let's see if the copy constructor can be automatically compiled.
-  // Let's see if the assignment operator can be automatically compiled.
+  // The copy constructor is automatically compiled.
+  // The assignment operator is automatically compiled.
 
   void setIdInfo(int chromIndex, int pos, CString id);
   void setAllele(CString allele);
 
   CString chrom() const;
 
-  int chromIndex() const { return d->chromIndex; }
-  int pos() const { return d->pos; }
+  int chromIndex() const { return _d->chromIndex; }
+  int pos() const { return _d->pos; }
 
   /**
    * Returns the marker identifier if there is
@@ -63,23 +63,23 @@ public:
    * Returns the number of alleles for the marker, including the REF
    * allele.
    */
-  int nAlleles() const { return d->alleles.length(); }
+  int nAlleles() const { return _d->alleles.length(); }
 
   /**
    * Returns the specified allele.  The reference allele has index 0.
    */
-  CString allele(int index) const { return d->alleles[index]; }
+  CString allele(int index) const { return _d->alleles[index]; }
 
   /**
    * Returns the alleles.
    */
-  QList<CString> alleles() const { return d->alleles; }
+  QList<CString> alleles() const { return _d->alleles; }
 
   /**
    * Returns the number of distinct genotypes, which equals
    * nAlleles()*(1 + nAlleles())/2.
    */
-  int nGenotypes() const { return d->nGenotypes; }
+  int nGenotypes() const { return _d->nGenotypes; }
 
   /**
    * Returns true if the other Marker has the same chromosome,
@@ -89,27 +89,138 @@ public:
   bool operator==(Marker otherMarker) const;
 
 private:
-  QSharedDataPointer<MarkerSharedData> d;
+  QSharedDataPointer<MarkerSharedData> _d;
 };
 
 Q_DECLARE_TYPEINFO(Marker, Q_MOVABLE_TYPE);
 
 
-/*
+
+class MarkersPluralSharedData : public QSharedData
+{
+public:
+  MarkersPluralSharedData() {}
+  MarkersPluralSharedData(const MarkerSharedData &other)
+    : QSharedData(other)
+  {
+    throw("Resetting a MarkersPluralSharedData instance....");
+  }
+  ~MarkersPluralSharedData() { }
+
+  QList<Marker> fwdMarkerArray;
+  QList<int> fwdSumAlleles;
+  QList<int> fwdSumGenotypes;
+  QList<int> fwdSumHaplotypeBits;
+};
+
+
 class Markers
 {
 public:
-  int nMarkers();
-  void setSamp(int sampleIndex);
-  int index(int localIndex) { return _indexToSample[localIndex]; }
-  int findIndex(int sampleIndex);
-  CString name(int localIndex);
+  // The default constructor is automatically compiled.
+  // The copy constructor is automatically compiled.
+  // The assignment operator is automatically compiled.
+
+  Markers(QList<Marker> individualMarkers);
+
+  // The destructor is automatically compiled.
+
+    /**
+     * Constructs and returns a new {@code Markers} instance that is
+     * equivalent to reversing the order of markers in {@code this}.
+     */
+  Markers reverse() const;
+
+    /**
+     * Returns the number of markers.
+     */
+    int nMarkers() const {
+      return _d->fwdMarkerArray.length();
+    }
+
+    /**
+     * Returns the specified marker.
+     */
+    Marker marker(int marker) const {
+        return _d->fwdMarkerArray[marker];
+    }
+
+    /**
+     * Returns the list of markers.
+     */
+    QList<Marker> markers() const {
+        return _d->fwdMarkerArray;
+    }
+
+    /**
+     * Returns a {@code Markers} instance that represents
+     * the specified range of marker indices.
+     * @param start the starting marker index (inclusive)
+     * @param end the ending marker index (exclusive)
+     */
+    Markers restrict(int start, int end) const;
+
+    /**
+     * Returns the sum of the number of alleles for
+     * the markers with index less than the specified index.
+     * @param marker a marker index
+     */
+    int sumAlleles(int marker) const {
+        return _d->fwdSumAlleles[marker];
+    }
+
+    /**
+     * Returns {@code this.sumAlleles(this.nMarkers())}.
+     */
+    int sumAlleles() const {
+      return _d->fwdSumAlleles[_d->fwdMarkerArray.length()];
+    }
+
+    /**
+     * Returns the sum of the number of possible genotypes for the markers
+     * with index less than the specified index.
+     * @param marker a marker index
+     */
+    int sumGenotypes(int marker) const {
+        return _d->fwdSumGenotypes[marker];
+    }
+
+    /**
+     * Returns {@code this.sumGenotypes(this.nMarkers())}.
+     */
+    int sumGenotypes() const {
+        return _d->fwdSumGenotypes[_d->fwdMarkerArray.length()];
+    }
+
+    /**
+     * Returns the number of bits requires to store a haplotype for the
+     * markers with index less than the specified index.
+     * @param marker a marker index
+     */
+    int sumHaplotypeBits(int marker) const {
+        return _d->fwdSumHaplotypeBits[marker];
+    }
+
+    /**
+     * Returns {@code this.sumHaplotypeBits(this.nMarkers())}.
+     */
+    int sumHaplotypeBits() const {
+      return _d->fwdSumHaplotypeBits[_d->fwdMarkerArray.length()];
+    }
 
 private:
-  SampleNames _sNamesObject;
-  QList<int> _indexToSample;
-  QMap<int, int> _indexFromSample;
+  void initSharedDataPointers();
+  void checkMarkerPosOrder(QList<Marker> markers);
+  void setReverseMarkers(QList<Marker> fwdList);
+  void cumSumAlleles(QList<int> &sumAlleles, QList<Marker> markers);
+  void cumSumGenotypes(QList<int> &sumGenotypes, QList<Marker> markers);
+  void cumSumHaplotypeBits(QList<int> &sumHaplotypeBits, QList<Marker> markers);
+
+  QSharedDataPointer<MarkersPluralSharedData> _d;
+  QSharedDataPointer<MarkersPluralSharedData> _drev;
 };
-*/
+
+Q_DECLARE_TYPEINFO(Markers, Q_MOVABLE_TYPE);
+
 
 #endif
