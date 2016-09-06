@@ -1,6 +1,7 @@
 #include "samples.h"
 #include <QString>
 
+
 static QList<CString> _names;
 static QMap<CString, int> _nameMap;
 
@@ -14,10 +15,6 @@ CString SampleNames::name(int index)
   return _names[index];
 }
 
-/**
- * Gets the sample name index. Adds the name to the sample names if
- * the name does not already exist.
- */
 int SampleNames::getIndex(CString name)
 {
   if (_nameMap.contains(name))
@@ -30,9 +27,6 @@ int SampleNames::getIndex(CString name)
   }
 }
 
-/**
- * Gets the sample name index if it exists. Returns -1 otherwise.
- */
 int SampleNames::getIndexIfIndexed(CString name)
 {
   if (_nameMap.contains(name))
@@ -41,29 +35,35 @@ int SampleNames::getIndexIfIndexed(CString name)
     return -1;
 }
 
-int Samples::nSamples()
-{
-  return _indexToSample.length();
-}
 
 void Samples::setSamp(int sampleIndex)
 {
-  if (_indexFromSample.contains(sampleIndex))
+  if (_d->indexFromSample.contains(sampleIndex))
     throw(QString("Duplicate sample index %1.").arg(sampleIndex));
 
-  _indexFromSample.insert(sampleIndex, _indexToSample.length());
-  _indexToSample.append(sampleIndex);
+  _d->indexFromSample.insert(sampleIndex, _d->indexToSample.length());
+  _d->indexToSample.append(sampleIndex);
 }
 
-int Samples::findIndex(int sampleIndex)
+int Samples::nSamples() const
 {
-  if (_indexFromSample.contains(sampleIndex))
-    return _indexFromSample[sampleIndex];
+  return _d->indexToSample.length();
+}
+
+int Samples::index(int localIndex) const
+{
+  return _d->indexToSample[localIndex];
+}
+
+int Samples::findIndex(int sampleIndex) const
+{
+  if (_d->indexFromSample.contains(sampleIndex))
+    return _d->indexFromSample[sampleIndex];
   else
     return -1;
 }
 
-CString Samples::name(int localIndex)
+CString Samples::name(int localIndex) const
 {
-  return _sNamesObject.name(_indexToSample[localIndex]);
+  return SampleNames::name(index(localIndex));
 }

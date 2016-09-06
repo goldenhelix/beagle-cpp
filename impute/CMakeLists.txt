@@ -4,12 +4,14 @@ set(IMPUTE_HEADERS
   haplotypepair.h  # So far, this is a test framework dummy class.
   samples.h
   markers.h
+  vcfemission.h
 )
 
 set(IMPUTE_SOURCES
   haplotypepair.cpp
   samples.cpp
   markers.cpp
+  vcfemission.cpp
 )
 
 find_package(Qt5Core REQUIRED)

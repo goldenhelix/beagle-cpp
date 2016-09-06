@@ -3,16 +3,18 @@
 #define MARKERS_H
 
 #include "ghicore/cstring.h"
+#include "impute/samples.h"
 
 #include <QList>
 #include <QSharedData>
+#include <QBitArray>
 
-class ChromeIds
+
+namespace ChromeIds
 {
-public:
   int nIds();
 
-  static CString chromeId(int index);
+  CString chromeId(int index);
 
   int getIndex(CString name);
   int getIndexIfIndexed(CString name);
@@ -22,7 +24,7 @@ public:
 class MarkerSharedData : public QSharedData
 {
 public:
-  MarkerSharedData() : chromIndex(-1) {}
+  MarkerSharedData() : QSharedData(), chromIndex(-1) {}
   MarkerSharedData(const MarkerSharedData &other)
     : QSharedData(other), chromIndex(-1)
   {
@@ -37,13 +39,15 @@ public:
   int nGenotypes;
 };
 
+
 class Marker
 {
 public:
   Marker() { _d = new MarkerSharedData; }
+  Marker(MarkerSharedData *dpt) {_d = dpt;}               // For initializing from a "derived" class.
+  Marker(const Marker &other) : _d(other._d) { }
 
-  // The copy constructor is automatically compiled.
-  // The assignment operator is automatically compiled.
+  ~Marker() { }
 
   void setIdInfo(int chromIndex, int pos, CString id);
   void setAllele(CString allele);
@@ -95,12 +99,11 @@ private:
 Q_DECLARE_TYPEINFO(Marker, Q_MOVABLE_TYPE);
 
 
-
 class MarkersPluralSharedData : public QSharedData
 {
 public:
   MarkersPluralSharedData() {}
-  MarkersPluralSharedData(const MarkerSharedData &other)
+  MarkersPluralSharedData(const MarkersPluralSharedData &other)
     : QSharedData(other)
   {
     throw("Resetting a MarkersPluralSharedData instance....");
@@ -117,13 +120,12 @@ public:
 class Markers
 {
 public:
-  // The default constructor is automatically compiled.
-  // The copy constructor is automatically compiled.
-  // The assignment operator is automatically compiled.
+  Markers() { initSharedDataPointers(); }
+  Markers(const Markers &other) : _d(other._d), _drev(other._drev) { }
 
   Markers(QList<Marker> individualMarkers);
 
-  // The destructor is automatically compiled.
+  ~Markers() { }
 
     /**
      * Constructs and returns a new {@code Markers} instance that is
