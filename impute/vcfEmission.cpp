@@ -1,7 +1,7 @@
 #include "impute/vcfemission.h"
 
 
-void BitSetRefGTSharedData::storeAllele(QBitArray alleles, int sample,
+void BitSetRefGTSharedData::storeAllele(QBitArray &alleles, int sample,
             int bitsPerAllele, int allele) {
         int index = sample*bitsPerAllele;
         int mask = 1;
@@ -14,7 +14,7 @@ void BitSetRefGTSharedData::storeAllele(QBitArray alleles, int sample,
         }
     }
 
-int BitSetRefGTSharedData::alleleFromBits(QBitArray bits, int sample) const {
+int BitSetRefGTSharedData::alleleFromBits(const QBitArray &bits, int sample) const {
         int start = bitsPerAllele*sample;
         int end = start + bitsPerAllele;
         int allele = 0;
@@ -88,15 +88,15 @@ void BitSetRefGT::setIdInfo(int chromIndex, int pos, CString id)
 
 void BitSetRefGT::setAllele(CString allele)
 {
-  _d->alleles.append(allele);
+  _d->allelesInMarker.append(allele);
 
-  int l = _d->alleles.length();
+  int l = _d->allelesInMarker.length();
   _d->nGenotypes = (l * (1 + l)) / 2;
 }
 
-void BitSetRefGT::storeAlleles(QList<int> als1, QList<int> als2, QList<bool> arePhased)
+void BitSetRefGT::storePhasedAlleles(QList<int> &als1, QList<int> &als2)
 {
-  int nAllelesM1 = _d->alleles.length() - 1;
+  int nAllelesM1 = _d->allelesInMarker.length() - 1;
   int nStorageBits = 0;
   while(nAllelesM1 > 0){
     nStorageBits++;
@@ -112,8 +112,8 @@ void BitSetRefGT::storeAlleles(QList<int> als1, QList<int> als2, QList<bool> are
 	  int a1 = als1[samp];
 	  int a2 = als2[samp];
 
-	  if (!arePhased[samp]  ||  a1 == -1  ||  a2 == -1)
-	    throw( QString("Unphased or missing reference genotype at marker: %1").arg(marker().id().asQString()));
+	  Q_ASSERT_X(a1 != -1  &&  a2 != -1,
+		     "BitSetRefGT::storeAlleles", "Missing reference genotype");
 
 	  _d->storeAllele(_d->allele1Data, samp, nStorageBits, a1);
 	  _d->storeAllele(_d->allele2Data, samp, nStorageBits, a2);
@@ -141,15 +141,15 @@ void BitSetGT::setIdInfo(int chromIndex, int pos, CString id)
 
 void BitSetGT::setAllele(CString allele)
 {
-  _d->alleles.append(allele);
+  _d->allelesInMarker.append(allele);
 
-  int l = _d->alleles.length();
+  int l = _d->allelesInMarker.length();
   _d->nGenotypes = (l * (1 + l)) / 2;
 }
 
-void BitSetGT::storeAlleles(QList<int> als1, QList<int> als2, QList<bool> arePhased)
+void BitSetGT::storeAlleles(QList<int> &als1, QList<int> &als2, QList<bool> &arePhased)
 {
-  int nAllelesM1 = _d->alleles.length() - 1;
+  int nAllelesM1 = _d->allelesInMarker.length() - 1;
   int nStorageBits = 0;
   while(nAllelesM1 > 0){
     nStorageBits++;
@@ -197,3 +197,4 @@ int BitSetGT::allele(int hap) const{
   int sample = hap/2;
   return (hap & 1) == 0 ? allele1(sample) : allele2(sample);
 }
+

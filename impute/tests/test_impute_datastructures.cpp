@@ -1,8 +1,11 @@
 /* Copyright 2016 Golden Helix, Inc. */
-#include "impute/haplotypepair.h"
+
 #include "impute/samples.h"
 #include "impute/markers.h"
 #include "impute/vcfemission.h"
+#include "impute/haplotypepair.h"
+
+#include "impute/tests/haptests.h"
 
 #include <QObject>
 #include <QtTest/QtTest>
@@ -12,20 +15,11 @@ class TestImputeDataStructures : public QObject
   Q_OBJECT;
 private slots:
 
-  void testHaplotypePairs();
   void testSamples();
   void testMarkers();
   void testVcfEmissions();
+  void testHaplotypePairs();
 };
-
-void TestImputeDataStructures::testHaplotypePairs()
-{
-  // HaplotypePair pair;
-  // pair.setData(qMakePair<QByteArray, QByteArray>("ABC", "DEF"));
-
-  // QCOMPARE(pair.a(), QString("ABC"));
-  // QCOMPARE(pair.b(), QString("DEF"));
-}
 
 void TestImputeDataStructures::testSamples()
 {
@@ -237,27 +231,32 @@ void TestImputeDataStructures::testMarkers()
   delete m7;
 
   Markers marksfwd(biglist);
-  Markers marksrev = marksfwd.reverse();
+  Markers marksfwcopy(marksfwd, false);
+  Markers marksrev(marksfwd, true);
 
   QCOMPARE(marksfwd.nMarkers(), 6);
+  QCOMPARE(marksfwcopy.nMarkers(), 6);
   QCOMPARE(marksrev.nMarkers(), 6);
   QCOMPARE(marksfwd.marker(2).pos(), 5432);
+  QCOMPARE(marksfwcopy.marker(2).pos(), 5432);
   QCOMPARE(marksrev.marker(2).pos(), 23465);
   QCOMPARE(marksfwd.markers()[1].id().constData(), "RS72351");
+  QCOMPARE(marksfwcopy.markers()[1].id().constData(), "RS72351");
+  QCOMPARE(marksrev.markers()[1].id().constData(), "RS6541");
 
   QCOMPARE(marksfwd.restrict(3, 5).markers() == lm, true);
-  QList<Marker> restrictedList = marksfwd.restrict(3, 5).markers();
+  QList<Marker> restrictedList = marksfwcopy.restrict(3, 5).markers();
   QCOMPARE(restrictedList.length(), 2);
   QCOMPARE(restrictedList[0] == lm[0], true);
   QCOMPARE(restrictedList[1] == lm[1], true);
   QCOMPARE(restrictedList == lm, true);
 
   QCOMPARE(marksfwd.sumAlleles(2), 4);
-  QCOMPARE(marksfwd.sumAlleles(), 12);
+  QCOMPARE(marksfwcopy.sumAlleles(), 12);
   QCOMPARE(marksfwd.sumGenotypes(2), 6);
-  QCOMPARE(marksfwd.sumGenotypes(), 18);
+  QCOMPARE(marksfwcopy.sumGenotypes(), 18);
   QCOMPARE(marksfwd.sumHaplotypeBits(2), 2);
-  QCOMPARE(marksfwd.sumHaplotypeBits(), 6);
+  QCOMPARE(marksfwcopy.sumHaplotypeBits(), 6);
 
   Markers markers2(marksfwd);
   QCOMPARE(markers2.marker(3) == marksfwd.marker(3), true);
@@ -268,151 +267,126 @@ void TestImputeDataStructures::testMarkers()
 
 void TestImputeDataStructures::testVcfEmissions()
 {
-  QList<BitSetRefGT> _refEmissions;
-  QList<BitSetGT> _targetEmissions;
+  QList<BitSetRefGT> refEmissions;
+  QList<BitSetGT> targetEmissions;
 
-  QCOMPARE(SampleNames::getIndexIfIndexed("SAMP073"), 3);       // This name should exist already.
-  QCOMPARE(SampleNames::getIndexIfIndexed("SAMP007"), -1);      // This name should not.
-
-  // Construct "samplesR" and set its data before there are any other
-  // references to the object.
-
-  Samples samplesR;
-  samplesR.setSamp(SampleNames::getIndex("SAMP001"));   // The first three names and global sample
-  samplesR.setSamp(SampleNames::getIndex("SAMP003"));   // indexes already exist (globally).
-  samplesR.setSamp(SampleNames::getIndex("SAMP005"));
-  samplesR.setSamp(SampleNames::getIndex("SAMP007"));   // This name is new.
+  loadTestDataForRefData(refEmissions);
 
   QCOMPARE(SampleNames::getIndexIfIndexed("SAMP073"), 3);
   QCOMPARE(SampleNames::getIndexIfIndexed("SAMP007"), 5);
 
-  // Build some VcfEmissions objects as "reference data" (containing
-  // phased genotypes without missing data). Be careful to load the
-  // data before doing any "copy" or "assignment" operations (which
-  // operations are actually reference copy operations).
-
-  QCOMPARE(ChromeIds::getIndexIfIndexed("X"),  2);      // This chromosome name should exist already.
+  QCOMPARE(ChromeIds::getIndexIfIndexed("X"), 2);       // This chromosome name should exist already.
   QCOMPARE(ChromeIds::getIndexIfIndexed("2"), -1);      // This one should not.
 
-  BitSetRefGT r1(samplesR);
+  loadTestDataForTargetData(targetEmissions);
 
-  r1.setIdInfo(ChromeIds::getIndex("1"), 12345, "RS12345");
-  r1.setAllele("A");
-  r1.setAllele("C");
+  QCOMPARE(ChromeIds::getIndexIfIndexed("X"),  2);      // This chromosome name should exist already.
+  QCOMPARE(ChromeIds::getIndexIfIndexed("2"), -1);      // This one still should not.
 
-  QList<int> r11; r11.append(1); r11.append(0); r11.append(0); r11.append(1);
-  QList<int> r12; r12.append(1); r12.append(1); r12.append(0); r12.append(1);
-  QList<bool> arePhased; arePhased.append(true); arePhased.append(true); arePhased.append(true); arePhased.append(true);
-  r1.storeAlleles(r11, r12, arePhased);
+  QCOMPARE(refEmissions.length(), 4);
+  QCOMPARE(targetEmissions.length(), 3);
 
-  _refEmissions.append(r1);
+  QCOMPARE(targetEmissions[1].isPhased(1), true);
+  QCOMPARE(targetEmissions[0].isRefData(), false);
+  QCOMPARE(targetEmissions[1].isRefData(), true);
+  QCOMPARE(targetEmissions[0].allele1(2), -1);
+  QCOMPARE(targetEmissions[0].allele2(1), 1);
+  QCOMPARE(targetEmissions[1].allele1(0), 0);
+  QCOMPARE(targetEmissions[2].allele1(2), 1);
 
-  BitSetRefGT r2(samplesR);
+  refEmissions.clear();
+  targetEmissions.clear();
 
-  r2.setIdInfo(ChromeIds::getIndex("17"), 22345, "RS22345");
-  r2.setAllele("G");
-  r2.setAllele("T");
-
-  QList<int> r21; r21.append(0); r21.append(0); r21.append(1); r21.append(0);
-  QList<int> r22; r22.append(1); r22.append(1); r22.append(1); r22.append(1);
-  r2.storeAlleles(r21, r22, arePhased);
-
-  _refEmissions.append(r2);
-
-  BitSetRefGT r2a(samplesR);  // This marker will be inbetween two markers that overlap the target data.
-
-  r2a.setIdInfo(ChromeIds::getIndex("17"), 22678, "RS22678");
-  r2a.setAllele("C");
-  r2a.setAllele("G");
-
-  QList<int> r21a; r21a.append(0); r21a.append(1); r21a.append(1); r21a.append(0);
-  QList<int> r22a; r22a.append(1); r22a.append(0); r22a.append(1); r22a.append(1);
-  r2a.storeAlleles(r21a, r22a, arePhased);
-
-  _refEmissions.append(r2a);
-
-  BitSetRefGT r3(samplesR);
-
-  r3.setIdInfo(ChromeIds::getIndex("17"), 33345, "RS33345");
-  r3.setAllele("A");
-  r3.setAllele("T");
-
-  QList<int> r31; r31.append(0); r31.append(1); r31.append(0); r31.append(0);
-  QList<int> r32; r32.append(1); r32.append(0); r32.append(1); r32.append(1);
-  r3.storeAlleles(r31, r32, arePhased);
-
-  _refEmissions.append(r3);
-
-
-  // Construct "samplesT" and set its data before there are any other
-  // references to the object.
-
-  Samples samplesT;
-  samplesT.setSamp(SampleNames::getIndex("SAMP073"));
-  samplesT.setSamp(SampleNames::getIndex("SAMP087"));
-  samplesT.setSamp(SampleNames::getIndex("SAMP095"));
-
-  // Build some VcfEmissions objects as "target data" (containing
-  // normal unphased genotypes). Be careful to load the data before
-  // doing any "copy" or "assignment" operations (which are actually
-  // reference copy operations).
-
-  BitSetGT t1(samplesT);
-
-  t1.setIdInfo(ChromeIds::getIndex("1"), 12345, "RS12345");
-  t1.setAllele("A");
-  t1.setAllele("C");
-
-  QList<int> t11; t11.append(1); t11.append(0); t11.append(-1);
-  QList<int> t12; t12.append(1); t12.append(1); t12.append(0);
-  arePhased[0] = false; arePhased[2] = false; arePhased.removeLast();   // Leave arePhased[1] at "true" on purpose.
-  t1.storeAlleles(t11, t12, arePhased);
-
-  _targetEmissions.append(t1);
-
-  BitSetGT t2(samplesT);
-
-  t2.setIdInfo(ChromeIds::getIndex("17"), 22345, "RS22345");
-  t2.setAllele("G");
-  t2.setAllele("T");
-
-  QList<int> t21; t21.append(0); t21.append(0); t21.append(1);
-  QList<int> t22; t22.append(1); t22.append(1); t22.append(1);
-  arePhased[0] = true; arePhased[2] = true;
-  t2.storeAlleles(t21, t22, arePhased);
-
-  _targetEmissions.append(t2);
-
-  BitSetGT t3(samplesT);
-
-  t3.setIdInfo(ChromeIds::getIndex("17"), 33345, "RS33345");
-  t3.setAllele("A");
-  t3.setAllele("T");
-
-  QList<int> t31; t31.append(0); t31.append(1); t31.append(1);
-  QList<int> t32; t32.append(1); t32.append(0); t32.append(0);
-  arePhased[0] = false; arePhased[2] = false;
-  t3.storeAlleles(t31, t32, arePhased);
-
-  _targetEmissions.append(t3);
-
-  QCOMPARE(_refEmissions.length(), 4);
-  QCOMPARE(_targetEmissions.length(), 3);
-
-  QCOMPARE(_refEmissions[3].isPhased(2), true);
-  QCOMPARE(_targetEmissions[1].isPhased(1), true);
-  QCOMPARE(_targetEmissions[0].isRefData(), false);
-  QCOMPARE(t2.isRefData(), true);
-  QCOMPARE(_targetEmissions[1].isRefData(), true);
-  QCOMPARE(_refEmissions[2].isRefData(), true);
-  QCOMPARE(_targetEmissions[0].allele1(2), -1);
-
-  _refEmissions.clear();
-  _targetEmissions.clear();
-
-  QCOMPARE(_refEmissions.length(), 0);
-  QCOMPARE(_targetEmissions.length(), 0);
+  QCOMPARE(refEmissions.length(), 0);
+  QCOMPARE(targetEmissions.length(), 0);
 }
+
+void TestImputeDataStructures::testHaplotypePairs()
+{
+  QList<BitSetRefGT> refEmissions;
+  loadTestDataForRefData(refEmissions);
+
+  int nummarks = refEmissions.length();
+
+  QList<Marker> biglist;
+  QList<int> als11;
+  QList<int> als21;
+  QList<int> als13;
+  QList<int> als23;
+
+  for (int mnum=0; mnum < nummarks; mnum++)
+  {
+    biglist.append(refEmissions[mnum].marker());
+    als11.append(refEmissions[mnum].allele1(1));
+    als21.append(refEmissions[mnum].allele2(1));
+    als13.append(refEmissions[mnum].allele1(3));
+    als23.append(refEmissions[mnum].allele2(3));
+  }
+
+  Markers marks(biglist);
+  HapPair pair1(marks, refEmissions[0].samples(), 1, als11, als21);
+  HapPair pair3(marks, refEmissions[0].samples(), 3, als13, als23);
+
+  HapPair pair1copy(pair1, false); // Copy but don't reverse.
+  HapPair pair3rev(pair3, true);   // Copy and reverse this one.
+
+  QCOMPARE(pair1.allele1(1), 0);
+  QCOMPARE(pair1.allele2(1), 1);
+  QCOMPARE(pair1.allele1(2), 1);
+  QCOMPARE(pair1.allele2(2), 0);
+
+  QCOMPARE(pair3.allele1(0), 1);
+  QCOMPARE(pair3.allele2(0), 1);
+  QCOMPARE(pair3.allele1(3), 0);
+  QCOMPARE(pair3.allele2(3), 1);
+
+  QCOMPARE(pair1copy.allele1(1), 0);
+  QCOMPARE(pair1copy.allele2(1), 1);
+  QCOMPARE(pair1copy.allele1(2), 1);
+  QCOMPARE(pair1copy.allele2(2), 0);
+
+  QCOMPARE(pair3rev.allele1(0), 0);
+  QCOMPARE(pair3rev.allele2(0), 1);
+  QCOMPARE(pair3rev.allele1(3), 1);
+  QCOMPARE(pair3rev.allele2(3), 1);
+
+  QCOMPARE(pair1.sampleIndex(), 1);
+  QCOMPARE(pair3.sampleIndex(), 3);
+  QCOMPARE(pair1copy.sampleIndex(), 1);
+  QCOMPARE(pair3rev.sampleIndex(), 3);
+
+  QCOMPARE(pair1.samples().name(0).constData(), "SAMP001");
+  QCOMPARE(pair3.samples().name(1).constData(), "SAMP003");
+  QCOMPARE(pair1copy.samples().name(2).constData(), "SAMP005");
+  QCOMPARE(pair3rev.samples().name(3).constData(), "SAMP007");
+
+  QCOMPARE(pair1.markers().marker(1).id().constData(), "RS22345");
+  QCOMPARE(pair3.marker(2).pos(), 22678);
+  QCOMPARE(pair3rev.marker(2).pos(), 22345);
+  QCOMPARE(pair1copy.nMarkers(), 4);
+}
+
+/*
+void TestImputeDataStructures::testDataDrivers()
+{
+  NullDataReader nr;
+  TargReaderTest tr;
+  RefReaderTest rr;
+
+  QList<BitSetRefGT> refEmissions;
+  QList<BitSetGT> targetEmissions;
+
+  rr.initialize(refEmissions);
+  tr.initialize(targetEmissions);
+
+  VcfWindow refWind;
+  RestrictedVcfWindow targetWind;
+  AllData ad(refWind, targetWind);
+
+  int overlap = 0;
+  ad.advanceWindow(overlap, tr, rr);
+}
+*/
 
 QTEST_MAIN(TestImputeDataStructures)
 #include "test_impute_datastructures.moc"

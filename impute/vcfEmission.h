@@ -20,18 +20,18 @@ public:
 
   ~BitSetRefGTSharedData() { }
 
+  void storeAllele(QBitArray &alleles, int sample,
+                   int bitsPerAllele, int allele);
+  int alleleFromBits(const QBitArray &bits, int sample) const;
+
+  int allele1(int sample) const;
+  int allele2(int sample) const;
+
   Samples samples;
 
   int bitsPerAllele;
   QBitArray allele1Data;
   QBitArray allele2Data;
-
-  void storeAllele(QBitArray alleles, int sample,
-                   int bitsPerAllele, int allele);
-  int alleleFromBits(QBitArray bits, int sample) const;
-
-  virtual int allele1(int sample) const;
-  virtual int allele2(int sample) const;
 };
 
 
@@ -49,87 +49,15 @@ public:
 
   ~BitSetGTSharedData() { }
 
-  // Used only by BitSetGT:
+  int allele1(int sample) const;
+  int allele2(int sample) const;
+  double gl(int sample, int a1, int a2) const;
+
   bool isRefData;
   QBitArray isMissing1Data;
   QBitArray isMissing2Data;
   QBitArray isPhasedData;
-
-  virtual int allele1(int sample) const;
-  virtual int allele2(int sample) const;
-  double gl(int sample, int a1, int a2) const;
 };
-
-#ifdef KNOCKING_OUT_OLD_HAPSMARKER_AND_VCF_CLASSES
-class HapsMarker : public Marker
-{
-public:
-  HapsMarker() : Marker() { }
-  HapsMarker(const Samples &samples) : Marker(samples) { }
-  HapsMarker(const HapsMarker &other) : Marker(other) { }
-
-  void storeAlleles(QList<int> als1, QList<int> als2, QList<bool> arePhased);
-
-    /**
-     * Returns the number of samples.
-     */
-  int nSamples() const {return _d->samples.nSamples();}
-
-    /**
-     * Returns the list of samples.
-     */
-    Samples samples() const {return _d->samples;}
-
-     /**
-     * Returns the allele on the specified haplotype.
-     * @param haplotype a haplotype index
-     */
-
-  int allele(int hap) const;
-
-    /**
-     * Returns the first allele for the specified haplotype pair.
-     * @param hapPair a haplotype pair index
-     */
-  virtual int allele1(int hapPair) const {return 0;}  // Must make class non-abstract for use in lists.
-
-    /**
-     * Returns the second allele for the specified haplotype pair.
-     * @param hapPair a haplotype pair index
-     */
-  virtual int allele2(int hapPair) const {return 0;}  // (See above.)
-
-    /**
-     * Returns the marker.
-     */
-    Marker marker() const {return *this;}
-
-    /**
-     * Returns the number of haplotypes.  The returned value is equal to
-     * {@code 2*this.nHapPairs()}.
-     */
-    virtual int nHaps() const {return 0;}  // (See above.)
-
-    /**
-     * Returns the number of haplotype pairs.  The returned value is
-     * equal to {@code this.nHaps()/2}.
-     */
-    virtual int nHapPairs() const {return 0;}  // (See above.)
-};
-
-Q_DECLARE_TYPEINFO(HapsMarker, Q_MOVABLE_TYPE);
-
-
-class VcfEmission : public HapsMarker
-{
-public:
-  VcfEmission() : HapsMarker() { }
-  VcfEmission(const Samples &samples) : HapsMarker(samples) { }
-  VcfEmission(const VcfEmission &other) : HapsMarker(other) { }
-};
-
-Q_DECLARE_TYPEINFO(VcfEmission, Q_MOVABLE_TYPE);
-#endif
 
 class BitSetRefGT
 {
@@ -141,7 +69,7 @@ public:
   void setIdInfo(int chromIndex, int pos, CString id);
   void setAllele(CString allele);
 
-  void storeAlleles(QList<int> als1, QList<int> als2, QList<bool> arePhased);
+  void storePhasedAlleles(QList<int> &als1, QList<int> &als2);
 
     /**
      * Returns the number of samples.
@@ -158,21 +86,6 @@ public:
      * @param haplotype a haplotype index
      */
   int allele(int hap) const;
-
-    /**
-     * Returns {@code true} if the genotype emission probabilities
-     * for each sample are determined by a phased called genotype
-     * that has no missing alleles, and returns {@code false} otherwise.
-     */
-  bool isRefData() const {return true;}
-
-    /**
-     * Returns {@code true} if the genotype emission probabilities for
-     * the specified sample are determined by a phased, nonmissing genotype,
-     * and returns {@code false} otherwise.
-     * @param sample the sample index
-     */
-    bool isPhased(int sample) const {return true;}
 
     /**
      * Returns the first allele for the specified haplotype pair.
@@ -226,7 +139,7 @@ public:
   void setIdInfo(int chromIndex, int pos, CString id);
   void setAllele(CString allele);
 
-  void storeAlleles(QList<int> als1, QList<int> als2, QList<bool> arePhased);
+  void storeAlleles(QList<int> &als1, QList<int> &als2, QList<bool> &arePhased);
 
     /**
      * Returns the number of samples.

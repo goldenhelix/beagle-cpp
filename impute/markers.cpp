@@ -56,9 +56,9 @@ void Marker::setIdInfo(int chromIndex, int pos, CString id)
 
 void Marker::setAllele(CString allele)
 {
-  _d->alleles.append(allele);
+  _d->allelesInMarker.append(allele);
 
-  int l = _d->alleles.length();
+  int l = _d->allelesInMarker.length();
   _d->nGenotypes = (l * (1 + l)) / 2;
 }
 
@@ -84,12 +84,26 @@ bool Marker::operator==(Marker otherMarker) const
   if (_d->pos != otherMarker.pos()) {
     return false;
   }
-  if (_d->alleles != otherMarker.alleles()) {
+  if (_d->allelesInMarker != otherMarker.alleles()) {
     return false;
   }
   return true;
 }
 
+
+Markers::Markers(const Markers &other, bool reverse)
+{
+  if(reverse)
+  {
+    _d = other._drev;
+    _drev = other._d;
+  }
+  else
+  {
+    _d = other._d;
+    _drev = other._drev;
+  }
+}
 
 Markers::Markers(QList<Marker> individualMarkers)
 {
@@ -184,12 +198,6 @@ void Markers::initSharedDataPointers()
         }
 	sumHaplotypeBits.append(cumSum);
     }
-
- Markers Markers::reverse() const {
-   Markers reversedObject = (*this);
-   reversedObject._d.swap(reversedObject._drev);
-   return reversedObject;
- }
 
     Markers Markers::restrict(int start, int end) const {
       if (end > _d->fwdMarkerArray.length()) {

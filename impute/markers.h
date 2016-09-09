@@ -35,7 +35,7 @@ public:
   int chromIndex;
   int pos;
   CString id;
-  QList<CString> alleles;
+  QList<CString> allelesInMarker;
   int nGenotypes;
 };
 
@@ -67,17 +67,17 @@ public:
    * Returns the number of alleles for the marker, including the REF
    * allele.
    */
-  int nAlleles() const { return _d->alleles.length(); }
+  int nAlleles() const { return _d->allelesInMarker.length(); }
 
   /**
    * Returns the specified allele.  The reference allele has index 0.
    */
-  CString allele(int index) const { return _d->alleles[index]; }
+  CString allele(int index) const { return _d->allelesInMarker[index]; }
 
   /**
    * Returns the alleles.
    */
-  QList<CString> alleles() const { return _d->alleles; }
+  QList<CString> alleles() const { return _d->allelesInMarker; }
 
   /**
    * Returns the number of distinct genotypes, which equals
@@ -123,15 +123,10 @@ public:
   Markers() { initSharedDataPointers(); }
   Markers(const Markers &other) : _d(other._d), _drev(other._drev) { }
 
+  Markers(const Markers &other, bool reverse);
   Markers(QList<Marker> individualMarkers);
 
   ~Markers() { }
-
-    /**
-     * Constructs and returns a new {@code Markers} instance that is
-     * equivalent to reversing the order of markers in {@code this}.
-     */
-  Markers reverse() const;
 
     /**
      * Returns the number of markers.
