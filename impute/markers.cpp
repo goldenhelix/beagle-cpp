@@ -76,7 +76,7 @@ CString Marker::id() const
 }
 
 // Do not be concerned about equality of the marker ID's.
-bool Marker::operator==(Marker otherMarker) const
+bool Marker::operator==(const Marker &otherMarker) const
 {
   if (_d->chromIndex != otherMarker.chromIndex()) {
     return false;

@@ -44,11 +44,11 @@ void TestImputeDataStructures::testSamples()
   samples.setSamp(2);
 
   QCOMPARE(samples.nSamples(), 2);
-  QCOMPARE(samples.index(0), 1);
-  QCOMPARE(samples.index(1), 2);
-  QCOMPARE(samples.findIndex(1), 0);
-  QCOMPARE(samples.findIndex(2), 1);
-  QCOMPARE(samples.findIndex(0), -1);
+  QCOMPARE(samples.idIndex(0), 1);
+  QCOMPARE(samples.idIndex(1), 2);
+  QCOMPARE(samples.findLocalIndex(1), 0);
+  QCOMPARE(samples.findLocalIndex(2), 1);
+  QCOMPARE(samples.findLocalIndex(0), -1);
   QCOMPARE(samples.name(0).constData(), "SAMP003");
   QCOMPARE(samples.name(1).constData(), "SAMP005");
 
@@ -60,22 +60,22 @@ void TestImputeDataStructures::testSamples()
   QCOMPARE(SampleNames::name(4).constData(), "SAMP085");
 
   QCOMPARE(samples2.nSamples(), 2);
-  QCOMPARE(samples2.index(0), 3);
-  QCOMPARE(samples2.index(1), 4);
-  QCOMPARE(samples2.findIndex(4), 1);
-  QCOMPARE(samples2.findIndex(3), 0);
-  QCOMPARE(samples2.findIndex(2), -1);
+  QCOMPARE(samples2.idIndex(0), 3);
+  QCOMPARE(samples2.idIndex(1), 4);
+  QCOMPARE(samples2.findLocalIndex(4), 1);
+  QCOMPARE(samples2.findLocalIndex(3), 0);
+  QCOMPARE(samples2.findLocalIndex(2), -1);
   QCOMPARE(samples2.name(0).constData(), "SAMP073");
   QCOMPARE(samples2.name(1).constData(), "SAMP085");
 
   Samples samples3 = samples2;
 
   QCOMPARE(samples2.nSamples(), 2);
-  QCOMPARE(samples2.index(0), 3);
-  QCOMPARE(samples2.index(1), 4);
-  QCOMPARE(samples2.findIndex(4), 1);
-  QCOMPARE(samples2.findIndex(3), 0);
-  QCOMPARE(samples2.findIndex(2), -1);
+  QCOMPARE(samples2.idIndex(0), 3);
+  QCOMPARE(samples2.idIndex(1), 4);
+  QCOMPARE(samples2.findLocalIndex(4), 1);
+  QCOMPARE(samples2.findLocalIndex(3), 0);
+  QCOMPARE(samples2.findLocalIndex(2), -1);
   QCOMPARE(samples2.name(0).constData(), "SAMP073");
   QCOMPARE(samples2.name(1).constData(), "SAMP085");
 }
@@ -278,6 +278,11 @@ void TestImputeDataStructures::testVcfEmissions()
   QCOMPARE(ChromeIds::getIndexIfIndexed("X"), 2);       // This chromosome name should exist already.
   QCOMPARE(ChromeIds::getIndexIfIndexed("2"), -1);      // This one should not.
 
+  QCOMPARE(refEmissions[0].allele2(1), 1);
+  QCOMPARE(refEmissions[1].allele1(0), 0);
+  QCOMPARE(refEmissions[2].allele1(2), 1);
+  QCOMPARE(refEmissions[3].allele2(3), 1);
+
   loadTestDataForTargetData(targetEmissions);
 
   QCOMPARE(ChromeIds::getIndexIfIndexed("X"),  2);      // This chromosome name should exist already.
@@ -364,6 +369,37 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(pair3.marker(2).pos(), 22678);
   QCOMPARE(pair3rev.marker(2).pos(), 22345);
   QCOMPARE(pair1copy.nMarkers(), 4);
+
+  QList<HapPair> hpsList;
+  hpsList.append(pair1);
+  hpsList.append(pair3);
+  hpsList.append(pair1copy);
+  HapPairs hps(hpsList, false);
+
+  QCOMPARE(hps.allele1(1, 0), 0);
+  QCOMPARE(hps.allele2(0, 1), 1);
+  QCOMPARE(hps.allele1(3, 2), 1);
+  QCOMPARE(hps.allele2(3, 2), 0);
+
+  QCOMPARE(hps.allele2(1, 1), 1);
+  QCOMPARE(hps.allele1(1, 2), 0);
+
+  QCOMPARE(hps.allele(1, 3), 1);
+  QCOMPARE(hps.allele(1, 4), 0);
+  QCOMPARE(hps.nMarkers(), 4);
+  Markers mks = hps.markers();
+  Marker m2 = hps.marker(2);
+  
+  QCOMPARE(hps.nHaps(), 6);
+  QCOMPARE(hps.nHapPairs(), 3);
+  Samples shps1 = hps.samples(1);
+  QCOMPARE(hps.sampleIndex(0), 1);
+  QCOMPARE(hps.sampleIndex(1), 3);
+  QCOMPARE(hps.sampleIndex(2), 1);
+
+  QCOMPARE(mks == marks, true);
+  QCOMPARE(m2 == refEmissions[2].marker(), true);
+  QCOMPARE(shps1 == refEmissions[1].samples(), true);
 }
 
 /*

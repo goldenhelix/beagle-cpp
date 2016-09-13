@@ -9,7 +9,7 @@ void loadTestDataForRefData(QList<BitSetRefGT> &refEmissions)
   samplesR.setSamp(SampleNames::getIndex("SAMP001"));   // The first three names and global sample
   samplesR.setSamp(SampleNames::getIndex("SAMP003"));   // indexes already exist (globally).
   samplesR.setSamp(SampleNames::getIndex("SAMP005"));
-  samplesR.setSamp(SampleNames::getIndex("SAMP007"));   // This name is new (the first time we run this utility).
+  samplesR.setSamp(SampleNames::getIndex("SAMP007"));   // This name will be new the first time we run this utility.
 
   // Build some VcfEmissions objects as "reference data" (containing
   // phased genotypes without missing data). Be careful to load the

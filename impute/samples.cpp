@@ -38,8 +38,8 @@ int SampleNames::getIndexIfIndexed(CString name)
 
 void Samples::setSamp(int sampleIndex)
 {
-  if (_d->indexFromSample.contains(sampleIndex))
-    throw(QString("Duplicate sample index %1.").arg(sampleIndex));
+  Q_ASSERT_X(!_d->indexFromSample.contains(sampleIndex),
+             "Samples::setSamp", "Duplicate sample index.");
 
   _d->indexFromSample.insert(sampleIndex, _d->indexToSample.length());
   _d->indexToSample.append(sampleIndex);
@@ -50,12 +50,12 @@ int Samples::nSamples() const
   return _d->indexToSample.length();
 }
 
-int Samples::index(int localIndex) const
+int Samples::idIndex(int localIndex) const
 {
   return _d->indexToSample[localIndex];
 }
 
-int Samples::findIndex(int sampleIndex) const
+int Samples::findLocalIndex(int sampleIndex) const
 {
   if (_d->indexFromSample.contains(sampleIndex))
     return _d->indexFromSample[sampleIndex];
@@ -65,5 +65,10 @@ int Samples::findIndex(int sampleIndex) const
 
 CString Samples::name(int localIndex) const
 {
-  return SampleNames::name(index(localIndex));
+  return SampleNames::name(idIndex(localIndex));
+}
+
+bool Samples::operator==(const Samples &other) const
+{
+  return _d == other._d;
 }

@@ -54,9 +54,11 @@ public:
   void setSamp(int sampleIndex);
 
   int nSamples() const;
-  int index(int localIndex) const ;
-  int findIndex(int sampleIndex) const;
+  int idIndex(int localIndex) const ;
+  int findLocalIndex(int sampleIndex) const;
   CString name(int localIndex) const;
+
+  bool operator==(const Samples &other) const;
 
 private:
   QSharedDataPointer<SamplesSharedData> _d;

@@ -120,7 +120,7 @@ public:
      */
     double gl(int sample, int allele1, int allele2) const;
 
-  Marker marker() { return Marker(_d); }
+  Marker marker() const { return Marker((MarkerSharedData *) &(*_d)); }
 
 private:
 	QSharedDataPointer<BitSetRefGTSharedData> _d;

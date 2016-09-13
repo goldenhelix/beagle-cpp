@@ -90,7 +90,7 @@ public:
    * position, and allele lists, and returns false otherwise.
    * Equality does not depend on the value of the ID field.
    */
-  bool operator==(Marker otherMarker) const;
+  bool operator==(const Marker &otherMarker) const;
 
 private:
   QSharedDataPointer<MarkerSharedData> _d;
@@ -203,6 +203,14 @@ public:
      */
     int sumHaplotypeBits() const {
       return _d->fwdSumHaplotypeBits[_d->fwdMarkerArray.length()];
+    }
+
+  /**
+   * Returns true if the other Markers object has the same two shared
+   * data objects in the same order.
+   */
+    bool operator==(const Markers &otherMarkers) const {
+      return (_d == otherMarkers._d  &&  _drev == otherMarkers._drev);
     }
 
 private:
