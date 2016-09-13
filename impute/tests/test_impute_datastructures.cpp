@@ -1,9 +1,9 @@
 /* Copyright 2016 Golden Helix, Inc. */
 
-#include "impute/samples.h"
-#include "impute/markers.h"
-#include "impute/vcfemission.h"
 #include "impute/haplotypepair.h"
+#include "impute/markers.h"
+#include "impute/samples.h"
+#include "impute/vcfemission.h"
 
 #include "impute/tests/haptests.h"
 
@@ -156,7 +156,7 @@ void TestImputeDataStructures::testMarkers()
   Marker *m7 = new Marker;
   *m7 = *m6;  // Assign a "copy of m7" itself, rather than assigning a pointer.
   delete m6;  // The original m6 data should still be around after
-	      // deleting this "Marker" instance.
+              // deleting this "Marker" instance.
 
   QCOMPARE(m7->chrom().constData(), "X");
   QCOMPARE(m7->pos(), 23654);
@@ -196,7 +196,7 @@ void TestImputeDataStructures::testMarkers()
   m8.setAllele("C");
 
   Marker m9;
-  m9.setIdInfo(c1, 7632, "RS72355");   // Should not make it any "different" from marker m.
+  m9.setIdInfo(c1, 7632, "RS72355");  // Should not make it any "different" from marker m.
   m9.setAllele("A");
   m9.setAllele("C");
 
@@ -275,8 +275,8 @@ void TestImputeDataStructures::testVcfEmissions()
   QCOMPARE(SampleNames::getIndexIfIndexed("SAMP073"), 3);
   QCOMPARE(SampleNames::getIndexIfIndexed("SAMP007"), 5);
 
-  QCOMPARE(ChromeIds::getIndexIfIndexed("X"), 2);       // This chromosome name should exist already.
-  QCOMPARE(ChromeIds::getIndexIfIndexed("2"), -1);      // This one should not.
+  QCOMPARE(ChromeIds::getIndexIfIndexed("X"), 2);   // This chromosome name should exist already.
+  QCOMPARE(ChromeIds::getIndexIfIndexed("2"), -1);  // This one should not.
 
   QCOMPARE(refEmissions[0].allele2(1), 1);
   QCOMPARE(refEmissions[1].allele1(0), 0);
@@ -285,8 +285,8 @@ void TestImputeDataStructures::testVcfEmissions()
 
   loadTestDataForTargetData(targetEmissions);
 
-  QCOMPARE(ChromeIds::getIndexIfIndexed("X"),  2);      // This chromosome name should exist already.
-  QCOMPARE(ChromeIds::getIndexIfIndexed("2"), -1);      // This one still should not.
+  QCOMPARE(ChromeIds::getIndexIfIndexed("X"), 2);   // This chromosome name should exist already.
+  QCOMPARE(ChromeIds::getIndexIfIndexed("2"), -1);  // This one still should not.
 
   QCOMPARE(refEmissions.length(), 4);
   QCOMPARE(targetEmissions.length(), 3);
@@ -319,8 +319,7 @@ void TestImputeDataStructures::testHaplotypePairs()
   QList<int> als13;
   QList<int> als23;
 
-  for (int mnum=0; mnum < nummarks; mnum++)
-  {
+  for (int mnum = 0; mnum < nummarks; mnum++) {
     biglist.append(refEmissions[mnum].marker());
     als11.append(refEmissions[mnum].allele1(1));
     als21.append(refEmissions[mnum].allele2(1));
@@ -332,8 +331,8 @@ void TestImputeDataStructures::testHaplotypePairs()
   HapPair pair1(marks, refEmissions[0].samples(), 1, als11, als21);
   HapPair pair3(marks, refEmissions[0].samples(), 3, als13, als23);
 
-  HapPair pair1copy(pair1, false); // Copy but don't reverse.
-  HapPair pair3rev(pair3, true);   // Copy and reverse this one.
+  HapPair pair1copy(pair1, false);  // Copy but don't reverse.
+  HapPair pair3rev(pair3, true);    // Copy and reverse this one.
 
   QCOMPARE(pair1.allele1(1), 0);
   QCOMPARE(pair1.allele2(1), 1);
@@ -389,7 +388,7 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(hps.nMarkers(), 4);
   Markers mks = hps.markers();
   Marker m2 = hps.marker(2);
-  
+
   QCOMPARE(hps.nHaps(), 6);
   QCOMPARE(hps.nHapPairs(), 3);
   Samples shps1 = hps.samples(1);

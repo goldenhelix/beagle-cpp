@@ -1,27 +1,26 @@
 #include "haplotypepair.h"
 
-    /**
-     * Constructs a new {@code HapPair} instance.
-     * @param markers the sequence of markers
-     * @param samples the list of samples
-     * @param sampleIndex the sample index
-     * @param alleles1 the sequence of allele indices for the first haplotype
-     * @param alleles2 the sequence of alleles indices for the second haplotype
-     */
-HapPair::HapPair(Markers markers, Samples samples, int sampleIndex,
-            QList<int> &alleles1, QList<int> &alleles2)
+/**
+ * Constructs a new {@code HapPair} instance.
+ * @param markers the sequence of markers
+ * @param samples the list of samples
+ * @param sampleIndex the sample index
+ * @param alleles1 the sequence of allele indices for the first haplotype
+ * @param alleles2 the sequence of alleles indices for the second haplotype
+ */
+HapPair::HapPair(Markers markers, Samples samples, int sampleIndex, QList<int> &alleles1,
+                 QList<int> &alleles2)
 {
-  Q_ASSERT_X(alleles1.length() == markers.nMarkers()
-             &&  alleles2.length() == markers.nMarkers(),
-	     "HapPair constructor", "inconsistent markers");
-  Q_ASSERT_X(sampleIndex >= 0  &&  sampleIndex < samples.nSamples(),
-	     "HapPair constructor", "sample index out of bounds");
+  Q_ASSERT_X(alleles1.length() == markers.nMarkers() && alleles2.length() == markers.nMarkers(),
+             "HapPair constructor", "inconsistent markers");
+  Q_ASSERT_X(sampleIndex >= 0 && sampleIndex < samples.nSamples(), "HapPair constructor",
+             "sample index out of bounds");
 
-        _markers = markers;
-        _samples = samples;
-        _sampleIndex = sampleIndex;
-        _alleles1Data = toBitArray(markers, alleles1);
-        _alleles2Data = toBitArray(markers, alleles2);
+  _markers = markers;
+  _samples = samples;
+  _sampleIndex = sampleIndex;
+  _alleles1Data = toBitArray(markers, alleles1);
+  _alleles2Data = toBitArray(markers, alleles2);
 }
 
 HapPair::HapPair(HapPair &other, bool reverse)
@@ -30,62 +29,57 @@ HapPair::HapPair(HapPair &other, bool reverse)
   _samples = other.samples();
   _sampleIndex = other.sampleIndex();
 
-  if(reverse)
-  {
+  if (reverse) {
     int nmrks = _markers.nMarkers();
     QList<int> newAlList1;
     QList<int> newAlList2;
-    for (int mrk = nmrks - 1; mrk >= 0; mrk--)
-    {
+    for (int mrk = nmrks - 1; mrk >= 0; mrk--) {
       newAlList1.append(other.allele1(mrk));
       newAlList2.append(other.allele2(mrk));
     }
     _alleles1Data = toBitArray(_markers, newAlList1);
     _alleles2Data = toBitArray(_markers, newAlList2);
-  }
-  else
-  {
-    _alleles1Data = other._alleles1Data;    // Can reach inside the other object's private
-    _alleles2Data = other._alleles2Data;    // data because this object is of the same class.
+  } else {
+    _alleles1Data = other._alleles1Data;  // Can reach inside the other object's private
+    _alleles2Data = other._alleles2Data;  // data because this object is of the same class.
   }
 }
 
 QBitArray HapPair::toBitArray(Markers markers, QList<int> &alleles)
 {
-        int index = 0;
-        QBitArray bs(_markers.sumHaplotypeBits(), false);
-        for (int k=0; k<alleles.length(); ++k) {
-            int allele = alleles[k];
-            Q_ASSERT_X(allele >= 0  &&  allele < _markers.marker(k).nAlleles(),
-		       "HapPair::toBitArray", "allele out of bounds for a marker");
-            int mask = 1;
-            int nBits = markers.sumHaplotypeBits(k+1) - markers.sumHaplotypeBits(k);
-            for (int l=0; l<nBits; ++l) {
-	      bs.setBit(index++, (allele & mask)==mask );
-	      mask <<= 1;
-            }
-        }
-        return bs;
+  int index = 0;
+  QBitArray bs(_markers.sumHaplotypeBits(), false);
+  for (int k = 0; k < alleles.length(); ++k) {
+    int allele = alleles[k];
+    Q_ASSERT_X(allele >= 0 && allele < _markers.marker(k).nAlleles(), "HapPair::toBitArray",
+               "allele out of bounds for a marker");
+    int mask = 1;
+    int nBits = markers.sumHaplotypeBits(k + 1) - markers.sumHaplotypeBits(k);
+    for (int l = 0; l < nBits; ++l) {
+      bs.setBit(index++, (allele & mask) == mask);
+      mask <<= 1;
+    }
+  }
+  return bs;
 }
 
 int HapPair::allele(const QBitArray &bitset, int marker) const
 {
-        int start = _markers.sumHaplotypeBits(marker);
-        int end = _markers.sumHaplotypeBits(marker+1);
-        if (end==(start+1)) {
-            return bitset.testBit(start) ? 1 : 0;
-        }
-        int allele = 0;
-        int mask = 1;
-        for (int j=start; j<end; ++j) {
-            if (bitset.testBit(j)) {
-                allele += mask;
-            }
-            mask <<= 1;
-        }
-        return allele;
+  int start = _markers.sumHaplotypeBits(marker);
+  int end = _markers.sumHaplotypeBits(marker + 1);
+  if (end == (start + 1)) {
+    return bitset.testBit(start) ? 1 : 0;
+  }
+  int allele = 0;
+  int mask = 1;
+  for (int j = start; j < end; ++j) {
+    if (bitset.testBit(j)) {
+      allele += mask;
+    }
+    mask <<= 1;
+  }
+  return allele;
 }
-
 
 HapPairs::HapPairs(QList<HapPair> hapPairList, bool reverse)
 {
@@ -95,25 +89,25 @@ HapPairs::HapPairs(QList<HapPair> hapPairList, bool reverse)
   checkAndExtractMarkers(reverse);
 }
 
-    /**
-     * Checks that all haplotype pairs have alleles for lists of
-     * markers of the same lengths (and thus presumably for one and
-     * the same marker list), and sets the list of markers into the
-     * current object's data.
-     *
-     * @param reverse whether to have the markers in reverse order
-     */
+/**
+ * Checks that all haplotype pairs have alleles for lists of
+ * markers of the same lengths (and thus presumably for one and
+ * the same marker list), and sets the list of markers into the
+ * current object's data.
+ *
+ * @param reverse whether to have the markers in reverse order
+ */
 void HapPairs::checkAndExtractMarkers(bool reverse)
 {
   _markers = _hapPairs[0].markers();
 
-  if(reverse)
+  if (reverse)
     _markers = Markers(_markers, true);
 
-  for (int j=1, n=_hapPairs.length(); j<n; ++j)
+  for (int j = 1, n = _hapPairs.length(); j < n; ++j)
     Q_ASSERT_X(_hapPairs[j].markers() == _markers,
-	       "HapPairs::checkAndExtractMarkers",
-	       "inconsistent markers");
+               "HapPairs::checkAndExtractMarkers",
+               "inconsistent markers");
 
   _isReversed = reverse;
   _numOfMarkersM1 = _markers.nMarkers() - 1;
@@ -145,7 +139,6 @@ int HapPairs::allele2(int marker, int hapPair) const
     return _hapPairs[hapPair].allele2(marker);
 }
 
-
 /**
  * A sort compare class whose operator() method returns whether or not
  * the firstHapPair is "less than" the second HapPair. "Less than"
@@ -162,18 +155,16 @@ int HapPairs::allele2(int marker, int hapPair) const
 class CompareSamplesUsed
 {
 public:
-  CompareSamplesUsed( Samples samples ) 
-    : _samples(samples) {}
-
-  bool operator()( const HapPair& hp1, const HapPair& hp2 )
+  CompareSamplesUsed(Samples samples) : _samples(samples) {}
+  bool operator()(const HapPair &hp1, const HapPair &hp2)
   {
     int id1 = hp1.samples().idIndex(hp1.sampleIndex());
     int id2 = hp2.samples().idIndex(hp2.sampleIndex());
     int i1 = _samples.findLocalIndex(id1);
     int i2 = _samples.findLocalIndex(id2);
-    Q_ASSERT_X(i1 != -1  &&  i2 != -1,
-	       "CompareSamplesUsed::operator()",
-	       "sample not listed in the Samples object.");
+    Q_ASSERT_X(i1 != -1 && i2 != -1,
+               "CompareSamplesUsed::operator()",
+               "sample not listed in the Samples object.");
     return i1 < i2;
   }
 
@@ -192,10 +183,10 @@ SampleHapPairs::SampleHapPairs(Samples samples, QList<HapPair> hapPairList, bool
 
 void SampleHapPairs::checkSamples()
 {
-  Q_ASSERT_X(_samples.nSamples() == _hapPairs.size(),
-	     "SampleHapPairs::checkSamples", "inconsistent numbers of samples");
+  Q_ASSERT_X(_samples.nSamples() == _hapPairs.size(), "SampleHapPairs::checkSamples",
+             "inconsistent numbers of samples");
 
-  for (int j=0, n=_hapPairs.length(); j<n; ++j) {
+  for (int j = 0, n = _hapPairs.length(); j < n; ++j) {
     if (!(_samples == _hapPairs[j].samples())) {
       HapPair hp = _hapPairs[j];
       int i1 = _samples.idIndex(j);

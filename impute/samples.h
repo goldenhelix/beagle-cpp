@@ -4,10 +4,9 @@
 
 #include "ghicore/cstring.h"
 
-#include <QSharedData>
 #include <QList>
 #include <QMap>
-
+#include <QSharedData>
 
 namespace SampleNames
 {
@@ -26,35 +25,29 @@ namespace SampleNames
   int getIndexIfIndexed(CString name);
 };
 
-
 class SamplesSharedData : public QSharedData
 {
 public:
   SamplesSharedData() : QSharedData() {}
-  SamplesSharedData(const SamplesSharedData &other)
-    : QSharedData(other)
+  SamplesSharedData(const SamplesSharedData &other) : QSharedData(other)
   {
     throw("Resetting a SamplesSharedData instance....");
   }
-  ~SamplesSharedData() { }
-
+  ~SamplesSharedData() {}
   QList<int> indexToSample;
   QMap<int, int> indexFromSample;
 };
-
 
 class Samples
 {
 public:
   Samples() { _d = new SamplesSharedData; }
-  Samples(const Samples &other) : _d(other._d) { }
-
-  ~Samples() { }
-
+  Samples(const Samples &other) : _d(other._d) {}
+  ~Samples() {}
   void setSamp(int sampleIndex);
 
   int nSamples() const;
-  int idIndex(int localIndex) const ;
+  int idIndex(int localIndex) const;
   int findLocalIndex(int sampleIndex) const;
   CString name(int localIndex) const;
 

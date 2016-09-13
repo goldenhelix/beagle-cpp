@@ -1,7 +1,6 @@
 #include "samples.h"
 #include <QString>
 
-
 static QList<CString> _names;
 static QMap<CString, int> _nameMap;
 
@@ -35,11 +34,10 @@ int SampleNames::getIndexIfIndexed(CString name)
     return -1;
 }
 
-
 void Samples::setSamp(int sampleIndex)
 {
-  Q_ASSERT_X(!_d->indexFromSample.contains(sampleIndex),
-             "Samples::setSamp", "Duplicate sample index.");
+  Q_ASSERT_X(!_d->indexFromSample.contains(sampleIndex), "Samples::setSamp",
+             "Duplicate sample index.");
 
   _d->indexFromSample.insert(sampleIndex, _d->indexToSample.length());
   _d->indexToSample.append(sampleIndex);

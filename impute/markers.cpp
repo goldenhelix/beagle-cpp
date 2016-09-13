@@ -1,7 +1,6 @@
 #include "markers.h"
 #include <QString>
 
-
 #include <QMap>
 #include <QSet>
 
@@ -45,7 +44,6 @@ int ChromeIds::getIndexIfIndexed(CString name)
     return -1;
 }
 
-
 void Marker::setIdInfo(int chromIndex, int pos, CString id)
 {
   _d->chromIndex = chromIndex;
@@ -72,7 +70,7 @@ CString Marker::id() const
   if (_d->id.length())
     return _d->id;
   else
-    return CString(QString("%1:%2").arg((QString) chrom()).arg(pos()));
+    return CString(QString("%1:%2").arg((QString)chrom()).arg(pos()));
 }
 
 // Do not be concerned about equality of the marker ID's.
@@ -90,16 +88,12 @@ bool Marker::operator==(const Marker &otherMarker) const
   return true;
 }
 
-
 Markers::Markers(const Markers &other, bool reverse)
 {
-  if(reverse)
-  {
+  if (reverse) {
     _d = other._drev;
     _drev = other._d;
-  }
-  else
-  {
+  } else {
     _d = other._d;
     _drev = other._drev;
   }
@@ -108,18 +102,18 @@ Markers::Markers(const Markers &other, bool reverse)
 Markers::Markers(QList<Marker> individualMarkers)
 {
   initSharedDataPointers();
-        checkMarkerPosOrder(individualMarkers);
+  checkMarkerPosOrder(individualMarkers);
 
-        _d->fwdMarkerArray = individualMarkers;
-        setReverseMarkers(individualMarkers);
+  _d->fwdMarkerArray = individualMarkers;
+  setReverseMarkers(individualMarkers);
 
-        cumSumAlleles(_d->fwdSumAlleles, individualMarkers);
-        cumSumGenotypes(_d->fwdSumGenotypes, individualMarkers);
-        cumSumHaplotypeBits(_d->fwdSumHaplotypeBits, individualMarkers);
+  cumSumAlleles(_d->fwdSumAlleles, individualMarkers);
+  cumSumGenotypes(_d->fwdSumGenotypes, individualMarkers);
+  cumSumHaplotypeBits(_d->fwdSumHaplotypeBits, individualMarkers);
 
-        cumSumAlleles(_drev->fwdSumAlleles, _drev->fwdMarkerArray);
-        cumSumGenotypes(_drev->fwdSumGenotypes, _drev->fwdMarkerArray);
-        cumSumHaplotypeBits(_drev->fwdSumHaplotypeBits, _drev->fwdMarkerArray);
+  cumSumAlleles(_drev->fwdSumAlleles, _drev->fwdMarkerArray);
+  cumSumGenotypes(_drev->fwdSumGenotypes, _drev->fwdMarkerArray);
+  cumSumHaplotypeBits(_drev->fwdSumHaplotypeBits, _drev->fwdMarkerArray);
 }
 
 void Markers::initSharedDataPointers()
@@ -128,80 +122,84 @@ void Markers::initSharedDataPointers()
   _drev = new MarkersPluralSharedData;
 }
 
- void Markers::checkMarkerPosOrder(QList<Marker> markers) {
-      if (markers.length() < 2) {
-            return;
-        }
-        QSet<int> chromIndices;
-        chromIndices.insert(markers[0].chromIndex());
-        chromIndices.insert(markers[1].chromIndex());
-        for (int j=2; j<markers.length(); ++j) {
-            int chr0 = markers[j-2].chromIndex();
-            int chr1 = markers[j-1].chromIndex();
-            int chr2 = markers[j].chromIndex();
-            if (chr0 == chr1 && chr1==chr2) {
-                int pos0 = markers[j-2].pos();
-                int pos1 = markers[j-1].pos();
-                int pos2 = markers[j].pos();
-                if ( (pos1<pos0 && pos1<pos2) || (pos1>pos0 && pos1>pos2) ) {
-		  throw (QString("markers not in chromosomal order: \n%1\n%2\n%3")
-                 .arg(markers[j - 2].id().asQString())
-                 .arg(markers[j - 1].id().asQString())
-                 .arg(markers[j].id().asQString()));
-                }
-            }
-            else if (chr1!=chr2) {
-                if (chromIndices.contains(chr2)) {
-		  throw (QString("markers on chromosome are not contiguous: %1")
-                 .arg(ChromeIds::chromeId(chr2).asQString()));
-                }
-                chromIndices.insert(chr2);
-            }
-        }
+void Markers::checkMarkerPosOrder(QList<Marker> markers)
+{
+  if (markers.length() < 2) {
+    return;
+  }
+  QSet<int> chromIndices;
+  chromIndices.insert(markers[0].chromIndex());
+  chromIndices.insert(markers[1].chromIndex());
+  for (int j = 2; j < markers.length(); ++j) {
+    int chr0 = markers[j - 2].chromIndex();
+    int chr1 = markers[j - 1].chromIndex();
+    int chr2 = markers[j].chromIndex();
+    if (chr0 == chr1 && chr1 == chr2) {
+      int pos0 = markers[j - 2].pos();
+      int pos1 = markers[j - 1].pos();
+      int pos2 = markers[j].pos();
+      if ((pos1 < pos0 && pos1 < pos2) || (pos1 > pos0 && pos1 > pos2)) {
+        throw(QString("markers not in chromosomal order: \n%1\n%2\n%3")
+                  .arg(markers[j - 2].id().asQString())
+                  .arg(markers[j - 1].id().asQString())
+                  .arg(markers[j].id().asQString()));
+      }
+    } else if (chr1 != chr2) {
+      if (chromIndices.contains(chr2)) {
+        throw(QString("markers on chromosome are not contiguous: %1")
+                  .arg(ChromeIds::chromeId(chr2).asQString()));
+      }
+      chromIndices.insert(chr2);
     }
+  }
+}
 
- void Markers::setReverseMarkers(QList<Marker> fwdList)
- {
-   for (int jrev=fwdList.length() - 1; jrev >= 0; --jrev)
-     _drev->fwdMarkerArray.append( fwdList[jrev] );
- }
+void Markers::setReverseMarkers(QList<Marker> fwdList)
+{
+  for (int jrev = fwdList.length() - 1; jrev >= 0; --jrev)
+    _drev->fwdMarkerArray.append(fwdList[jrev]);
+}
 
- void Markers::cumSumAlleles(QList<int> &sumAlleles, QList<Marker> markers) {
-   int cumSum = 0;
-        for (int j=0; j < markers.length(); ++j) {
-	  sumAlleles.append(cumSum);
-          cumSum += markers[j].nAlleles();
-        }
-	sumAlleles.append(cumSum);
+void Markers::cumSumAlleles(QList<int> &sumAlleles, QList<Marker> markers)
+{
+  int cumSum = 0;
+  for (int j = 0; j < markers.length(); ++j) {
+    sumAlleles.append(cumSum);
+    cumSum += markers[j].nAlleles();
+  }
+  sumAlleles.append(cumSum);
+}
+
+void Markers::cumSumGenotypes(QList<int> &sumGenotypes, QList<Marker> markers)
+{
+  int cumSum = 0;
+  for (int j = 0; j < markers.length(); ++j) {
+    sumGenotypes.append(cumSum);
+    cumSum += markers[j].nGenotypes();
+  }
+  sumGenotypes.append(cumSum);
+}
+
+void Markers::cumSumHaplotypeBits(QList<int> &sumHaplotypeBits, QList<Marker> markers)
+{
+  int cumSum = 0;
+  for (int j = 0; j < markers.length(); ++j) {
+    sumHaplotypeBits.append(cumSum);
+    int nAllelesM1 = markers[j].nAlleles() - 1;
+    int nStorageBits = 0;
+    while (nAllelesM1 > 0) {
+      nStorageBits++;
+      nAllelesM1 >>= 1;
     }
+    cumSum += nStorageBits;
+  }
+  sumHaplotypeBits.append(cumSum);
+}
 
- void Markers::cumSumGenotypes(QList<int> &sumGenotypes, QList<Marker> markers) {
-   int cumSum = 0;
-        for (int j=0; j < markers.length(); ++j) {
-	  sumGenotypes.append(cumSum);
-          cumSum += markers[j].nGenotypes();
-        }
-	sumGenotypes.append(cumSum);
-    }
-
- void Markers::cumSumHaplotypeBits(QList<int> &sumHaplotypeBits, QList<Marker> markers) {
-   int cumSum = 0;
-        for (int j=0; j < markers.length(); ++j) {
-	  sumHaplotypeBits.append(cumSum);
-	  int nAllelesM1 = markers[j].nAlleles() - 1;
-	  int nStorageBits = 0;
-	  while(nAllelesM1 > 0){
-	    nStorageBits++;
-	    nAllelesM1 >>= 1;
-	  }
-          cumSum += nStorageBits;
-        }
-	sumHaplotypeBits.append(cumSum);
-    }
-
-    Markers Markers::restrict(int start, int end) const {
-      if (end > _d->fwdMarkerArray.length()) {
-	throw (QString("For Markers::restrict: end (%1) > # markers (%2)").arg(end).arg(nMarkers()));
-        }
-	  return Markers(_d->fwdMarkerArray.mid(start, end - start));
-    }
+Markers Markers::restrict(int start, int end) const
+{
+  if (end > _d->fwdMarkerArray.length()) {
+    throw(QString("For Markers::restrict: end (%1) > # markers (%2)").arg(end).arg(nMarkers()));
+  }
+  return Markers(_d->fwdMarkerArray.mid(start, end - start));
+}
