@@ -314,15 +314,23 @@ void TestImputeDataStructures::testHaplotypePairs()
   int nummarks = refEmissions.length();
 
   QList<Marker> biglist;
+  QList<int> als10;
+  QList<int> als20;
   QList<int> als11;
   QList<int> als21;
+  QList<int> als12;
+  QList<int> als22;
   QList<int> als13;
   QList<int> als23;
 
   for (int mnum = 0; mnum < nummarks; mnum++) {
     biglist.append(refEmissions[mnum].marker());
+    als10.append(refEmissions[mnum].allele1(0));
+    als20.append(refEmissions[mnum].allele2(0));
     als11.append(refEmissions[mnum].allele1(1));
     als21.append(refEmissions[mnum].allele2(1));
+    als12.append(refEmissions[mnum].allele1(2));
+    als22.append(refEmissions[mnum].allele2(2));
     als13.append(refEmissions[mnum].allele1(3));
     als23.append(refEmissions[mnum].allele2(3));
   }
@@ -374,6 +382,7 @@ void TestImputeDataStructures::testHaplotypePairs()
   hpsList.append(pair3);
   hpsList.append(pair1copy);
   HapPairs hps(hpsList, false);
+  HapPairs hpsr(hpsList, true);
 
   QCOMPARE(hps.allele1(1, 0), 0);
   QCOMPARE(hps.allele2(0, 1), 1);
@@ -399,6 +408,170 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(mks == marks, true);
   QCOMPARE(m2 == refEmissions[2].marker(), true);
   QCOMPARE(shps1 == refEmissions[1].samples(), true);
+
+  QCOMPARE(hpsr.allele1(2, 0), 0);
+  QCOMPARE(hpsr.allele2(3, 1), 1);
+  QCOMPARE(hpsr.allele1(0, 2), 1);
+  QCOMPARE(hpsr.allele2(0, 2), 0);
+
+  QCOMPARE(hpsr.allele2(2, 1), 1);
+  QCOMPARE(hpsr.allele1(2, 2), 0);
+
+  QCOMPARE(hpsr.allele(2, 3), 1);
+  QCOMPARE(hpsr.allele(2, 4), 0);
+  QCOMPARE(hpsr.nMarkers(), 4);
+  Markers mksr = hpsr.markers();
+  Marker m2r = hpsr.marker(2);
+
+  QCOMPARE(hpsr.nHaps(), 6);
+  QCOMPARE(hpsr.nHapPairs(), 3);
+  Samples shpsr1 = hpsr.samples(1);
+  QCOMPARE(hpsr.sampleIndex(0), 1);
+  QCOMPARE(hpsr.sampleIndex(1), 3);
+  QCOMPARE(hpsr.sampleIndex(2), 1);
+
+  QCOMPARE(mksr == marks, false);
+  QCOMPARE(m2r == refEmissions[1].marker(), true);
+  QCOMPARE(shpsr1 == refEmissions[1].samples(), true);
+
+  Samples samplesComplete;
+  samplesComplete.setSamp(SampleNames::getIndex("SAMP001"));
+  samplesComplete.setSamp(SampleNames::getIndex("SAMP003"));
+  samplesComplete.setSamp(SampleNames::getIndex("SAMP005"));
+  samplesComplete.setSamp(SampleNames::getIndex("SAMP007"));
+
+  // SampleHapPairs shpsWrongLengthSamples(samplesComplete, hpsList, false);  // This should
+  // ASSERT-crash, and does.
+
+  // Samples samplesSHPMMS;
+  // samplesSHPMMS.setSamp(SampleNames::getIndex("SAMP001"));
+  // samplesSHPMMS.setSamp(SampleNames::getIndex("SAMP003"));
+  // samplesSHPMMS.setSamp(SampleNames::getIndex("SAMP005"));
+
+  // SampleHapPairs shpsMisMatchSamples(samplesSHPMMS, hpsList, false);  // This should
+  // ASSERT-crash, and does.
+
+  HapPair pair0(marks, refEmissions[0].samples(), 0, als10, als20);
+  HapPair pair2(marks, refEmissions[0].samples(), 2, als12, als22);
+
+  QList<HapPair> shpscList;
+  shpscList.append(pair0);
+  shpscList.append(pair1);
+  shpscList.append(pair2);
+  shpscList.append(pair3);
+  SampleHapPairs shpsc(samplesComplete, shpscList, false);
+  SampleHapPairs shpscr(samplesComplete, shpscList, true);
+
+  QCOMPARE(shpsc.allele1(0, 0), 1);
+  QCOMPARE(shpsc.allele2(1, 1), 1);
+  QCOMPARE(shpsc.allele1(2, 2), 1);
+  QCOMPARE(shpsc.allele2(3, 3), 1);
+  QCOMPARE(shpsc.allele1(3, 0), 0);
+  QCOMPARE(shpsc.allele2(2, 1), 0);
+  QCOMPARE(shpsc.allele1(1, 2), 1);
+  QCOMPARE(shpsc.allele2(0, 3), 1);
+  QCOMPARE(shpscr.allele1(3, 0), 1);
+  QCOMPARE(shpscr.allele2(2, 1), 1);
+  QCOMPARE(shpscr.allele1(1, 2), 1);
+  QCOMPARE(shpscr.allele2(0, 3), 1);
+  QCOMPARE(shpscr.allele1(0, 0), 0);
+  QCOMPARE(shpscr.allele2(1, 1), 0);
+  QCOMPARE(shpscr.allele1(2, 2), 1);
+  QCOMPARE(shpscr.allele2(3, 3), 1);
+
+  // The following code will test having HapPair objects associated
+  // with different Samples objects work together both in a HapPairs
+  // object and in a SampleHapPairs object.
+
+  Samples samplesX;
+  samplesX.setSamp(SampleNames::getIndex("SAMP029"));
+
+  HapPair pairX(marks, samplesX, 0, als13, als21);
+  QList<HapPair> xList;
+  xList.append(pairX);
+
+  HapPairs hpsx(xList, true);  // Test reversing, while we're here.
+
+  QCOMPARE(hpsx.allele2(0, 0), 0);
+  QCOMPARE(hpsx.allele1(2, 0), 0);
+  QCOMPARE(hpsx.allele1(3, 0), 1);
+  QCOMPARE(hpsx.allele2(2, 0), 1);
+
+  Samples samplesCompleteX;
+  samplesCompleteX.setSamp(SampleNames::getIndex("SAMP001"));
+  samplesCompleteX.setSamp(
+      SampleNames::getIndex("SAMP005"));  // Notice the order is switched, here....
+  samplesCompleteX.setSamp(SampleNames::getIndex("SAMP003"));
+  samplesCompleteX.setSamp(SampleNames::getIndex("SAMP007"));
+  samplesCompleteX.setSamp(SampleNames::getIndex("SAMP029"));
+
+  shpscList.append(pairX);
+  SampleHapPairs shpscx(samplesCompleteX, shpscList, false);
+  SampleHapPairs shpscxr(samplesCompleteX, shpscList, true);
+
+  QCOMPARE(shpscx.allele1(0, 2), 0);
+  QCOMPARE(shpscx.allele2(1, 1), 1);
+  QCOMPARE(shpscx.allele1(2, 3), 0);
+  QCOMPARE(shpscx.allele2(3, 0), 1);
+  QCOMPARE(shpscx.allele2(2, 4), 0);
+  QCOMPARE(shpscxr.allele1(3, 2), 0);
+  QCOMPARE(shpscxr.allele2(2, 1), 1);
+  QCOMPARE(shpscxr.allele1(1, 3), 0);
+  QCOMPARE(shpscxr.allele2(0, 0), 1);
+  QCOMPARE(shpscxr.allele2(1, 4), 0);
+  QCOMPARE(shpscx.allele1(3, 2), 1);
+  QCOMPARE(shpscx.allele2(2, 1), 1);
+  QCOMPARE(shpscx.allele1(1, 3), 0);
+  QCOMPARE(shpscx.allele2(0, 0), 1);
+  QCOMPARE(shpscx.allele2(1, 4), 1);
+
+  QCOMPARE(shpscx.allele(1, 4), 0);
+  QCOMPARE(shpscx.allele(1, 9), 1);
+  QCOMPARE(shpscx.allele(2, 4), 1);
+  QCOMPARE(shpscx.allele(2, 9), 0);
+  QCOMPARE(shpscx.nMarkers(), 4);
+  Markers mksscx = shpscx.markers();
+  Marker m2scx = shpscx.marker(2);
+
+  QCOMPARE(shpscx.nHaps(), 10);
+  QCOMPARE(shpscx.nHapPairs(), 5);
+  Samples sshpscx4 = shpscx.samples(4);
+  Samples sshpscx = shpscx.samples();
+  QCOMPARE(shpscx.sampleIndex(0), 0);
+  QCOMPARE(shpscx.sampleIndex(1), 2);
+  QCOMPARE(shpscx.sampleIndex(2), 1);
+  QCOMPARE(shpscx.sampleIndex(3), 3);
+  QCOMPARE(shpscx.sampleIndex(4), 0);
+
+  QCOMPARE(mksscx == marks, true);
+  QCOMPARE(m2scx == m2, true);
+  QCOMPARE(sshpscx4 == samplesX, true);
+  QCOMPARE(sshpscx == samplesCompleteX, true);
+  QCOMPARE(shpscx.nSamples(), 5);
+
+  QCOMPARE(shpscxr.allele(0, 4), 1);
+  QCOMPARE(shpscxr.allele(0, 9), 0);
+  QCOMPARE(shpscxr.allele(3, 4), 0);
+  QCOMPARE(shpscxr.allele(3, 9), 1);
+  QCOMPARE(shpscxr.nMarkers(), 4);
+  Markers mksscxr = shpscxr.markers();
+  Marker m1scxr = shpscxr.marker(1);
+
+  QCOMPARE(shpscxr.nHaps(), 10);
+  QCOMPARE(shpscxr.nHapPairs(), 5);
+  Samples sshpscxr4 = shpscxr.samples(4);
+  Samples sshpscxr = shpscxr.samples();
+  QCOMPARE(shpscxr.sampleIndex(0), 0);
+  QCOMPARE(shpscxr.sampleIndex(1), 2);
+  QCOMPARE(shpscxr.sampleIndex(2), 1);
+  QCOMPARE(shpscxr.sampleIndex(3), 3);
+  QCOMPARE(shpscxr.sampleIndex(4), 0);
+
+  QCOMPARE(mksscxr == marks, false);
+  QCOMPARE(m1scxr == m2, true);
+  QCOMPARE(sshpscxr4 == samplesX, true);
+  QCOMPARE(sshpscxr == samplesCompleteX, true);
+  QCOMPARE(shpscxr.nSamples(), 5);
 }
 
 /*

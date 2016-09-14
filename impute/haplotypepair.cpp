@@ -101,13 +101,16 @@ void HapPairs::checkAndExtractMarkers(bool reverse)
 {
   _markers = _hapPairs[0].markers();
 
-  if (reverse)
-    _markers = Markers(_markers, true);
+  // Check for self-consistent Markers objects in the HapPair list
+  // before reversing the Markers object of this HapPairs object.
 
   for (int j = 1, n = _hapPairs.length(); j < n; ++j)
     Q_ASSERT_X(_hapPairs[j].markers() == _markers,
                "HapPairs::checkAndExtractMarkers",
                "inconsistent markers");
+
+  if (reverse)
+    _markers = Markers(_markers, true);
 
   _isReversed = reverse;
   _numOfMarkersM1 = _markers.nMarkers() - 1;
@@ -117,9 +120,9 @@ int HapPairs::allele(int marker, int haplotype) const
 {
   int hapPair = haplotype / 2;
   if ((haplotype & 1) == 0) {
-    return _hapPairs[hapPair].allele1(marker);
+    return allele1(marker, hapPair);
   } else {
-    return _hapPairs[hapPair].allele2(marker);
+    return allele2(marker, hapPair);
   }
 }
 
@@ -176,9 +179,10 @@ SampleHapPairs::SampleHapPairs(Samples samples, QList<HapPair> hapPairList, bool
   : HapPairs(hapPairList, reverse)
 {
   _samples = samples;
-  checkSamples();
+
   CompareSamplesUsed csu(_samples);
   qStableSort(_hapPairs.begin(), _hapPairs.end(), csu);
+  checkSamples();
 }
 
 void SampleHapPairs::checkSamples()

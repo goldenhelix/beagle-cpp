@@ -173,6 +173,14 @@ public:
   SampleHapPairs(Samples samples, QList<HapPair> hapPairList, bool reverse);
 
   /**
+   * Returns the list of samples containing the sample associated with
+   * the specified haplotype pair. (Redundant calling interface needed
+   * because of how subclassing works.)
+   *
+   * @param hapPair a haplotype pair index
+   */
+  Samples samples(int hapPair) const { return HapPairs::samples(hapPair); }
+  /**
    * Returns the samples.  The {@code k}-th sample corresponds to
    * the {@code k}-th haplotype pair.
    */
