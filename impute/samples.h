@@ -31,7 +31,7 @@ public:
   SamplesSharedData() : QSharedData() {}
   SamplesSharedData(const SamplesSharedData &other) : QSharedData(other)
   {
-    throw("Resetting a SamplesSharedData instance....");
+    Q_ASSERT_X(false, "SamplesSharedData", "Resetting a SamplesSharedData instance....");
   }
   ~SamplesSharedData() {}
   QList<int> indexToSample;

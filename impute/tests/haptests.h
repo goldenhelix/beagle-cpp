@@ -65,7 +65,7 @@ void loadTestDataForRefData(QList<BitSetRefGT> &refEmissions)
   refEmissions.append(r3);
 }
 
-void loadTestDataForTargetData(QList<BitSetGT> &targetEmissions)
+void loadTestDataForTargetData(QList<BitSetGT> &targetEmissions, int missingVal=-1, bool defaultPhasing=false)
 {
   // Construct "samplesT" and set its data before there are any other
   // references to the object.
@@ -86,10 +86,10 @@ void loadTestDataForTargetData(QList<BitSetGT> &targetEmissions)
   t0.setAllele("A");
   t0.setAllele("C");
 
-  QList<int> t01; t01.append(1); t01.append(0); t01.append(-1);
+  QList<int> t01; t01.append(1); t01.append(0); t01.append(missingVal);
   QList<int> t02; t02.append(1); t02.append(1); t02.append(0);
   // Have arePhased[1] be "true" on purpose....
-  QList<bool> arePhased; arePhased.append(false); arePhased.append(true); arePhased.append(false);
+  QList<bool> arePhased; arePhased.append(defaultPhasing); arePhased.append(true); arePhased.append(defaultPhasing);
   t0.storeAlleles(t01, t02, arePhased);
 
   targetEmissions.append(t0);
@@ -115,7 +115,7 @@ void loadTestDataForTargetData(QList<BitSetGT> &targetEmissions)
 
   QList<int> t21; t21.append(0); t21.append(1); t21.append(1);
   QList<int> t22; t22.append(1); t22.append(0); t22.append(0);
-  arePhased[0] = false; arePhased[2] = false;
+  arePhased[0] = defaultPhasing; arePhased[2] = defaultPhasing;
   t2.storeAlleles(t21, t22, arePhased);
 
   targetEmissions.append(t2);

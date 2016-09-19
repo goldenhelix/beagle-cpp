@@ -2,8 +2,9 @@
 #ifndef HAPLOTYPEPAIR_H
 #define HAPLOTYPEPAIR_H
 
-#include "impute/markers.h"
 #include "impute/samples.h"
+#include "impute/markers.h"
+#include "impute/vcfemission.h"
 
 #include <QList>
 
@@ -23,13 +24,13 @@ public:
    * @param alleles1 the sequence of allele indices for the first haplotype
    * @param alleles2 the sequence of alleles indices for the second haplotype
    */
-  HapPair(Markers markers, Samples samples, int sampleIndex, QList<int> &alleles1,
-          QList<int> &alleles2);
+  HapPair(const Markers &markers, const Samples &samples, int sampleIndex,
+	  QList<int> &alleles1, QList<int> &alleles2);
 
   /**
    * (A type of) copy constructor. Can copy in reversed order if specified.
    */
-  HapPair(HapPair &other, bool reverse);
+  HapPair(const HapPair &other, bool reverse);
 
   /**
    * Returns the first allele for the specified marker.
@@ -62,7 +63,7 @@ public:
    */
   int sampleIndex() const { return _sampleIndex; }
 private:
-  QBitArray toBitArray(Markers markers, QList<int> &alleles);
+  QBitArray toBitArray(const Markers &markers, QList<int> &alleles);
   int allele(const QBitArray &bitset, int marker) const;
 
   Markers _markers;
@@ -87,7 +88,12 @@ public:
   /**
    * Constructor with "reverse" flag.
    */
-  HapPairs(QList<HapPair> hapPairList, bool reverse);
+  HapPairs(const QList<HapPair> &hapPairList, bool reverse);
+
+  /**
+   * Copy constructor.
+   */
+  HapPairs(const HapPairs &other);
 
   /**
   * Returns the allele for the specified marker and haplotype.
@@ -129,8 +135,7 @@ public:
    */
   int nAlleles(int mnum) const { return _markers.marker(mnum).nAlleles(); }
   /**
-   * Returns the number of haplotypes.  The returned value is equal to
-   * {@code 2*this.nHapPairs()}.
+   * Returns the number of haplotypes.
    */
   int nHaps() const { return 2 * _hapPairs.length(); }
   /**
@@ -151,6 +156,8 @@ public:
    */
   int sampleIndex(int hapPair) const { return _hapPairs[hapPair].sampleIndex(); }
 protected:
+  HapPairs() : _isReversed(false), _numOfMarkersM1(-1) {}
+
   void checkAndExtractMarkers(bool reverse);
 
   bool _isReversed;
@@ -170,8 +177,9 @@ protected:
 class SampleHapPairs : public HapPairs
 {
 public:
-  SampleHapPairs(Samples samples, QList<HapPair> hapPairList, bool reverse);
+  SampleHapPairs(const Samples &samples, const QList<HapPair> &hapPairList, bool reverse);
 
+  SampleHapPairs(const SampleHapPairs &other) : HapPairs(other), _samples(other._samples) {}
   /**
    * Returns the list of samples containing the sample associated with
    * the specified haplotype pair. (Redundant calling interface needed
@@ -189,10 +197,202 @@ public:
    * Returns the number of samples.
    */
   int nSamples() const { return _samples.nSamples(); }
-private:
+protected:
+  SampleHapPairs(const Samples &samples) : HapPairs(), _samples(samples) {}
   void checkSamples();
 
   Samples _samples;
 };
+
+/**
+ * Class {@code RefHapPairs} accesses a list of samples and a
+ * haplotype pair for each sample, using BitSetRefGT records.
+ */
+class RefHapPairs : public SampleHapPairs
+{
+public:
+  /**
+   * Constructs a new {@code RefHapPairs} instance. A Markers object
+   * is created from the data and is available for copying (through
+   * the appropriate base class method).
+   *
+   * @param samples the sequence of samples
+   * @param refVcfRecs the sequence of phased, non-missing per-marker
+   * genotype data
+   */
+  RefHapPairs(const Samples &samples, const QList<BitSetRefGT> &refVcfRecs);
+
+  int allele1(int marker, int hapPair) const { return _refVcfRecs[marker].allele1(hapPair); }
+  int allele2(int marker, int hapPair) const { return _refVcfRecs[marker].allele2(hapPair); }
+  int allele(int marker, int haplotype) const;
+
+  Samples samples(int hapPair) const;
+
+  int sampleIndex(int hapPair) const;
+
+  int nAlleles(int marker) const { return _refVcfRecs[marker].nAlleles(); }
+
+private:
+  void createMarkers();
+
+  QList<BitSetRefGT> _refVcfRecs;
+};
+
+/**
+ * Class {@code GLSampleHapPairs} ("GL" means Genotype Likelihoods),
+ * in addition to representing a list of samples and a haplotype pair
+ * for each sample, can output a genotype likelihood for any given
+ * sample. This (base-class) member of the "GL" family is always
+ * categorized as "reference data".
+ */
+class GLSampleHapPairs : public SampleHapPairs
+{
+public:
+  /**
+   * Constructs a new {@code GLSampleHapPairs} instance from the
+   * specified data. Will always be in forward direction.
+   *
+   * @param another instance of a "GL"-family class. Must only contain phased,
+   * non-missing genotype data.
+   */
+  GLSampleHapPairs(const GLSampleHapPairs &otherGL) : GLSampleHapPairs(otherGL, true, false) {}
+
+  /**
+   * Returns {@code true} if the observed data for each marker and
+   * sample includes a phased genotype that has no missing alleles,
+   * and returns {@code false} otherwise.
+   */
+  virtual bool isRefData() const { return true; }
+
+  int allele(int marker, int haplotype) const
+  {
+    int sample = haplotype / 2;
+    if ((haplotype & 1) == 0) {
+      return allele1(marker, sample);
+    } else {
+      return allele2(marker, sample);
+    }
+  }
+
+  int allele1(int marker, int hapPair) const;
+
+  int allele2(int marker, int hapPair) const;
+
+  /**
+   * Returns the number of markers (overall).
+   */
+  int nMarkers() const { return _numOfGlMarkersM1 + 1; }
+  /**
+   * Returns the markers object (for all of the markers).
+   */
+  Markers markers() const { return _glMarkers; }
+  /**
+   * Returns the specified marker. (Can be any marker.)
+   * @param marker a marker index
+   */
+  Marker marker(int mnum) const { return _glMarkers.marker(mnum); }
+  /**
+   * Returns the number of marker alleles. (Can be of any marker.)
+   * @param marker a marker index
+   */
+  int nAlleles(int mnum) const { return _glMarkers.marker(mnum).nAlleles(); }
+  /**
+   * Returns the number of haplotypes in the marker. (Can be of any marker.)
+   */
+
+protected:
+  // "Utility" copy constructor working on behalf of the
+  // GLSampleHapPairs public constructor and on behalf of the
+  // SplicedGL copy-and-maybe-reverse constructor.
+  GLSampleHapPairs(const GLSampleHapPairs &otherGL, bool checkRef, bool reverse);
+
+  // Partial constructor working on behalf of the SplicedGL(samples,
+  // vma) constructor.
+  GLSampleHapPairs(const Samples &samples);
+
+  // Constructor working on behalf of the SplicedGL(haps, otherGL)
+  // constructor.
+  GLSampleHapPairs(const SampleHapPairs &haps, const GLSampleHapPairs &otherGL);
+
+  int _overlap;
+  bool _glIsReversed;
+  QList<BitSetGT> _vcfRecs;
+  int _numOfGlMarkersM1;
+  Markers _glMarkers;
+};
+
+class SplicedGL : public GLSampleHapPairs
+{
+public:
+  /**
+   * Constructs a new {@code SplicedGL} instance from the specified
+   * data. The resulting object will always have data in the forward
+   * direction, and there will be no overlapping haplotypes embedded
+   * in the resulting object. Also, the genotype data may or may not
+   * be phased.
+   *
+   * This constructor is equivalent to a "BasicGL" constructor.
+   *
+   * @param A Samples object.
+   * @param A QList of BitSetGT objects.
+   */
+  SplicedGL(const Samples &samples, const QList<BitSetGT> &vma);
+
+  /**
+   * Constructs a new {@code SplicedGL} instance from the specified
+   * data. The resulting object will always have data in the forward
+   * direction. Overlapping haplotypes will presumably be embedded
+   * in the resulting object. Also, the genotype data may or may not
+   * be phased.
+   *
+   * @param A SampleHapPairs object.
+   * @param another instance of a "GL"-family class, for which it is
+   * OK to contain unphased and/or missing genotype data.
+   */
+  SplicedGL(const SampleHapPairs &haps, const GLSampleHapPairs &otherGL);
+
+  /**
+   * Copy-and-possibly-reverse {@code SplicedGL} constructor.
+   *
+   * @param Another instance of a "GL"-family class.
+   * @param Whether or not to reverse the data.
+   */
+  SplicedGL(const GLSampleHapPairs &otherGL, bool reverse);
+
+  /**
+   * Returns {@code true} if the observed data for each marker and
+   * sample includes a phased genotype that has no missing alleles,
+   * and returns {@code false} otherwise.
+   */
+  bool isRefData() const { return _isRefData; }
+  /**
+   * Returns the probability of the observed data for the specified marker
+   * and sample if the specified pair of ordered alleles is the true
+   * ordered genotype.
+   * @param marker the marker index
+   * @param sample the sample index
+   * @param allele1 the first allele index
+   * @param allele2 the second allele index
+   */
+  double gl(int marker, int sample, int allele1, int allele2) const;
+
+  /**
+   * Returns {@code true} if the observed data for the specified
+   * marker and sample includes a phased genotype, and returns {@code false}
+   * otherwise.
+   * @param marker the marker index
+   * @param sample the sample index
+   */
+  bool isPhased(int marker, int sample) const;
+
+protected:
+  void checkSamples();
+  void createMarkers();
+  void checkIfIsRefData();
+
+  bool _isRefData;
+};
+
+///////// FuzzyGL will want a reverse flag directly in its constructor.
 
 #endif

@@ -127,6 +127,7 @@ void Markers::checkMarkerPosOrder(QList<Marker> markers)
   if (markers.length() < 2) {
     return;
   }
+  QString errstr;
   QSet<int> chromIndices;
   chromIndices.insert(markers[0].chromIndex());
   chromIndices.insert(markers[1].chromIndex());
@@ -139,18 +140,19 @@ void Markers::checkMarkerPosOrder(QList<Marker> markers)
       int pos1 = markers[j - 1].pos();
       int pos2 = markers[j].pos();
       if ((pos1 < pos0 && pos1 < pos2) || (pos1 > pos0 && pos1 > pos2)) {
-        throw(QString("markers not in chromosomal order: \n%1\n%2\n%3")
-                  .arg(markers[j - 2].id().asQString())
-                  .arg(markers[j - 1].id().asQString())
-                  .arg(markers[j].id().asQString()));
+        errstr = QString("markers not in chromosomal order: \n%1\n%2\n%3")
+                         .arg(markers[j - 2].id().asQString())
+                         .arg(markers[j - 1].id().asQString())
+                         .arg(markers[j].id().asQString());
       }
     } else if (chr1 != chr2) {
       if (chromIndices.contains(chr2)) {
-        throw(QString("markers on chromosome are not contiguous: %1")
-                  .arg(ChromeIds::chromeId(chr2).asQString()));
+        errstr = QString("markers on chromosome are not contiguous: %1")
+                         .arg(ChromeIds::chromeId(chr2).asQString());
       }
       chromIndices.insert(chr2);
     }
+	Q_ASSERT_X(!errstr.length(), "Markers::checkMarkerPosOrder", toC(errstr));
   }
 }
 
@@ -198,8 +200,10 @@ void Markers::cumSumHaplotypeBits(QList<int> &sumHaplotypeBits, QList<Marker> ma
 
 Markers Markers::restrict(int start, int end) const
 {
-  if (end > _d->fwdMarkerArray.length()) {
-    throw(QString("For Markers::restrict: end (%1) > # markers (%2)").arg(end).arg(nMarkers()));
-  }
+  QString errstr;
+  if (end > _d->fwdMarkerArray.length())
+    errstr = QString("end (%1) > # markers (%2)").arg(end).arg(nMarkers());
+  Q_ASSERT_X(!errstr.length(), "Markers::restrict", toC(errstr));
+
   return Markers(_d->fwdMarkerArray.mid(start, end - start));
 }

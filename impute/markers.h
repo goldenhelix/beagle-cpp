@@ -25,7 +25,7 @@ public:
   MarkerSharedData() : QSharedData(), chromIndex(-1) {}
   MarkerSharedData(const MarkerSharedData &other) : QSharedData(other), chromIndex(-1)
   {
-    throw("Resetting a MarkerSharedData instance....");
+    Q_ASSERT_X(false, "MarkerSharedData", "Resetting a MarkerSharedData instance....");
   }
   ~MarkerSharedData() {}
   int chromIndex;
@@ -92,7 +92,7 @@ public:
   MarkersPluralSharedData() {}
   MarkersPluralSharedData(const MarkersPluralSharedData &other) : QSharedData(other)
   {
-    throw("Resetting a MarkersPluralSharedData instance....");
+    Q_ASSERT_X(false, "MarkersPluralSharedData", "Resetting a MarkersPluralSharedData instance....");
   }
   ~MarkersPluralSharedData() {}
   QList<Marker> fwdMarkerArray;

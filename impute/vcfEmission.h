@@ -12,7 +12,7 @@ public:
   BitSetRefGTSharedData(const Samples &samples) : MarkerSharedData(), samples(samples) {}
   BitSetRefGTSharedData(const BitSetRefGTSharedData &other) : MarkerSharedData(other)
   {
-    throw("Resetting a BitSetRefGTSharedData instance....");
+    Q_ASSERT_X(false, "BitSetRefGTSharedData", "Resetting a BitSetRefGTSharedData instance....");
   }
 
   ~BitSetRefGTSharedData() {}
@@ -36,7 +36,7 @@ public:
   BitSetGTSharedData(const Samples &samples) : BitSetRefGTSharedData(samples) {}
   BitSetGTSharedData(const BitSetGTSharedData &other) : BitSetRefGTSharedData(other)
   {
-    throw("Resetting a BitSetGTSharedData instance....");
+    Q_ASSERT_X(false, "BitSetGTSharedData", "Resetting a BitSetGTSharedData instance....");
   }
 
   ~BitSetGTSharedData() {}
@@ -105,6 +105,12 @@ public:
   double gl(int sample, int allele1, int allele2) const;
 
   Marker marker() const { return Marker((MarkerSharedData *)&(*_d)); }
+  /**
+   * Returns the number of alleles for the marker, including the REF
+   * allele.
+   */
+  int nAlleles() const { return _d->allelesInMarker.length(); }
+
 private:
   QSharedDataPointer<BitSetRefGTSharedData> _d;
 };
@@ -177,7 +183,17 @@ public:
    * @param allele2 the second allele index
    */
   double gl(int samp, int al1, int al2) const { return _d->gl(samp, al1, al2); }
-  Marker marker() { return Marker(_d); }
+
+  /**
+   * Returns the Marker object associated with this record.
+   */
+  Marker marker() const { return Marker((MarkerSharedData *) &(*_d)); }
+
+  /**
+   * Returns the number of alleles for the marker, including the REF
+   * allele.
+   */
+  int nAlleles() const { return _d->allelesInMarker.length(); }
 private:
   QSharedDataPointer<BitSetGTSharedData> _d;
 };

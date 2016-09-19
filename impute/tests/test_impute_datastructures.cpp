@@ -572,6 +572,43 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(sshpscxr4 == samplesX, true);
   QCOMPARE(sshpscxr == samplesCompleteX, true);
   QCOMPARE(shpscxr.nSamples(), 5);
+
+  Samples resamples = refEmissions[1].samples();
+  RefHapPairs rhp(resamples, refEmissions);
+  QCOMPARE(rhp.markers().marker(1) == marks.marker(1), true);
+  QCOMPARE(rhp.samples(1) == resamples, true);
+  QCOMPARE(rhp.samples(1).idIndex(2), samplesComplete.idIndex(2));
+  QCOMPARE(rhp.allele1(1, 2), 1);
+  QCOMPARE(rhp.allele2(2, 1), 0);
+  QCOMPARE(rhp.allele(3, 5), 1);
+  QCOMPARE(rhp.allele(0, 6), 1);
+  QCOMPARE(rhp.sampleIndex(2), 2);
+  QCOMPARE(rhp.nAlleles(3), 2);
+
+  QList<BitSetGT> phasedTargetEmissions;
+  loadTestDataForTargetData(phasedTargetEmissions, 1, true);
+  Samples samplesT = phasedTargetEmissions[1].samples();
+
+  /*
+  Samples samplesT;
+  samplesT.setSamp(SampleNames::getIndex("SAMP073"));
+  samplesT.setSamp(SampleNames::getIndex("SAMP087"));
+  samplesT.setSamp(SampleNames::getIndex("SAMP095"));
+  */
+
+  SplicedGL phasedtarggl(samplesT, phasedTargetEmissions);
+  GLSampleHapPairs glshp(phasedtarggl);
+
+  QList<BitSetGT> unphasedTargetEmissions;
+  loadTestDataForTargetData(unphasedTargetEmissions);
+  Samples samplesU = unphasedTargetEmissions[2].samples();
+  SplicedGL unphasedtarggl(samplesU, unphasedTargetEmissions);
+  // This one should not work, and doesn't. GLSampleHapPairs crash(unphasedtarggl);
+
+  // FOR THE NEXT ONE, NEED TO SET UP PHASED HAPS FOR TWO OF THE THREE MARKERS....
+  // SplicedGL spliced(SampleHapPairs &haps, GLSampleHapPairs &otherGL);
+
+  SplicedGL revphased(phasedtarggl, true);
 }
 
 /*
