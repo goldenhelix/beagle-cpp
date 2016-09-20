@@ -95,6 +95,8 @@ public:
    */
   HapPairs(const HapPairs &other);
 
+  HapPairs() : _isReversed(false), _numOfMarkersM1(-1) {}
+
   /**
   * Returns the allele for the specified marker and haplotype.
   * @param marker a marker index
@@ -155,8 +157,8 @@ public:
    * @param hapPair a haplotype pair index
    */
   int sampleIndex(int hapPair) const { return _hapPairs[hapPair].sampleIndex(); }
+
 protected:
-  HapPairs() : _isReversed(false), _numOfMarkersM1(-1) {}
   void checkAndExtractMarkers(bool reverse);
 
   bool _isReversed;
@@ -179,6 +181,9 @@ public:
   SampleHapPairs(const Samples &samples, const QList<HapPair> &hapPairList, bool reverse);
 
   SampleHapPairs(const SampleHapPairs &other) : HapPairs(other), _samples(other._samples) {}
+
+  SampleHapPairs() : HapPairs() {}
+
   /**
    * Returns the list of samples containing the sample associated with
    * the specified haplotype pair. (Redundant calling interface needed
@@ -229,6 +234,8 @@ public:
    */
   RefHapPairs(const Samples &samples, const QList<BitSetRefGT> &refVcfRecs);
 
+  RefHapPairs() : SampleHapPairs() {}
+
   int allele1(int marker, int hapPair) const { return _refVcfRecs[marker].allele1(hapPair); }
   int allele2(int marker, int hapPair) const { return _refVcfRecs[marker].allele2(hapPair); }
   int allele(int marker, int haplotype) const;
@@ -262,6 +269,9 @@ public:
    * non-missing genotype data.
    */
   GLSampleHapPairs(const GLSampleHapPairs &otherGL) : GLSampleHapPairs(otherGL, true, false) {}
+
+  GLSampleHapPairs() : SampleHapPairs() {}
+
   /**
    * Returns {@code true} if the observed data for each marker and
    * sample includes a phased genotype that has no missing alleles,
@@ -367,6 +377,8 @@ public:
    */
   SplicedGL(const GLSampleHapPairs &otherGL, bool reverse);
 
+  SplicedGL() : GLSampleHapPairs(), _isRefData(false) {}
+
   /**
    * Returns {@code true} if the observed data for each marker and
    * sample includes a phased genotype that has no missing alleles,
@@ -417,6 +429,8 @@ public:
    * @param err the allele error rate
    */
   FuzzyGL(const SplicedGL &gl, double err, bool reverse);
+
+  FuzzyGL() : SplicedGL() {}
 
   double gl(int marker, int sample, int a1, int a2);
 

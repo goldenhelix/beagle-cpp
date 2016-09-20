@@ -1027,8 +1027,25 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(fzgl.gl(0, 2, 0, 1), 0.625);
   QCOMPARE(fzgl.gl(0, 2, 0, 0), 0.375);
 
-  // GLUser gluser;
-  // gluser.myGL = fzgl;
+  GLUser gluser;
+
+  gluser.myGL = fzgl;
+  QCOMPARE(gluser.myGL.gl(0, 0, 1, 1), 0.0);
+  QCOMPARE(gluser.myGL.gl(0, 0, 1, 0), 1.0);
+  QCOMPARE(gluser.myGL.gl(0, 0, 0, 1), 1.0);
+  QCOMPARE(gluser.myGL.gl(0, 0, 0, 0), 1.0);
+  QCOMPARE(gluser.myGL.gl(2, 0, 1, 1), 0.5625);
+  QCOMPARE(gluser.myGL.gl(2, 0, 1, 0), 0.1875);
+  QCOMPARE(gluser.myGL.gl(2, 0, 0, 1), 0.1875);
+  QCOMPARE(gluser.myGL.gl(2, 0, 0, 0), 0.0625);
+  QCOMPARE(gluser.myGL.gl(0, 1, 1, 1), 0.1875);
+  QCOMPARE(gluser.myGL.gl(0, 1, 1, 0), 0.5625);
+  QCOMPARE(gluser.myGL.gl(0, 1, 0, 1), 0.0625);
+  QCOMPARE(gluser.myGL.gl(0, 1, 0, 0), 0.1875);
+  QCOMPARE(gluser.myGL.gl(0, 2, 1, 1), 0.375);
+  QCOMPARE(gluser.myGL.gl(0, 2, 1, 0), 0.625);
+  QCOMPARE(gluser.myGL.gl(0, 2, 0, 1), 0.625);
+  QCOMPARE(gluser.myGL.gl(0, 2, 0, 0), 0.375);
 }
 
 /*
