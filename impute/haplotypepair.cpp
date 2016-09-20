@@ -81,7 +81,6 @@ int HapPair::allele(const QBitArray &bitset, int marker) const
   return allele;
 }
 
-
 HapPairs::HapPairs(const QList<HapPair> &hapPairList, bool reverse)
 {
   Q_ASSERT_X(!hapPairList.isEmpty(), "HapPairs::HapPairs", "Empty HapPair list");
@@ -173,7 +172,7 @@ public:
     int id2 = hp2.samples().idIndex(hp2.sampleIndex());
     int i1 = _samples.findLocalIndex(id1);
     int i2 = _samples.findLocalIndex(id2);
-    Q_ASSERT_X(i1 != -1  &&  i2 != -1,
+    Q_ASSERT_X(i1 != -1 && i2 != -1,
                "CompareSamplesUsed::operator()",
                "sample not listed in the Samples object.");
     return i1 < i2;
@@ -183,7 +182,8 @@ private:
   Samples _samples;
 };
 
-SampleHapPairs::SampleHapPairs(const Samples &samples, const QList<HapPair> &hapPairList, bool reverse)
+SampleHapPairs::SampleHapPairs(const Samples &samples, const QList<HapPair> &hapPairList,
+                               bool reverse)
   : HapPairs(hapPairList, reverse), _samples(samples)
 {
   CompareSamplesUsed csu(_samples);  // Sort comparison object.
@@ -213,9 +213,8 @@ RefHapPairs::RefHapPairs(const Samples &samples, const QList<BitSetRefGT> &refVc
   createMarkers();
 
   for (int j = 0; j < _refVcfRecs.length(); ++j)
-    Q_ASSERT_X(_refVcfRecs[j].samples() == _samples,
-               "RefHapPairs::RefHapPairs",
-               "sample inconsistency");
+    Q_ASSERT_X(
+        _refVcfRecs[j].samples() == _samples, "RefHapPairs::RefHapPairs", "sample inconsistency");
 }
 
 void RefHapPairs::createMarkers()
@@ -239,7 +238,7 @@ int RefHapPairs::allele(int marker, int haplotype) const
 
 Samples RefHapPairs::samples(int hapPair) const
 {
-  Q_ASSERT_X(hapPair >= 0  &&  hapPair < _samples.nSamples(),
+  Q_ASSERT_X(hapPair >= 0 && hapPair < _samples.nSamples(),
              "RefHapPairs::samples(int)",
              "out of bounds HapPair index");
   return _samples;
@@ -247,12 +246,11 @@ Samples RefHapPairs::samples(int hapPair) const
 
 int RefHapPairs::sampleIndex(int hapPair) const
 {
-  Q_ASSERT_X(hapPair >= 0  &&  hapPair < _samples.nSamples(),
+  Q_ASSERT_X(hapPair >= 0 && hapPair < _samples.nSamples(),
              "RefHapPairs::samples(int)",
              "out of bounds HapPair index");
   return hapPair;
 }
-
 
 GLSampleHapPairs::GLSampleHapPairs(const GLSampleHapPairs &otherGL, bool checkRef, bool reverse)
   : SampleHapPairs(otherGL),
@@ -275,8 +273,7 @@ GLSampleHapPairs::GLSampleHapPairs(const GLSampleHapPairs &otherGL, bool checkRe
 }
 
 GLSampleHapPairs::GLSampleHapPairs(const Samples &samples)
-  : SampleHapPairs(samples), _overlap(0), _glIsReversed(false),
-    _numOfGlMarkersM1(-1)
+  : SampleHapPairs(samples), _overlap(0), _glIsReversed(false), _numOfGlMarkersM1(-1)
 {
   // Partial samples-object-only otherwise-empty constructor.
 }
@@ -290,7 +287,8 @@ GLSampleHapPairs::GLSampleHapPairs(const SampleHapPairs &haps, const GLSampleHap
 {
   // Does the real work of the "SplicedGL constructor".
 
-  Q_ASSERT_X(_numOfMarkersM1 == -1,
+  // Not necessarily needed, but let's check if everything stays clean, here.
+  Q_ASSERT_X(otherGL._numOfMarkersM1 == -1,
              "SplicedGL::SplicedGL(haps, otherGL)",
              "OtherGL already has overlap information in it.");
 
@@ -310,7 +308,7 @@ GLSampleHapPairs::GLSampleHapPairs(const SampleHapPairs &haps, const GLSampleHap
              "SplicedGL::SplicedGL(haps, otherGL)",
              "inconsistent samples");
 
-  _overlap = SampleHapPairs::nMarkers(); // Overlap is now different.
+  _overlap = SampleHapPairs::nMarkers();  // Overlap is now different.
 }
 
 int GLSampleHapPairs::allele1(int marker, int sampNum) const
@@ -343,9 +341,23 @@ int GLSampleHapPairs::allele2(int marker, int sampNum) const
   }
 }
 
+Samples GLSampleHapPairs::samples(int hapPair) const
+{
+  Q_ASSERT_X(hapPair >= 0 && hapPair < _samples.nSamples(),
+             "GLSampleHapPairs::samples(int)",
+             "out of bounds HapPair index");
+  return _samples;
+}
 
-SplicedGL::SplicedGL(const Samples &samples, const QList<BitSetGT> &vma)
-  : GLSampleHapPairs(samples)
+int GLSampleHapPairs::sampleIndex(int hapPair) const
+{
+  Q_ASSERT_X(hapPair >= 0 && hapPair < _samples.nSamples(),
+             "GLSampleHapPairs::samples(int)",
+             "out of bounds HapPair index");
+  return hapPair;
+}
+
+SplicedGL::SplicedGL(const Samples &samples, const QList<BitSetGT> &vma) : GLSampleHapPairs(samples)
 {
   // "BasicGL constructor"....
   _glIsReversed = false;
@@ -429,5 +441,41 @@ bool SplicedGL::isPhased(int marker, int sample) const
       return true;
     else
       return _vcfRecs[marker].isPhased(sample);
+  }
+}
+
+FuzzyGL::FuzzyGL(const SplicedGL &gl, double err, bool reverse) : SplicedGL(gl, reverse)
+{
+  Q_ASSERT_X(err >= 0.0 && err < 1.0, "FuzzyGL::FuzzyGL", "err out of range.");
+
+  double e = err;
+  double f = 1.0 - err;
+  _ee = e * e;
+  _ef = e * f;
+  _ff = f * f;
+}
+
+double FuzzyGL::gl(int marker, int sample, int a1, int a2)
+{
+  // following algorithm is for both diallelic and multi-allelic markers
+  int obs1 = allele1(marker, sample);
+  int obs2 = allele2(marker, sample);
+
+  if (obs1 >= 0 && obs2 >= 0) {
+    if (obs1 == obs2 || isPhased(marker, sample)) {
+      return phasedGL(obs1, obs2, a1, a2);
+    } else {
+      return phasedGL(obs1, obs2, a1, a2) + phasedGL(obs2, obs1, a1, a2);
+    }
+  } else
+    return SplicedGL::gl(marker, sample, a1, a2);
+}
+
+double FuzzyGL::phasedGL(int obs1, int obs2, int a1, int a2)
+{
+  if (obs1 == a1) {
+    return obs2 == a2 ? _ff : _ef;
+  } else {
+    return obs2 == a2 ? _ef : _ee;
   }
 }

@@ -268,9 +268,20 @@ void TestImputeDataStructures::testMarkers()
 void TestImputeDataStructures::testVcfEmissions()
 {
   QList<BitSetRefGT> refEmissions;
-  QList<BitSetGT> targetEmissions;
+  QList<BitSetGT> unphasedTargetEmissions;
+  QList<BitSetGT> phasedTargetEmissions;
 
-  loadTestDataForRefData(refEmissions);
+  // Construct "samplesR" and set its data before there are any other
+  // references to the object.
+
+  Samples samplesR;
+  samplesR.setSamp(SampleNames::getIndex("SAMP001"));  // The first three names and global sample
+  samplesR.setSamp(SampleNames::getIndex("SAMP003"));  // indexes already exist (globally).
+  samplesR.setSamp(SampleNames::getIndex("SAMP005"));
+  samplesR.setSamp(SampleNames::getIndex(
+      "SAMP007"));  // This name will be new the first time we run this utility.
+
+  loadTestDataForRefData(samplesR, refEmissions);
 
   QCOMPARE(SampleNames::getIndexIfIndexed("SAMP073"), 3);
   QCOMPARE(SampleNames::getIndexIfIndexed("SAMP007"), 5);
@@ -283,33 +294,74 @@ void TestImputeDataStructures::testVcfEmissions()
   QCOMPARE(refEmissions[2].allele1(2), 1);
   QCOMPARE(refEmissions[3].allele2(3), 1);
 
-  loadTestDataForTargetData(targetEmissions);
+  // Construct "samplesT" and set its data before there are any other
+  // references to the object.
+
+  Samples samplesT;
+  samplesT.setSamp(SampleNames::getIndex("SAMP073"));
+  samplesT.setSamp(SampleNames::getIndex("SAMP087"));
+  samplesT.setSamp(SampleNames::getIndex("SAMP095"));
+
+  loadTestDataForTargetData(samplesT, unphasedTargetEmissions);
 
   QCOMPARE(ChromeIds::getIndexIfIndexed("X"), 2);   // This chromosome name should exist already.
   QCOMPARE(ChromeIds::getIndexIfIndexed("2"), -1);  // This one still should not.
 
   QCOMPARE(refEmissions.length(), 4);
-  QCOMPARE(targetEmissions.length(), 3);
+  QCOMPARE(unphasedTargetEmissions.length(), 3);
 
-  QCOMPARE(targetEmissions[1].isPhased(1), true);
-  QCOMPARE(targetEmissions[0].isRefData(), false);
-  QCOMPARE(targetEmissions[1].isRefData(), true);
-  QCOMPARE(targetEmissions[0].allele1(2), -1);
-  QCOMPARE(targetEmissions[0].allele2(1), 1);
-  QCOMPARE(targetEmissions[1].allele1(0), 0);
-  QCOMPARE(targetEmissions[2].allele1(2), 1);
+  QCOMPARE(unphasedTargetEmissions[1].isPhased(1), true);
+  QCOMPARE(unphasedTargetEmissions[0].isRefData(), false);
+  QCOMPARE(unphasedTargetEmissions[1].isRefData(), false);
+  QCOMPARE(unphasedTargetEmissions[0].allele1(2), -1);
+  QCOMPARE(unphasedTargetEmissions[0].allele2(1), 1);
+  QCOMPARE(unphasedTargetEmissions[1].allele1(0), 0);
+  QCOMPARE(unphasedTargetEmissions[2].allele1(2), 1);
+  QCOMPARE(unphasedTargetEmissions[1].allele2(1), -1);
+  QCOMPARE(unphasedTargetEmissions[2].allele1(0), 0);
+  QCOMPARE(unphasedTargetEmissions[2].allele2(0), -1);
 
-  refEmissions.clear();
-  targetEmissions.clear();
+  loadTestDataForTargetData(samplesT, phasedTargetEmissions, 1, true);
 
-  QCOMPARE(refEmissions.length(), 0);
-  QCOMPARE(targetEmissions.length(), 0);
+  QCOMPARE(ChromeIds::getIndexIfIndexed("X"), 2);   // This chromosome name should exist already.
+  QCOMPARE(ChromeIds::getIndexIfIndexed("2"), -1);  // This one still should not.
+
+  QCOMPARE(phasedTargetEmissions.length(), 3);
+
+  QCOMPARE(phasedTargetEmissions[1].isPhased(1), true);
+  QCOMPARE(phasedTargetEmissions[0].isRefData(), true);
+  QCOMPARE(phasedTargetEmissions[1].isRefData(), true);
+  QCOMPARE(phasedTargetEmissions[0].allele1(2), 1);
+  QCOMPARE(phasedTargetEmissions[0].allele2(1), 1);
+  QCOMPARE(phasedTargetEmissions[1].allele1(0), 0);
+  QCOMPARE(phasedTargetEmissions[2].allele1(2), 1);
+  QCOMPARE(phasedTargetEmissions[1].allele2(1), 1);
+  QCOMPARE(phasedTargetEmissions[2].allele1(0), 0);
+  QCOMPARE(phasedTargetEmissions[2].allele2(0), 1);
 }
 
 void TestImputeDataStructures::testHaplotypePairs()
 {
+  // Construct "samplesR" and set its data before there are any other
+  // references to the object.
+
+  Samples samplesR;
+  samplesR.setSamp(SampleNames::getIndex("SAMP001"));  // The first three names and global sample
+  samplesR.setSamp(SampleNames::getIndex("SAMP003"));  // indexes already exist (globally).
+  samplesR.setSamp(SampleNames::getIndex("SAMP005"));
+  samplesR.setSamp(SampleNames::getIndex(
+      "SAMP007"));  // This name will be new the first time we run this utility.
+
+  // Construct "samplesT" and set its data before there are any other
+  // references to the object.
+
+  Samples samplesT;
+  samplesT.setSamp(SampleNames::getIndex("SAMP073"));
+  samplesT.setSamp(SampleNames::getIndex("SAMP087"));
+  samplesT.setSamp(SampleNames::getIndex("SAMP095"));
+
   QList<BitSetRefGT> refEmissions;
-  loadTestDataForRefData(refEmissions);
+  loadTestDataForRefData(samplesR, refEmissions);
 
   int nummarks = refEmissions.length();
 
@@ -336,8 +388,8 @@ void TestImputeDataStructures::testHaplotypePairs()
   }
 
   Markers marks(biglist);
-  HapPair pair1(marks, refEmissions[0].samples(), 1, als11, als21);
-  HapPair pair3(marks, refEmissions[0].samples(), 3, als13, als23);
+  HapPair pair1(marks, samplesR, 1, als11, als21);
+  HapPair pair3(marks, samplesR, 3, als13, als23);
 
   HapPair pair1copy(pair1, false);  // Copy but don't reverse.
   HapPair pair3rev(pair3, true);    // Copy and reverse this one.
@@ -397,6 +449,7 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(hps.nMarkers(), 4);
   Markers mks = hps.markers();
   Marker m2 = hps.marker(2);
+  Marker m3 = hps.marker(3);
 
   QCOMPARE(hps.nHaps(), 6);
   QCOMPARE(hps.nHapPairs(), 3);
@@ -408,6 +461,7 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(mks == marks, true);
   QCOMPARE(m2 == refEmissions[2].marker(), true);
   QCOMPARE(shps1 == refEmissions[1].samples(), true);
+  QCOMPARE(shps1 == samplesR, true);
 
   QCOMPARE(hpsr.allele1(2, 0), 0);
   QCOMPARE(hpsr.allele2(3, 1), 1);
@@ -433,6 +487,7 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(mksr == marks, false);
   QCOMPARE(m2r == refEmissions[1].marker(), true);
   QCOMPARE(shpsr1 == refEmissions[1].samples(), true);
+  QCOMPARE(shpsr1 == samplesR, true);
 
   Samples samplesComplete;
   samplesComplete.setSamp(SampleNames::getIndex("SAMP001"));
@@ -451,8 +506,8 @@ void TestImputeDataStructures::testHaplotypePairs()
   // SampleHapPairs shpsMisMatchSamples(samplesSHPMMS, hpsList, false);  // This should
   // ASSERT-crash, and does.
 
-  HapPair pair0(marks, refEmissions[0].samples(), 0, als10, als20);
-  HapPair pair2(marks, refEmissions[0].samples(), 2, als12, als22);
+  HapPair pair0(marks, samplesR, 0, als10, als20);
+  HapPair pair2(marks, samplesR, 2, als12, als22);
 
   QList<HapPair> shpscList;
   shpscList.append(pair0);
@@ -498,9 +553,10 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(hpsx.allele2(2, 0), 1);
 
   Samples samplesCompleteX;
+  // Notice the order of samples 005 and 003 is switched from the
+  // order in samplesComplete.
   samplesCompleteX.setSamp(SampleNames::getIndex("SAMP001"));
-  samplesCompleteX.setSamp(
-      SampleNames::getIndex("SAMP005"));  // Notice the order is switched, here....
+  samplesCompleteX.setSamp(SampleNames::getIndex("SAMP005"));
   samplesCompleteX.setSamp(SampleNames::getIndex("SAMP003"));
   samplesCompleteX.setSamp(SampleNames::getIndex("SAMP007"));
   samplesCompleteX.setSamp(SampleNames::getIndex("SAMP029"));
@@ -574,6 +630,8 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(shpscxr.nSamples(), 5);
 
   Samples resamples = refEmissions[1].samples();
+  QCOMPARE(resamples == samplesR, true);
+
   RefHapPairs rhp(resamples, refEmissions);
   QCOMPARE(rhp.markers().marker(1) == marks.marker(1), true);
   QCOMPARE(rhp.samples(1) == resamples, true);
@@ -586,29 +644,391 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(rhp.nAlleles(3), 2);
 
   QList<BitSetGT> phasedTargetEmissions;
-  loadTestDataForTargetData(phasedTargetEmissions, 1, true);
-  Samples samplesT = phasedTargetEmissions[1].samples();
-
-  /*
-  Samples samplesT;
-  samplesT.setSamp(SampleNames::getIndex("SAMP073"));
-  samplesT.setSamp(SampleNames::getIndex("SAMP087"));
-  samplesT.setSamp(SampleNames::getIndex("SAMP095"));
-  */
+  loadTestDataForTargetData(samplesT, phasedTargetEmissions, 1, true);
+  QCOMPARE(phasedTargetEmissions[1].samples() == samplesT, true);
 
   SplicedGL phasedtarggl(samplesT, phasedTargetEmissions);
   GLSampleHapPairs glshp(phasedtarggl);
 
-  QList<BitSetGT> unphasedTargetEmissions;
-  loadTestDataForTargetData(unphasedTargetEmissions);
-  Samples samplesU = unphasedTargetEmissions[2].samples();
-  SplicedGL unphasedtarggl(samplesU, unphasedTargetEmissions);
-  // This one should not work, and doesn't. GLSampleHapPairs crash(unphasedtarggl);
+  QCOMPARE(phasedtarggl.allele1(1, 1), 0);
+  QCOMPARE(phasedtarggl.allele2(1, 1), 1);
+  QCOMPARE(phasedtarggl.allele2(2, 0), 1);
+  QCOMPARE(phasedtarggl.allele1(0, 2), 1);
+  QCOMPARE(phasedtarggl.allele(0, 4), 1);
+  QCOMPARE(phasedtarggl.allele(2, 1), 1);
+  QCOMPARE(phasedtarggl.nMarkers(), 3);
+  QCOMPARE(phasedtarggl.nAlleles(1), 2);
+  QCOMPARE(phasedtarggl.isRefData(), true);
 
-  // FOR THE NEXT ONE, NEED TO SET UP PHASED HAPS FOR TWO OF THE THREE MARKERS....
-  // SplicedGL spliced(SampleHapPairs &haps, GLSampleHapPairs &otherGL);
+  QCOMPARE(phasedtarggl.nHaps(), 6);
+  QCOMPARE(phasedtarggl.nHapPairs(), 3);
+  Samples sphasedtarggl2 = phasedtarggl.samples(2);
+  Samples sphasedtarggl = phasedtarggl.samples();
+  QCOMPARE(phasedtarggl.sampleIndex(0), 0);
+  QCOMPARE(phasedtarggl.sampleIndex(2), 2);
+
+  QCOMPARE(sphasedtarggl2 == samplesT, true);
+  QCOMPARE(phasedtarggl.nSamples(), 3);
+
+  QCOMPARE(phasedtarggl.gl(0, 0, 1, 1), 1.0);
+  QCOMPARE(phasedtarggl.gl(0, 0, 1, 0), 0.0);
+  QCOMPARE(phasedtarggl.gl(0, 0, 0, 1), 0.0);
+  QCOMPARE(phasedtarggl.gl(0, 0, 0, 0), 0.0);
+  QCOMPARE(phasedtarggl.gl(0, 1, 1, 1), 0.0);
+  QCOMPARE(phasedtarggl.gl(0, 1, 1, 0), 0.0);
+  QCOMPARE(phasedtarggl.gl(0, 1, 0, 1), 1.0);
+  QCOMPARE(phasedtarggl.gl(0, 1, 0, 0), 0.0);
+  QCOMPARE(phasedtarggl.gl(0, 2, 1, 1), 0.0);
+  QCOMPARE(phasedtarggl.gl(0, 2, 1, 0), 1.0);
+  QCOMPARE(phasedtarggl.gl(0, 2, 0, 1), 0.0);
+  QCOMPARE(phasedtarggl.gl(0, 2, 0, 0), 0.0);
+  QCOMPARE(phasedtarggl.gl(1, 1, 1, 1), 0.0);
+  QCOMPARE(phasedtarggl.gl(1, 1, 1, 0), 0.0);
+  QCOMPARE(phasedtarggl.gl(1, 1, 0, 1), 1.0);
+  QCOMPARE(phasedtarggl.gl(1, 1, 0, 0), 0.0);
+  QCOMPARE(phasedtarggl.gl(2, 0, 1, 1), 0.0);
+  QCOMPARE(phasedtarggl.gl(2, 0, 1, 0), 0.0);
+  QCOMPARE(phasedtarggl.gl(2, 0, 0, 1), 1.0);
+  QCOMPARE(phasedtarggl.gl(2, 0, 0, 0), 0.0);
+  QCOMPARE(phasedtarggl.isPhased(0, 0), true);
+  QCOMPARE(phasedtarggl.isPhased(0, 1), true);
+  QCOMPARE(phasedtarggl.isPhased(0, 2), true);
+  QCOMPARE(phasedtarggl.isPhased(1, 0), true);
+  QCOMPARE(phasedtarggl.isPhased(1, 1), true);
+  QCOMPARE(phasedtarggl.isPhased(1, 2), true);
+  QCOMPARE(phasedtarggl.isPhased(2, 0), true);
+  QCOMPARE(phasedtarggl.isPhased(2, 1), true);
+  QCOMPARE(phasedtarggl.isPhased(2, 2), true);
+
+  QCOMPARE(glshp.allele1(1, 1), 0);
+  QCOMPARE(glshp.allele2(1, 1), 1);
+  QCOMPARE(glshp.allele2(2, 0), 1);
+  QCOMPARE(glshp.allele1(0, 2), 1);
+  QCOMPARE(glshp.allele(0, 4), 1);
+  QCOMPARE(glshp.allele(2, 1), 1);
+  QCOMPARE(glshp.nMarkers(), 3);
+  QCOMPARE(glshp.nAlleles(1), 2);
+  QCOMPARE(glshp.isRefData(), true);
+
+  QCOMPARE(glshp.nHaps(), 6);
+  QCOMPARE(glshp.nHapPairs(), 3);
+  Samples sglshp2 = glshp.samples(2);
+  Samples sglshp = glshp.samples();
+  QCOMPARE(glshp.sampleIndex(0), 0);
+  QCOMPARE(glshp.sampleIndex(2), 2);
+
+  QCOMPARE(sglshp2 == samplesT, true);
+  QCOMPARE(glshp.nSamples(), 3);
+
+  QList<BitSetGT> unphasedTargetEmissions;
+  loadTestDataForTargetData(samplesT, unphasedTargetEmissions);
+
+  SplicedGL unphasedtarggl(samplesT, unphasedTargetEmissions);
+
+  // This one should not work, and indeed doesn't:
+  //   GLSampleHapPairs crash(unphasedtarggl);
+
+  QCOMPARE(unphasedtarggl.allele1(1, 1), 0);
+  QCOMPARE(unphasedtarggl.allele2(1, 1), -1);
+  QCOMPARE(unphasedtarggl.allele2(2, 0), -1);
+  QCOMPARE(unphasedtarggl.allele1(0, 2), -1);
+  QCOMPARE(unphasedtarggl.allele(0, 4), -1);
+  QCOMPARE(unphasedtarggl.allele(2, 1), -1);
+  QCOMPARE(unphasedtarggl.nMarkers(), 3);
+  QCOMPARE(unphasedtarggl.nAlleles(1), 2);
+  QCOMPARE(unphasedtarggl.isRefData(), false);
+
+  QCOMPARE(unphasedtarggl.nHaps(), 6);
+  QCOMPARE(unphasedtarggl.nHapPairs(), 3);
+  Samples sunphasedtarggl2 = unphasedtarggl.samples(2);
+  Samples sunphasedtarggl = unphasedtarggl.samples();
+  QCOMPARE(unphasedtarggl.sampleIndex(0), 0);
+  QCOMPARE(unphasedtarggl.sampleIndex(2), 2);
+
+  QCOMPARE(sunphasedtarggl2 == samplesT, true);
+  QCOMPARE(unphasedtarggl.nSamples(), 3);
+
+  QCOMPARE(unphasedtarggl.gl(0, 0, 1, 1), 1.0);
+  QCOMPARE(unphasedtarggl.gl(0, 0, 1, 0), 0.0);
+  QCOMPARE(unphasedtarggl.gl(0, 0, 0, 1), 0.0);
+  QCOMPARE(unphasedtarggl.gl(0, 0, 0, 0), 0.0);
+  QCOMPARE(unphasedtarggl.gl(0, 1, 1, 1), 0.0);
+  QCOMPARE(unphasedtarggl.gl(0, 1, 1, 0), 0.0);
+  QCOMPARE(unphasedtarggl.gl(0, 1, 0, 1), 1.0);
+  QCOMPARE(unphasedtarggl.gl(0, 1, 0, 0), 0.0);
+  QCOMPARE(unphasedtarggl.gl(0, 2, 1, 1), 0.0);
+  QCOMPARE(unphasedtarggl.gl(0, 2, 1, 0), 1.0);
+  QCOMPARE(unphasedtarggl.gl(0, 2, 0, 1), 1.0);
+  QCOMPARE(unphasedtarggl.gl(0, 2, 0, 0), 1.0);
+  QCOMPARE(unphasedtarggl.gl(1, 1, 1, 1), 0.0);
+  QCOMPARE(unphasedtarggl.gl(1, 1, 1, 0), 0.0);
+  QCOMPARE(unphasedtarggl.gl(1, 1, 0, 1), 1.0);
+  QCOMPARE(unphasedtarggl.gl(1, 1, 0, 0), 1.0);
+  QCOMPARE(unphasedtarggl.gl(2, 0, 1, 1), 0.0);
+  QCOMPARE(unphasedtarggl.gl(2, 0, 1, 0), 1.0);
+  QCOMPARE(unphasedtarggl.gl(2, 0, 0, 1), 1.0);
+  QCOMPARE(unphasedtarggl.gl(2, 0, 0, 0), 1.0);
+  QCOMPARE(unphasedtarggl.gl(2, 1, 1, 1), 0.0);
+  QCOMPARE(unphasedtarggl.gl(2, 1, 1, 0), 1.0);
+  QCOMPARE(unphasedtarggl.gl(2, 1, 0, 1), 0.0);
+  QCOMPARE(unphasedtarggl.gl(2, 1, 0, 0), 0.0);
+  QCOMPARE(unphasedtarggl.gl(2, 2, 1, 1), 0.0);
+  QCOMPARE(unphasedtarggl.gl(2, 2, 1, 0), 1.0);
+  QCOMPARE(unphasedtarggl.gl(2, 2, 0, 1), 1.0);
+  QCOMPARE(unphasedtarggl.gl(2, 2, 0, 0), 0.0);
+  QCOMPARE(unphasedtarggl.isPhased(0, 0), false);
+  QCOMPARE(unphasedtarggl.isPhased(0, 1), true);
+  QCOMPARE(unphasedtarggl.isPhased(0, 2), false);
+  QCOMPARE(unphasedtarggl.isPhased(1, 0), true);
+  QCOMPARE(unphasedtarggl.isPhased(1, 1), true);
+  QCOMPARE(unphasedtarggl.isPhased(1, 2), true);
+  QCOMPARE(unphasedtarggl.isPhased(2, 0), false);
+  QCOMPARE(unphasedtarggl.isPhased(2, 1), true);
+  QCOMPARE(unphasedtarggl.isPhased(2, 2), false);
+
+  QList<Marker> smalllist;
+  QList<int> alss10;
+  QList<int> alss20;
+  QList<int> alss11;
+  QList<int> alss21;
+  QList<int> alss12;
+  QList<int> alss22;
+
+  for (int mnum = 0; mnum < 2; mnum++) {
+    smalllist.append(refEmissions[mnum].marker());
+    alss10.append(phasedTargetEmissions[mnum].allele1(0));
+    alss20.append(phasedTargetEmissions[mnum].allele2(0));
+    alss11.append(phasedTargetEmissions[mnum].allele1(1));
+    alss21.append(phasedTargetEmissions[mnum].allele2(1));
+    alss12.append(phasedTargetEmissions[mnum].allele1(2));
+    alss22.append(phasedTargetEmissions[mnum].allele2(2));
+  }
+
+  Markers markss(smalllist);
+  Markers mksptgl = phasedtarggl.markers();
+  Marker m2ptgl = phasedtarggl.marker(2);
+  QCOMPARE(mksptgl == markss, false);
+  QCOMPARE(m2ptgl == m2, false);
+  QCOMPARE(m2ptgl == m3, true);
+  Markers mksglshp = glshp.markers();
+  Marker m2glshp = glshp.marker(2);
+  QCOMPARE(mksglshp == markss, false);
+  QCOMPARE(m2glshp == m3, true);
+
+  HapPair pair0s(markss, samplesT, 0, alss10, alss20);
+  HapPair pair1s(markss, samplesT, 1, alss11, alss21);
+  HapPair pair2s(markss, samplesT, 2, alss12, alss22);
+  QList<HapPair> pteList;
+  pteList.append(pair0s);
+  pteList.append(pair1s);
+  pteList.append(pair2s);
+  SampleHapPairs shppte(samplesT, pteList, false);
+  SplicedGL spliced(shppte, unphasedtarggl);
+
+  QCOMPARE(spliced.allele1(1, 1), 0);
+  QCOMPARE(spliced.allele2(1, 1), 1);
+  QCOMPARE(spliced.allele2(2, 0), -1);
+  QCOMPARE(spliced.allele1(0, 2), 1);
+  QCOMPARE(spliced.allele(0, 4), 1);
+  QCOMPARE(spliced.allele(2, 1), -1);
+  QCOMPARE(spliced.nMarkers(), 3);
+  QCOMPARE(spliced.nAlleles(1), 2);
+  QCOMPARE(spliced.isRefData(), false);
+
+  QCOMPARE(spliced.nHaps(), 6);
+  QCOMPARE(spliced.nHapPairs(), 3);
+  Samples sspliced2 = spliced.samples(2);
+  Samples sspliced = spliced.samples();
+  QCOMPARE(spliced.sampleIndex(0), 0);
+  QCOMPARE(spliced.sampleIndex(2), 2);
+
+  QCOMPARE(sspliced2 == samplesT, true);
+  QCOMPARE(spliced.nSamples(), 3);
+
+  QCOMPARE(spliced.gl(0, 0, 1, 1), 1.0);
+  QCOMPARE(spliced.gl(0, 0, 1, 0), 0.0);
+  QCOMPARE(spliced.gl(0, 0, 0, 1), 0.0);
+  QCOMPARE(spliced.gl(0, 0, 0, 0), 0.0);
+  QCOMPARE(spliced.gl(0, 1, 1, 1), 0.0);
+  QCOMPARE(spliced.gl(0, 1, 1, 0), 0.0);
+  QCOMPARE(spliced.gl(0, 1, 0, 1), 1.0);
+  QCOMPARE(spliced.gl(0, 1, 0, 0), 0.0);
+  QCOMPARE(spliced.gl(0, 2, 1, 1), 0.0);
+  QCOMPARE(spliced.gl(0, 2, 1, 0), 1.0);
+  QCOMPARE(spliced.gl(0, 2, 0, 1), 0.0);
+  QCOMPARE(spliced.gl(0, 2, 0, 0), 0.0);
+  QCOMPARE(spliced.gl(1, 1, 1, 1), 0.0);
+  QCOMPARE(spliced.gl(1, 1, 1, 0), 0.0);
+  QCOMPARE(spliced.gl(1, 1, 0, 1), 1.0);
+  QCOMPARE(spliced.gl(1, 1, 0, 0), 0.0);
+  QCOMPARE(spliced.gl(2, 0, 1, 1), 0.0);
+  QCOMPARE(spliced.gl(2, 0, 1, 0), 1.0);
+  QCOMPARE(spliced.gl(2, 0, 0, 1), 1.0);
+  QCOMPARE(spliced.gl(2, 0, 0, 0), 1.0);
+  QCOMPARE(spliced.gl(2, 1, 1, 1), 0.0);
+  QCOMPARE(spliced.gl(2, 1, 1, 0), 1.0);
+  QCOMPARE(spliced.gl(2, 1, 0, 1), 0.0);
+  QCOMPARE(spliced.gl(2, 1, 0, 0), 0.0);
+  QCOMPARE(spliced.gl(2, 2, 1, 1), 0.0);
+  QCOMPARE(spliced.gl(2, 2, 1, 0), 1.0);
+  QCOMPARE(spliced.gl(2, 2, 0, 1), 1.0);
+  QCOMPARE(spliced.gl(2, 2, 0, 0), 0.0);
+  QCOMPARE(spliced.isPhased(0, 0), true);
+  QCOMPARE(spliced.isPhased(0, 1), true);
+  QCOMPARE(spliced.isPhased(0, 2), true);
+  QCOMPARE(spliced.isPhased(1, 0), true);
+  QCOMPARE(spliced.isPhased(1, 1), true);
+  QCOMPARE(spliced.isPhased(1, 2), true);
+  QCOMPARE(spliced.isPhased(2, 0), false);
+  QCOMPARE(spliced.isPhased(2, 1), true);
+  QCOMPARE(spliced.isPhased(2, 2), false);
 
   SplicedGL revphased(phasedtarggl, true);
+
+  QCOMPARE(revphased.allele1(1, 1), 0);
+  QCOMPARE(revphased.allele2(1, 1), 1);
+  QCOMPARE(revphased.allele2(0, 0), 1);
+  QCOMPARE(revphased.allele1(2, 2), 1);
+  QCOMPARE(revphased.allele(2, 4), 1);
+  QCOMPARE(revphased.allele(0, 1), 1);
+  QCOMPARE(revphased.nMarkers(), 3);
+  QCOMPARE(revphased.nAlleles(1), 2);
+  QCOMPARE(revphased.isRefData(), true);
+
+  QCOMPARE(revphased.nHaps(), 6);
+  QCOMPARE(revphased.nHapPairs(), 3);
+  Samples srevphased2 = revphased.samples(2);
+  Samples srevphased = revphased.samples();
+  QCOMPARE(revphased.sampleIndex(0), 0);
+  QCOMPARE(revphased.sampleIndex(2), 2);
+
+  QCOMPARE(srevphased2 == samplesT, true);
+  QCOMPARE(revphased.nSamples(), 3);
+
+  Markers mksrph = revphased.markers();
+  Marker m2rph = revphased.marker(2);
+  QCOMPARE(mksrph == markss, false);
+  QCOMPARE(m2rph == m2, false);
+  QCOMPARE(m2rph == m3, false);
+  QCOMPARE(revphased.marker(0) == m3, true);
+
+  QCOMPARE(revphased.gl(2, 0, 1, 1), 1.0);
+  QCOMPARE(revphased.gl(2, 0, 1, 0), 0.0);
+  QCOMPARE(revphased.gl(2, 0, 0, 1), 0.0);
+  QCOMPARE(revphased.gl(2, 0, 0, 0), 0.0);
+  QCOMPARE(revphased.gl(2, 1, 1, 1), 0.0);
+  QCOMPARE(revphased.gl(2, 1, 1, 0), 0.0);
+  QCOMPARE(revphased.gl(2, 1, 0, 1), 1.0);
+  QCOMPARE(revphased.gl(2, 1, 0, 0), 0.0);
+  QCOMPARE(revphased.gl(2, 2, 1, 1), 0.0);
+  QCOMPARE(revphased.gl(2, 2, 1, 0), 1.0);
+  QCOMPARE(revphased.gl(2, 2, 0, 1), 0.0);
+  QCOMPARE(revphased.gl(2, 2, 0, 0), 0.0);
+  QCOMPARE(revphased.gl(1, 1, 1, 1), 0.0);
+  QCOMPARE(revphased.gl(1, 1, 1, 0), 0.0);
+  QCOMPARE(revphased.gl(1, 1, 0, 1), 1.0);
+  QCOMPARE(revphased.gl(1, 1, 0, 0), 0.0);
+  QCOMPARE(revphased.gl(0, 0, 1, 1), 0.0);
+  QCOMPARE(revphased.gl(0, 0, 1, 0), 0.0);
+  QCOMPARE(revphased.gl(0, 0, 0, 1), 1.0);
+  QCOMPARE(revphased.gl(0, 0, 0, 0), 0.0);
+  QCOMPARE(revphased.isPhased(2, 0), true);
+  QCOMPARE(revphased.isPhased(2, 1), true);
+  QCOMPARE(revphased.isPhased(2, 2), true);
+  QCOMPARE(revphased.isPhased(1, 0), true);
+  QCOMPARE(revphased.isPhased(1, 1), true);
+  QCOMPARE(revphased.isPhased(1, 2), true);
+  QCOMPARE(revphased.isPhased(0, 0), true);
+  QCOMPARE(revphased.isPhased(0, 1), true);
+  QCOMPARE(revphased.isPhased(0, 2), true);
+
+  SplicedGL revspliced(spliced, true);
+
+  QCOMPARE(revspliced.allele1(1, 1), 0);
+  QCOMPARE(revspliced.allele2(1, 1), 1);
+  QCOMPARE(revspliced.allele2(0, 0), -1);
+  QCOMPARE(revspliced.allele1(2, 2), 1);
+  QCOMPARE(revspliced.allele(2, 4), 1);
+  QCOMPARE(revspliced.allele(0, 1), -1);
+  QCOMPARE(revspliced.nMarkers(), 3);
+  QCOMPARE(revspliced.nAlleles(1), 2);
+  QCOMPARE(revspliced.isRefData(), false);
+
+  QCOMPARE(revspliced.nHaps(), 6);
+  QCOMPARE(revspliced.nHapPairs(), 3);
+  Samples srevspliced2 = revspliced.samples(2);
+  Samples srevspliced = revspliced.samples();
+  QCOMPARE(revspliced.sampleIndex(0), 0);
+  QCOMPARE(revspliced.sampleIndex(2), 2);
+
+  QCOMPARE(srevspliced2 == samplesT, true);
+  QCOMPARE(revspliced.nSamples(), 3);
+
+  Markers mksrsp = revspliced.markers();
+  Marker m2rsp = revspliced.marker(2);
+  QCOMPARE(mksrsp == markss, false);
+  QCOMPARE(m2rsp == m2, false);
+  QCOMPARE(m2rsp == m3, false);
+  QCOMPARE(revspliced.marker(0) == m3, true);
+
+  QCOMPARE(revspliced.gl(2, 0, 1, 1), 1.0);
+  QCOMPARE(revspliced.gl(2, 0, 1, 0), 0.0);
+  QCOMPARE(revspliced.gl(2, 0, 0, 1), 0.0);
+  QCOMPARE(revspliced.gl(2, 0, 0, 0), 0.0);
+  QCOMPARE(revspliced.gl(2, 1, 1, 1), 0.0);
+  QCOMPARE(revspliced.gl(2, 1, 1, 0), 0.0);
+  QCOMPARE(revspliced.gl(2, 1, 0, 1), 1.0);
+  QCOMPARE(revspliced.gl(2, 1, 0, 0), 0.0);
+  QCOMPARE(revspliced.gl(2, 2, 1, 1), 0.0);
+  QCOMPARE(revspliced.gl(2, 2, 1, 0), 1.0);
+  QCOMPARE(revspliced.gl(2, 2, 0, 1), 0.0);
+  QCOMPARE(revspliced.gl(2, 2, 0, 0), 0.0);
+  QCOMPARE(revspliced.gl(1, 1, 1, 1), 0.0);
+  QCOMPARE(revspliced.gl(1, 1, 1, 0), 0.0);
+  QCOMPARE(revspliced.gl(1, 1, 0, 1), 1.0);
+  QCOMPARE(revspliced.gl(1, 1, 0, 0), 0.0);
+  QCOMPARE(revspliced.gl(0, 0, 1, 1), 0.0);
+  QCOMPARE(revspliced.gl(0, 0, 1, 0), 1.0);
+  QCOMPARE(revspliced.gl(0, 0, 0, 1), 1.0);
+  QCOMPARE(revspliced.gl(0, 0, 0, 0), 1.0);
+  QCOMPARE(revspliced.gl(0, 1, 1, 1), 0.0);
+  QCOMPARE(revspliced.gl(0, 1, 1, 0), 1.0);
+  QCOMPARE(revspliced.gl(0, 1, 0, 1), 0.0);
+  QCOMPARE(revspliced.gl(0, 1, 0, 0), 0.0);
+  QCOMPARE(revspliced.gl(0, 2, 1, 1), 0.0);
+  QCOMPARE(revspliced.gl(0, 2, 1, 0), 1.0);
+  QCOMPARE(revspliced.gl(0, 2, 0, 1), 1.0);
+  QCOMPARE(revspliced.gl(0, 2, 0, 0), 0.0);
+  QCOMPARE(revspliced.isPhased(2, 0), true);
+  QCOMPARE(revspliced.isPhased(2, 1), true);
+  QCOMPARE(revspliced.isPhased(2, 2), true);
+  QCOMPARE(revspliced.isPhased(1, 0), true);
+  QCOMPARE(revspliced.isPhased(1, 1), true);
+  QCOMPARE(revspliced.isPhased(1, 2), true);
+  QCOMPARE(revspliced.isPhased(0, 0), false);
+  QCOMPARE(revspliced.isPhased(0, 1), true);
+  QCOMPARE(revspliced.isPhased(0, 2), false);
+
+  FuzzyGL fzgl(revspliced, .25, false);
+  QCOMPARE(fzgl.gl(0, 0, 1, 1), 0.0);
+  QCOMPARE(fzgl.gl(0, 0, 1, 0), 1.0);
+  QCOMPARE(fzgl.gl(0, 0, 0, 1), 1.0);
+  QCOMPARE(fzgl.gl(0, 0, 0, 0), 1.0);
+  QCOMPARE(fzgl.gl(2, 0, 1, 1), 0.5625);
+  QCOMPARE(fzgl.gl(2, 0, 1, 0), 0.1875);
+  QCOMPARE(fzgl.gl(2, 0, 0, 1), 0.1875);
+  QCOMPARE(fzgl.gl(2, 0, 0, 0), 0.0625);
+  QCOMPARE(fzgl.gl(0, 1, 1, 1), 0.1875);
+  QCOMPARE(fzgl.gl(0, 1, 1, 0), 0.5625);
+  QCOMPARE(fzgl.gl(0, 1, 0, 1), 0.0625);
+  QCOMPARE(fzgl.gl(0, 1, 0, 0), 0.1875);
+  QCOMPARE(fzgl.gl(0, 2, 1, 1), 0.375);
+  QCOMPARE(fzgl.gl(0, 2, 1, 0), 0.625);
+  QCOMPARE(fzgl.gl(0, 2, 0, 1), 0.625);
+  QCOMPARE(fzgl.gl(0, 2, 0, 0), 0.375);
+
+  // GLUser gluser;
+  // gluser.myGL = fzgl;
 }
 
 /*

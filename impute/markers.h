@@ -92,7 +92,8 @@ public:
   MarkersPluralSharedData() {}
   MarkersPluralSharedData(const MarkersPluralSharedData &other) : QSharedData(other)
   {
-    Q_ASSERT_X(false, "MarkersPluralSharedData", "Resetting a MarkersPluralSharedData instance....");
+    Q_ASSERT_X(false, "MarkersPluralSharedData",
+               "Resetting a MarkersPluralSharedData instance....");
   }
   ~MarkersPluralSharedData() {}
   QList<Marker> fwdMarkerArray;

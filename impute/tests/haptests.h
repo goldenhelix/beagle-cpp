@@ -1,16 +1,7 @@
 // Test-dedicated utility include file.
 
-void loadTestDataForRefData(QList<BitSetRefGT> &refEmissions)
+void loadTestDataForRefData(Samples &samplesR, QList<BitSetRefGT> &refEmissions)
 {
-  // Construct "samplesR" and set its data before there are any other
-  // references to the object.
-
-  Samples samplesR;
-  samplesR.setSamp(SampleNames::getIndex("SAMP001"));   // The first three names and global sample
-  samplesR.setSamp(SampleNames::getIndex("SAMP003"));   // indexes already exist (globally).
-  samplesR.setSamp(SampleNames::getIndex("SAMP005"));
-  samplesR.setSamp(SampleNames::getIndex("SAMP007"));   // This name will be new the first time we run this utility.
-
   // Build some VcfEmissions objects as "reference data" (containing
   // phased genotypes without missing data). Be careful to load the
   // data before doing any "copy" or "assignment" operations (which
@@ -65,16 +56,8 @@ void loadTestDataForRefData(QList<BitSetRefGT> &refEmissions)
   refEmissions.append(r3);
 }
 
-void loadTestDataForTargetData(QList<BitSetGT> &targetEmissions, int missingVal=-1, bool defaultPhasing=false)
+void loadTestDataForTargetData(Samples &samplesT, QList<BitSetGT> &targetEmissions, int missingVal=-1, bool defaultPhasing=false)
 {
-  // Construct "samplesT" and set its data before there are any other
-  // references to the object.
-
-  Samples samplesT;
-  samplesT.setSamp(SampleNames::getIndex("SAMP073"));
-  samplesT.setSamp(SampleNames::getIndex("SAMP087"));
-  samplesT.setSamp(SampleNames::getIndex("SAMP095"));
-
   // Build some VcfEmissions objects as "target data" (containing
   // normal unphased genotypes). Be careful to load the data before
   // doing any "copy" or "assignment" operations (which are actually
@@ -101,7 +84,7 @@ void loadTestDataForTargetData(QList<BitSetGT> &targetEmissions, int missingVal=
   t1.setAllele("T");
 
   QList<int> t11; t11.append(0); t11.append(0); t11.append(1);
-  QList<int> t12; t12.append(1); t12.append(1); t12.append(1);
+  QList<int> t12; t12.append(1); t12.append(missingVal); t12.append(1);
   arePhased[0] = true; arePhased[2] = true;
   t1.storeAlleles(t11, t12, arePhased);
 
@@ -114,9 +97,15 @@ void loadTestDataForTargetData(QList<BitSetGT> &targetEmissions, int missingVal=
   t2.setAllele("T");
 
   QList<int> t21; t21.append(0); t21.append(1); t21.append(1);
-  QList<int> t22; t22.append(1); t22.append(0); t22.append(0);
+  QList<int> t22; t22.append(missingVal); t22.append(0); t22.append(0);
   arePhased[0] = defaultPhasing; arePhased[2] = defaultPhasing;
   t2.storeAlleles(t21, t22, arePhased);
 
   targetEmissions.append(t2);
 }
+
+class GLUser
+{
+public:
+  FuzzyGL myGL;
+};

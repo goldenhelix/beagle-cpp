@@ -2,8 +2,8 @@
 #ifndef HAPLOTYPEPAIR_H
 #define HAPLOTYPEPAIR_H
 
-#include "impute/samples.h"
 #include "impute/markers.h"
+#include "impute/samples.h"
 #include "impute/vcfemission.h"
 
 #include <QList>
@@ -24,8 +24,8 @@ public:
    * @param alleles1 the sequence of allele indices for the first haplotype
    * @param alleles2 the sequence of alleles indices for the second haplotype
    */
-  HapPair(const Markers &markers, const Samples &samples, int sampleIndex,
-	  QList<int> &alleles1, QList<int> &alleles2);
+  HapPair(const Markers &markers, const Samples &samples, int sampleIndex, QList<int> &alleles1,
+          QList<int> &alleles2);
 
   /**
    * (A type of) copy constructor. Can copy in reversed order if specified.
@@ -157,7 +157,6 @@ public:
   int sampleIndex(int hapPair) const { return _hapPairs[hapPair].sampleIndex(); }
 protected:
   HapPairs() : _isReversed(false), _numOfMarkersM1(-1) {}
-
   void checkAndExtractMarkers(bool reverse);
 
   bool _isReversed;
@@ -197,6 +196,14 @@ public:
    * Returns the number of samples.
    */
   int nSamples() const { return _samples.nSamples(); }
+  /**
+   * Returns the number of haplotypes.
+   */
+  int nHaps() const { return 2 * _samples.nSamples(); }
+  /**
+   * Returns the number of haplotype pairs.
+   */
+  int nHapPairs() const { return _samples.nSamples(); }
 protected:
   SampleHapPairs(const Samples &samples) : HapPairs(), _samples(samples) {}
   void checkSamples();
@@ -227,11 +234,10 @@ public:
   int allele(int marker, int haplotype) const;
 
   Samples samples(int hapPair) const;
-
+  Samples samples() const { return _samples; }
   int sampleIndex(int hapPair) const;
 
   int nAlleles(int marker) const { return _refVcfRecs[marker].nAlleles(); }
-
 private:
   void createMarkers();
 
@@ -256,14 +262,12 @@ public:
    * non-missing genotype data.
    */
   GLSampleHapPairs(const GLSampleHapPairs &otherGL) : GLSampleHapPairs(otherGL, true, false) {}
-
   /**
    * Returns {@code true} if the observed data for each marker and
    * sample includes a phased genotype that has no missing alleles,
    * and returns {@code false} otherwise.
    */
   virtual bool isRefData() const { return true; }
-
   int allele(int marker, int haplotype) const
   {
     int sample = haplotype / 2;
@@ -277,6 +281,10 @@ public:
   int allele1(int marker, int hapPair) const;
 
   int allele2(int marker, int hapPair) const;
+
+  Samples samples(int hapPair) const;
+  Samples samples() const { return _samples; }
+  int sampleIndex(int hapPair) const;
 
   /**
    * Returns the number of markers (overall).
@@ -393,6 +401,31 @@ protected:
   bool _isRefData;
 };
 
-///////// FuzzyGL will want a reverse flag directly in its constructor.
+/**
+ * Class {@code FuzzyGL} is a {@code GL} class that
+ * incorporates a fixed error rate for the
+ * observed (emitted) allele to differ from the true allele.  Allele
+ * errors are independent.
+ */
+
+class FuzzyGL : public SplicedGL
+{
+public:
+  /**
+   * Constructs a {@code FuzzyGL} instance.
+   * @param gl the genotype likelihoods without error
+   * @param err the allele error rate
+   */
+  FuzzyGL(const SplicedGL &gl, double err, bool reverse);
+
+  double gl(int marker, int sample, int a1, int a2);
+
+private:
+  double phasedGL(int obs1, int obs2, int a1, int a2);
+
+  double _ee;
+  double _ef;
+  double _ff;
+};
 
 #endif

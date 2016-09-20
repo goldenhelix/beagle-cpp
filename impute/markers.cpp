@@ -141,18 +141,18 @@ void Markers::checkMarkerPosOrder(QList<Marker> markers)
       int pos2 = markers[j].pos();
       if ((pos1 < pos0 && pos1 < pos2) || (pos1 > pos0 && pos1 > pos2)) {
         errstr = QString("markers not in chromosomal order: \n%1\n%2\n%3")
-                         .arg(markers[j - 2].id().asQString())
-                         .arg(markers[j - 1].id().asQString())
-                         .arg(markers[j].id().asQString());
+                     .arg(markers[j - 2].id().asQString())
+                     .arg(markers[j - 1].id().asQString())
+                     .arg(markers[j].id().asQString());
       }
     } else if (chr1 != chr2) {
       if (chromIndices.contains(chr2)) {
         errstr = QString("markers on chromosome are not contiguous: %1")
-                         .arg(ChromeIds::chromeId(chr2).asQString());
+                     .arg(ChromeIds::chromeId(chr2).asQString());
       }
       chromIndices.insert(chr2);
     }
-	Q_ASSERT_X(!errstr.length(), "Markers::checkMarkerPosOrder", toC(errstr));
+    Q_ASSERT_X(!errstr.length(), "Markers::checkMarkerPosOrder", toC(errstr));
   }
 }
 

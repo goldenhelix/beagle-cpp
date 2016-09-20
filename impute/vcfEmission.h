@@ -110,7 +110,6 @@ public:
    * allele.
    */
   int nAlleles() const { return _d->allelesInMarker.length(); }
-
 private:
   QSharedDataPointer<BitSetRefGTSharedData> _d;
 };
@@ -183,12 +182,10 @@ public:
    * @param allele2 the second allele index
    */
   double gl(int samp, int al1, int al2) const { return _d->gl(samp, al1, al2); }
-
   /**
    * Returns the Marker object associated with this record.
    */
-  Marker marker() const { return Marker((MarkerSharedData *) &(*_d)); }
-
+  Marker marker() const { return Marker((MarkerSharedData *)&(*_d)); }
   /**
    * Returns the number of alleles for the marker, including the REF
    * allele.
