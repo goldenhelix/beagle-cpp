@@ -268,7 +268,11 @@ public:
    * @param another instance of a "GL"-family class. Must only contain phased,
    * non-missing genotype data.
    */
-  GLSampleHapPairs(const GLSampleHapPairs &otherGL) : GLSampleHapPairs(otherGL, true, false) {}
+  // "Utility" copy constructor working on behalf of the
+  // GLSampleHapPairs public constructor and on behalf of the
+  // SplicedGL copy-and-maybe-reverse constructor.
+  GLSampleHapPairs(const GLSampleHapPairs &otherGL, bool checkRef = true, bool reverse = false);
+
 
   GLSampleHapPairs() : SampleHapPairs() {}
 
@@ -319,11 +323,6 @@ public:
    */
 
 protected:
-  // "Utility" copy constructor working on behalf of the
-  // GLSampleHapPairs public constructor and on behalf of the
-  // SplicedGL copy-and-maybe-reverse constructor.
-  GLSampleHapPairs(const GLSampleHapPairs &otherGL, bool checkRef, bool reverse);
-
   // Partial constructor working on behalf of the SplicedGL(samples,
   // vma) constructor.
   GLSampleHapPairs(const Samples &samples);
