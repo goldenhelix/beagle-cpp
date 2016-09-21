@@ -265,14 +265,14 @@ public:
    * Constructs a new {@code GLSampleHapPairs} instance from the
    * specified data. Will always be in forward direction.
    *
-   * @param another instance of a "GL"-family class. Must only contain phased,
-   * non-missing genotype data.
+   * @param another instance of a "GL"-family class. In default mode,
+   * must only contain phased, non-missing genotype data.
+   * @param optional parameter to be used only by the SplicedGL
+   * copy-and-maybe-reverse constructor.
+   * @param optional parameter to be used only by the SplicedGL
+   * copy-and-maybe-reverse constructor.
    */
-  // "Utility" copy constructor working on behalf of the
-  // GLSampleHapPairs public constructor and on behalf of the
-  // SplicedGL copy-and-maybe-reverse constructor.
   GLSampleHapPairs(const GLSampleHapPairs &otherGL, bool checkRef = true, bool reverse = false);
-
 
   GLSampleHapPairs() : SampleHapPairs() {}
 
@@ -282,6 +282,7 @@ public:
    * and returns {@code false} otherwise.
    */
   virtual bool isRefData() const { return true; }
+
   int allele(int marker, int haplotype) const
   {
     int sample = haplotype / 2;
