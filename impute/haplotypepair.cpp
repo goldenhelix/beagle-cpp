@@ -258,16 +258,16 @@ GLSampleHapPairs::GLSampleHapPairs(const GLSampleHapPairs &otherGL, bool checkRe
     _vcfRecs(otherGL._vcfRecs),
     _numOfGlMarkersM1(otherGL._numOfGlMarkersM1)
 {
-  // "Utility" copy constructor for GLSampleHapPairs public
-  // constructor and for SplicedGL copy-and-maybe-reverse constructor.
+  // Copy constructor for GLSampleHapPairs, which also acts as a
+  // "utility" constructor for the SplicedGL copy-and-maybe-reverse
+  // constructor.
 
   if (checkRef)
     Q_ASSERT_X(otherGL.isRefData(),
                "GLSampleHapPairs::GLSampleHapPairs",
                "other GL is not reference data");
 
-  if (reverse)
-    _glIsReversed = !otherGL._glIsReversed;
+  _glIsReversed = (reverse) ? (!otherGL._glIsReversed) : otherGL._glIsReversed;
 
   _glMarkers = Markers(otherGL.markers(), reverse);
 }
