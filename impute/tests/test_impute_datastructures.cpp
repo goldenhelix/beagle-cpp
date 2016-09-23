@@ -1,6 +1,7 @@
 /* Copyright 2016 Golden Helix, Inc. */
 
 #include "impute/haplotypepair.h"
+#include "impute/iointerface.h"
 #include "impute/markers.h"
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
@@ -19,6 +20,9 @@ private slots:
   void testMarkers();
   void testVcfEmissions();
   void testHaplotypePairs();
+  void testRefTargetData3x3();
+  void testTargetData3x3();
+  void testAllData4x4and3x3();
 };
 
 void TestImputeDataStructures::testSamples()
@@ -267,21 +271,14 @@ void TestImputeDataStructures::testMarkers()
 
 void TestImputeDataStructures::testVcfEmissions()
 {
+  Samples samplesR;
+  Samples samplesT;
+  Samples samplesT2;
   QList<BitSetRefGT> refEmissions;
   QList<BitSetGT> unphasedTargetEmissions;
   QList<BitSetGT> phasedTargetEmissions;
 
-  // Construct "samplesR" and set its data before there are any other
-  // references to the object.
-
-  Samples samplesR;
-  samplesR.setSamp(SampleNames::getIndex("SAMP001"));  // The first three names and global sample
-  samplesR.setSamp(SampleNames::getIndex("SAMP003"));  // indexes already exist (globally).
-  samplesR.setSamp(SampleNames::getIndex("SAMP005"));
-  samplesR.setSamp(SampleNames::getIndex(
-      "SAMP007"));  // This name will be new the first time we run this utility.
-
-  loadTestDataForRefData(samplesR, refEmissions);
+  loadTestDataForRefData4x4(samplesR, refEmissions);
 
   QCOMPARE(SampleNames::getIndexIfIndexed("SAMP073"), 3);
   QCOMPARE(SampleNames::getIndexIfIndexed("SAMP007"), 5);
@@ -294,15 +291,7 @@ void TestImputeDataStructures::testVcfEmissions()
   QCOMPARE(refEmissions[2].allele1(2), 1);
   QCOMPARE(refEmissions[3].allele2(3), 1);
 
-  // Construct "samplesT" and set its data before there are any other
-  // references to the object.
-
-  Samples samplesT;
-  samplesT.setSamp(SampleNames::getIndex("SAMP073"));
-  samplesT.setSamp(SampleNames::getIndex("SAMP087"));
-  samplesT.setSamp(SampleNames::getIndex("SAMP095"));
-
-  loadTestDataForTargetData(samplesT, unphasedTargetEmissions);
+  loadTestDataForTargetData3x3(samplesT, unphasedTargetEmissions);
 
   QCOMPARE(ChromeIds::getIndexIfIndexed("X"), 2);   // This chromosome name should exist already.
   QCOMPARE(ChromeIds::getIndexIfIndexed("2"), -1);  // This one still should not.
@@ -320,8 +309,18 @@ void TestImputeDataStructures::testVcfEmissions()
   QCOMPARE(unphasedTargetEmissions[1].allele2(1), -1);
   QCOMPARE(unphasedTargetEmissions[2].allele1(0), 0);
   QCOMPARE(unphasedTargetEmissions[2].allele2(0), -1);
+  QCOMPARE(unphasedTargetEmissions[0].gl(0, 1, 1), 1.0);
+  QCOMPARE(unphasedTargetEmissions[0].gl(1, 0, 1), 1.0);
+  QCOMPARE(unphasedTargetEmissions[0].gl(1, 1, 0), 0.0);
+  QCOMPARE(unphasedTargetEmissions[0].gl(2, 1, 0), 1.0);
+  QCOMPARE(unphasedTargetEmissions[0].gl(2, 0, 1), 1.0);
+  QCOMPARE(unphasedTargetEmissions[0].gl(2, 1, 1), 0.0);
+  QCOMPARE(unphasedTargetEmissions[2].gl(1, 1, 0), 1.0);
+  QCOMPARE(unphasedTargetEmissions[2].gl(1, 0, 1), 0.0);
+  QCOMPARE(unphasedTargetEmissions[2].gl(2, 1, 0), 1.0);
+  QCOMPARE(unphasedTargetEmissions[2].gl(2, 0, 1), 1.0);
 
-  loadTestDataForTargetData(samplesT, phasedTargetEmissions, 1, true);
+  loadTestDataForTargetData3x3(samplesT2, phasedTargetEmissions, 1, true);
 
   QCOMPARE(ChromeIds::getIndexIfIndexed("X"), 2);   // This chromosome name should exist already.
   QCOMPARE(ChromeIds::getIndexIfIndexed("2"), -1);  // This one still should not.
@@ -338,30 +337,23 @@ void TestImputeDataStructures::testVcfEmissions()
   QCOMPARE(phasedTargetEmissions[1].allele2(1), 1);
   QCOMPARE(phasedTargetEmissions[2].allele1(0), 0);
   QCOMPARE(phasedTargetEmissions[2].allele2(0), 1);
+  QCOMPARE(phasedTargetEmissions[0].gl(0, 1, 1), 1.0);
+  QCOMPARE(phasedTargetEmissions[0].gl(1, 0, 1), 1.0);
+  QCOMPARE(phasedTargetEmissions[0].gl(1, 1, 0), 0.0);
+  QCOMPARE(phasedTargetEmissions[0].gl(2, 1, 0), 1.0);
+  QCOMPARE(phasedTargetEmissions[0].gl(2, 0, 1), 0.0);
+  QCOMPARE(phasedTargetEmissions[0].gl(2, 1, 1), 0.0);
+  QCOMPARE(phasedTargetEmissions[2].gl(1, 1, 0), 1.0);
+  QCOMPARE(phasedTargetEmissions[2].gl(1, 0, 1), 0.0);
+  QCOMPARE(phasedTargetEmissions[2].gl(2, 1, 0), 1.0);
+  QCOMPARE(phasedTargetEmissions[2].gl(2, 0, 1), 0.0);
 }
 
 void TestImputeDataStructures::testHaplotypePairs()
 {
-  // Construct "samplesR" and set its data before there are any other
-  // references to the object.
-
   Samples samplesR;
-  samplesR.setSamp(SampleNames::getIndex("SAMP001"));  // The first three names and global sample
-  samplesR.setSamp(SampleNames::getIndex("SAMP003"));  // indexes already exist (globally).
-  samplesR.setSamp(SampleNames::getIndex("SAMP005"));
-  samplesR.setSamp(SampleNames::getIndex(
-      "SAMP007"));  // This name will be new the first time we run this utility.
-
-  // Construct "samplesT" and set its data before there are any other
-  // references to the object.
-
-  Samples samplesT;
-  samplesT.setSamp(SampleNames::getIndex("SAMP073"));
-  samplesT.setSamp(SampleNames::getIndex("SAMP087"));
-  samplesT.setSamp(SampleNames::getIndex("SAMP095"));
-
   QList<BitSetRefGT> refEmissions;
-  loadTestDataForRefData(samplesR, refEmissions);
+  loadTestDataForRefData4x4(samplesR, refEmissions);
 
   int nummarks = refEmissions.length();
 
@@ -643,8 +635,9 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(rhp.sampleIndex(2), 2);
   QCOMPARE(rhp.nAlleles(3), 2);
 
+  Samples samplesT;
   QList<BitSetGT> phasedTargetEmissions;
-  loadTestDataForTargetData(samplesT, phasedTargetEmissions, 1, true);
+  loadTestDataForTargetData3x3(samplesT, phasedTargetEmissions, 1, true);
   QCOMPARE(phasedTargetEmissions[1].samples() == samplesT, true);
 
   SplicedGL phasedtarggl(samplesT, phasedTargetEmissions);
@@ -720,10 +713,11 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(sglshp2 == samplesT, true);
   QCOMPARE(glshp.nSamples(), 3);
 
+  Samples samplesT2;
   QList<BitSetGT> unphasedTargetEmissions;
-  loadTestDataForTargetData(samplesT, unphasedTargetEmissions);
+  loadTestDataForTargetData3x3(samplesT2, unphasedTargetEmissions);
 
-  SplicedGL unphasedtarggl(samplesT, unphasedTargetEmissions);
+  SplicedGL unphasedtarggl(samplesT2, unphasedTargetEmissions);
 
   // This one should not work, and indeed doesn't:
   //   GLSampleHapPairs crash(unphasedtarggl);
@@ -745,7 +739,7 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(unphasedtarggl.sampleIndex(0), 0);
   QCOMPARE(unphasedtarggl.sampleIndex(2), 2);
 
-  QCOMPARE(sunphasedtarggl2 == samplesT, true);
+  QCOMPARE(sunphasedtarggl2 == samplesT2, true);
   QCOMPARE(unphasedtarggl.nSamples(), 3);
 
   QCOMPARE(unphasedtarggl.gl(0, 0, 1, 1), 1.0);
@@ -815,14 +809,14 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(mksglshp == markss, false);
   QCOMPARE(m2glshp == m3, true);
 
-  HapPair pair0s(markss, samplesT, 0, alss10, alss20);
-  HapPair pair1s(markss, samplesT, 1, alss11, alss21);
-  HapPair pair2s(markss, samplesT, 2, alss12, alss22);
+  HapPair pair0s(markss, samplesT2, 0, alss10, alss20);
+  HapPair pair1s(markss, samplesT2, 1, alss11, alss21);
+  HapPair pair2s(markss, samplesT2, 2, alss12, alss22);
   QList<HapPair> pteList;
   pteList.append(pair0s);
   pteList.append(pair1s);
   pteList.append(pair2s);
-  SampleHapPairs shppte(samplesT, pteList, false);
+  SampleHapPairs shppte(samplesT2, pteList, false);
   SplicedGL spliced(shppte, unphasedtarggl);
 
   QCOMPARE(spliced.allele1(1, 1), 0);
@@ -842,7 +836,7 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(spliced.sampleIndex(0), 0);
   QCOMPARE(spliced.sampleIndex(2), 2);
 
-  QCOMPARE(sspliced2 == samplesT, true);
+  QCOMPARE(sspliced2 == samplesT2, true);
   QCOMPARE(spliced.nSamples(), 3);
 
   QCOMPARE(spliced.gl(0, 0, 1, 1), 1.0);
@@ -961,7 +955,7 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(revspliced.sampleIndex(0), 0);
   QCOMPARE(revspliced.sampleIndex(2), 2);
 
-  QCOMPARE(srevspliced2 == samplesT, true);
+  QCOMPARE(srevspliced2 == samplesT2, true);
   QCOMPARE(revspliced.nSamples(), 3);
 
   Markers mksrsp = revspliced.markers();
@@ -1048,27 +1042,52 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(gluser.myGL.gl(0, 2, 0, 0), 0.375);
 }
 
-/*
-void TestImputeDataStructures::testDataDrivers()
+void TestImputeDataStructures::testRefTargetData3x3()
 {
-  NullDataReader nr;
-  TargReaderTest tr;
-  RefReaderTest rr;
+  clearStaticTestLists();
 
-  QList<BitSetRefGT> refEmissions;
-  QList<BitSetGT> targetEmissions;
+  RefDataReader rr;
+  TargDataReaderTest3x3 tr(true);  // "true" setting gives reference-ready data.
 
-  rr.initialize(refEmissions);
-  tr.initialize(targetEmissions);
+  TargetData td;
 
-  VcfWindow refWind;
-  RestrictedVcfWindow targetWind;
-  AllData ad(refWind, targetWind);
+  testWindowDriver(td, tr, rr, 4);
 
-  int overlap = 0;
-  ad.advanceWindow(overlap, tr, rr);
+  QCOMPARE(overlapAmountsTestList.length(), 2);
+  // QCOMPARE(targPairsTestList.length(), 2);
 }
-*/
+
+void TestImputeDataStructures::testTargetData3x3()
+{
+  clearStaticTestLists();
+
+  RefDataReader rr;
+  TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
+
+  TargetData td;
+
+  testWindowDriver(td, tr, rr, 4);
+
+  QCOMPARE(overlapAmountsTestList.length(), 1);
+  // QCOMPARE(targPairsTestList.length(), 1);
+}
+
+void TestImputeDataStructures::testAllData4x4and3x3()
+{
+  /*
+  clearStaticTestLists();
+
+  RefDataReaderTest4x4 rr;
+  TargDataReaderTest3x3 tr(false); // "false" setting gives unphased data.
+
+  AllData ad;
+
+  testWindowDriver(ad, tr, rr, 4);
+
+  QCOMPARE(overlapAmountsTestList.length(), 1);
+  QCOMPARE(targPairsTestList.length(), 1);
+  */
+}
 
 QTEST_MAIN(TestImputeDataStructures)
 #include "test_impute_datastructures.moc"

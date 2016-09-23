@@ -1,7 +1,15 @@
 // Test-dedicated utility include file.
 
-void loadTestDataForRefData(Samples &samplesR, QList<BitSetRefGT> &refEmissions)
+void loadTestDataForRefData4x4(Samples &samplesR, QList<BitSetRefGT> &refEmissions)
 {
+  // Set the data for "samplesR" before there are any other
+  // references to the object.
+
+  samplesR.setSamp(SampleNames::getIndex("SAMP001"));  // The first three names and global sample
+  samplesR.setSamp(SampleNames::getIndex("SAMP003"));  // indexes already exist (globally).
+  samplesR.setSamp(SampleNames::getIndex("SAMP005"));  // The "SAMP007" name will be new the first
+  samplesR.setSamp(SampleNames::getIndex("SAMP007"));  // time we run this utility.
+
   // Build some VcfEmissions objects as "reference data" (containing
   // phased genotypes without missing data). Be careful to load the
   // data before doing any "copy" or "assignment" operations (which
@@ -9,7 +17,7 @@ void loadTestDataForRefData(Samples &samplesR, QList<BitSetRefGT> &refEmissions)
 
   BitSetRefGT r0(samplesR);
 
-  r0.setIdInfo(ChromeIds::getIndex("1"), 12345, "RS12345");
+  r0.setIdInfo(ChromeIds::getIndex("17"), 12345, "RS12345");
   r0.setAllele("A");
   r0.setAllele("C");
 
@@ -56,8 +64,15 @@ void loadTestDataForRefData(Samples &samplesR, QList<BitSetRefGT> &refEmissions)
   refEmissions.append(r3);
 }
 
-void loadTestDataForTargetData(Samples &samplesT, QList<BitSetGT> &targetEmissions, int missingVal=-1, bool defaultPhasing=false)
+void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmissions, int missingVal=-1, bool defaultPhasing=false)
 {
+  // Set the data for "samplesT" before there are any other
+  // references to the object.
+
+  samplesT.setSamp(SampleNames::getIndex("SAMP073"));
+  samplesT.setSamp(SampleNames::getIndex("SAMP087"));
+  samplesT.setSamp(SampleNames::getIndex("SAMP095"));
+
   // Build some VcfEmissions objects as "target data" (containing
   // normal unphased genotypes). Be careful to load the data before
   // doing any "copy" or "assignment" operations (which are actually
@@ -65,7 +80,7 @@ void loadTestDataForTargetData(Samples &samplesT, QList<BitSetGT> &targetEmissio
 
   BitSetGT t0(samplesT);
 
-  t0.setIdInfo(ChromeIds::getIndex("1"), 12345, "RS12345");
+  t0.setIdInfo(ChromeIds::getIndex((missingVal == 1) ? "1" : "17"), 12345, "RS12345");
   t0.setAllele("A");
   t0.setAllele("C");
 
@@ -104,8 +119,121 @@ void loadTestDataForTargetData(Samples &samplesT, QList<BitSetGT> &targetEmissio
   targetEmissions.append(t2);
 }
 
-class GLUser
+class GLUser     // For testing when a class "has a" FuzzyGL object.
 {
 public:
   FuzzyGL myGL;
 };
+
+class RefDataReaderTest4x4 : public RefDataReader
+{
+public:
+  RefDataReaderTest4x4() : _position(0)
+  {
+    loadTestDataForRefData4x4(_samples, _refEmissionsData);
+    _nRecs = _refEmissionsData.length();
+  }
+
+  bool canAdvanceWindow() const {return _position < _nRecs;}
+  bool hasNextRec() const {return _position < _nRecs;}
+  BitSetRefGT nextRec() const {return _refEmissionsData[_position];}
+  void advanceRec() {_position++;}
+
+private:
+  QList<BitSetRefGT> _refEmissionsData;
+  
+  int _position;
+  int _nRecs;
+};
+
+class TargDataReaderTest3x3 : public TargDataReader
+{
+public:
+  TargDataReaderTest3x3(bool refReady) : _position(0)
+  {
+    if(refReady)
+      loadTestDataForTargetData3x3(_samples, _targetEmissionsData, 1, true);
+    else
+      loadTestDataForTargetData3x3(_samples, _targetEmissionsData);
+
+    _nRecs = _targetEmissionsData.length();
+  }
+
+  bool canAdvanceWindow() const {return _position < _nRecs;}
+  bool hasNextRec() const {return _position < _nRecs;}
+  BitSetGT nextRec() const {return _targetEmissionsData[_position];}
+  void advanceRec() {_position++;}
+
+private:
+  QList<BitSetGT> _targetEmissionsData;
+
+  int _position;
+  int _nRecs;
+};
+
+static QList<SampleHapPairs> prevOverlapHapsTestList;
+static QList<CurrentData> cdCopiesTestList;
+static QList<SampleHapPairs> targPairsTestList;
+static QList<SampleHapPairs> postOverlapHapsTestList;
+static QList<int> overlapAmountsTestList;
+
+void clearStaticTestLists()
+{
+  prevOverlapHapsTestList.clear();
+  cdCopiesTestList.clear();
+  targPairsTestList.clear();
+  postOverlapHapsTestList.clear();
+  overlapAmountsTestList.clear();
+}
+
+
+int testWindowDriverHelper(SampleHapPairs &overlapHaps, /* const CurrentData &cd, */ const SampleHapPairs &targetHapPairs)
+{
+  /*
+  if (gv!=null)
+    windowOut.printGV(cd, gv);        // (Except we won't be implementing GenotypeValues at this time.)
+  else
+  {
+    Map<IntPair, List<IbdSegment>> ibd = mh.refinedIbd(cd, targetHapPairs);   // (Nor IBD.)
+    AlleleProbs alProbs = mh.LSImpute(cd, targetHapPairs);
+    printOutput(cd, targetHapPairs, alProbs, ibd);  // (We would need to add an output method parameter to this test setup....)
+  }
+  */
+
+  // Testing....
+  prevOverlapHapsTestList.append(overlapHaps);
+  // cdCopiesTestList.append(cd);
+  targPairsTestList.append(targetHapPairs);
+
+  // Normal code for driver-helper function:
+
+  // overlapHaps = ImputeDriver::overlapHaps(cd, targetHapPairs);
+  return 0; // return cd.nMarkers() - cd.nextOverlapStart();
+}
+
+void testWindowDriver(InputData &data, TargDataReader &targReader, RefDataReader &refReader, int windowSize)
+{
+  // CurrentData cd;
+  SampleHapPairs overlapHaps;
+  int overlap = 0;
+  while(data.canAdvanceWindow(targReader, refReader))
+  {
+    data.advanceWindow(overlap, windowSize, targReader, refReader);
+    // data.setCdData(cd, overlapHaps, targReader, refReader);
+
+    // if (cd.targetGL().isRefData())
+    //   overlap = testWindowDriverHelper(overlapHaps, cd, GLSampleHapPairs(cd.targetGL()));
+    // else
+    // {
+    //   // QList<HapPair> hapPairs = ImputeDriver::phase(cd);
+    //   QList<HapPair> hapPairs; // For now, default to no haps, just to allow compilation.
+    //   overlap = testWindowDriverHelper(overlapHaps, cd, SampleHapPairs(cd.targetSamples(), hapPairs));
+    // }
+
+    // Testing....
+    postOverlapHapsTestList.append(overlapHaps);
+    overlapAmountsTestList.append(overlap);
+
+  }
+}
+

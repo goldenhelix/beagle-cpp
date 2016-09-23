@@ -213,8 +213,8 @@ RefHapPairs::RefHapPairs(const Samples &samples, const QList<BitSetRefGT> &refVc
   createMarkers();
 
   for (int j = 0; j < _refVcfRecs.length(); ++j)
-    Q_ASSERT_X(
-        _refVcfRecs[j].samples() == _samples, "RefHapPairs::RefHapPairs", "sample inconsistency");
+    Q_ASSERT_X(_refVcfRecs[j].samples() == _samples, "RefHapPairs::RefHapPairs",
+               "sample inconsistency");
 }
 
 void RefHapPairs::createMarkers()

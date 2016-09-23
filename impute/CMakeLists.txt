@@ -5,7 +5,7 @@ set(IMPUTE_HEADERS
   samples.h
   markers.h
   vcfemission.h
-  # datahandlers.h
+  iointerface.h
 )
 
 set(IMPUTE_SOURCES
@@ -13,7 +13,7 @@ set(IMPUTE_SOURCES
   samples.cpp
   markers.cpp
   vcfemission.cpp
-  # datahandlers.cpp
+  iointerface.cpp
 )
 
 find_package(Qt5Core REQUIRED)
