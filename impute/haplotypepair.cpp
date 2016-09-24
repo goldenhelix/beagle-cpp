@@ -304,9 +304,14 @@ GLSampleHapPairs::GLSampleHapPairs(const SampleHapPairs &haps, const GLSampleHap
                "SplicedGL::SplicedGL(haps, otherGL)",
                "inconsistent markers");
 
-  Q_ASSERT_X(samples() == otherGL.samples(),
-             "SplicedGL::SplicedGL(haps, otherGL)",
-             "inconsistent samples");
+  if (samples().nSamples()) {
+    // Only test if we had info. in the haps object.
+    Q_ASSERT_X(samples() == otherGL.samples(),
+               "SplicedGL::SplicedGL(haps, otherGL)",
+               "inconsistent samples");
+  } else
+    // Else use otherGL's Samples object.
+    _samples = otherGL._samples;
 
   _overlap = SampleHapPairs::nMarkers();  // Overlap is now different.
 }

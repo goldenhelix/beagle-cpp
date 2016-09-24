@@ -125,6 +125,13 @@ public:
   FuzzyGL myGL;
 };
 
+class TestPar : public Par
+{
+  int window() const {return 10;}
+  int overlap() const {return 2;}
+};
+
+
 class RefDataReaderTest4x4 : public RefDataReader
 {
 public:
@@ -211,15 +218,15 @@ int testWindowDriverHelper(SampleHapPairs &overlapHaps, /* const CurrentData &cd
   return 0; // return cd.nMarkers() - cd.nextOverlapStart();
 }
 
-void testWindowDriver(InputData &data, TargDataReader &targReader, RefDataReader &refReader, int windowSize)
+void testWindowDriver(InputData &data, TargDataReader &targReader, RefDataReader &refReader, int windowSize, const Par &par)
 {
-  // CurrentData cd;
+  CurrentData cd;
   SampleHapPairs overlapHaps;
   int overlap = 0;
   while(data.canAdvanceWindow(targReader, refReader))
   {
-    data.advanceWindow(overlap, windowSize, targReader, refReader);
-    // data.setCdData(cd, overlapHaps, targReader, refReader);
+    data.advanceWindow(overlap, par.window(), targReader, refReader);
+    data.setCdData(cd, par, overlapHaps, targReader, refReader);
 
     // if (cd.targetGL().isRefData())
     //   overlap = testWindowDriverHelper(overlapHaps, cd, GLSampleHapPairs(cd.targetGL()));
@@ -233,7 +240,6 @@ void testWindowDriver(InputData &data, TargDataReader &targReader, RefDataReader
     // Testing....
     postOverlapHapsTestList.append(overlapHaps);
     overlapAmountsTestList.append(overlap);
-
   }
 }
 

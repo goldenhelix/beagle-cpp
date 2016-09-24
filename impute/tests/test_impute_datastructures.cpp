@@ -1051,7 +1051,9 @@ void TestImputeDataStructures::testRefTargetData3x3()
 
   TargetData td;
 
-  testWindowDriver(td, tr, rr, 4);
+  TestPar par;
+
+  testWindowDriver(td, tr, rr, 4, par);
 
   QCOMPARE(overlapAmountsTestList.length(), 2);
   // QCOMPARE(targPairsTestList.length(), 2);
@@ -1066,7 +1068,9 @@ void TestImputeDataStructures::testTargetData3x3()
 
   TargetData td;
 
-  testWindowDriver(td, tr, rr, 4);
+  TestPar par;
+
+  testWindowDriver(td, tr, rr, 4, par);
 
   QCOMPARE(overlapAmountsTestList.length(), 1);
   // QCOMPARE(targPairsTestList.length(), 1);
@@ -1082,7 +1086,9 @@ void TestImputeDataStructures::testAllData4x4and3x3()
 
   AllData ad;
 
-  testWindowDriver(ad, tr, rr, 4);
+  TestPar par;
+
+  testWindowDriver(ad, tr, rr, 4, par);
 
   QCOMPARE(overlapAmountsTestList.length(), 1);
   QCOMPARE(targPairsTestList.length(), 1);
