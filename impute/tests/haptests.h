@@ -64,7 +64,7 @@ void loadTestDataForRefData4x4(Samples &samplesR, QList<BitSetRefGT> &refEmissio
   refEmissions.append(r3);
 }
 
-void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmissions, int missingVal=-1, bool defaultPhasing=false)
+void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmissions, int missingVal=-1, bool defaultPhasing=false, bool read6x3=false)
 {
   // Set the data for "samplesT" before there are any other
   // references to the object.
@@ -80,7 +80,7 @@ void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmis
 
   BitSetGT t0(samplesT);
 
-  t0.setIdInfo(ChromeIds::getIndex((missingVal == 1) ? "1" : "17"), 12345, "RS12345");
+  t0.setIdInfo(ChromeIds::getIndex((defaultPhasing != read6x3) ? "1" : "17"), 12345, "RS12345");
   t0.setAllele("A");
   t0.setAllele("C");
 
@@ -117,6 +117,49 @@ void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmis
   t2.storeAlleles(t21, t22, arePhased);
 
   targetEmissions.append(t2);
+
+  if(read6x3)
+  {
+    BitSetGT t3(samplesT);
+
+    t3.setIdInfo(ChromeIds::getIndex("17"), 42345, "RS42345");
+    t3.setAllele("A");
+    t3.setAllele("C");
+
+    QList<int> t31; t31.append(1); t31.append(0); t31.append(missingVal);
+    QList<int> t32; t32.append(1); t32.append(1); t32.append(0);
+    // Have arePhased[1] be "true" on purpose....
+    QList<bool> arePhased; arePhased.append(defaultPhasing); arePhased.append(true); arePhased.append(defaultPhasing);
+    t3.storeAlleles(t31, t32, arePhased);
+
+    targetEmissions.append(t3);
+
+    BitSetGT t4(samplesT);
+
+    t4.setIdInfo(ChromeIds::getIndex("17"), 52345, "RS52345");
+    t4.setAllele("G");
+    t4.setAllele("T");
+
+    QList<int> t41; t41.append(0); t41.append(0); t41.append(1);
+    QList<int> t42; t42.append(1); t42.append(missingVal); t42.append(1);
+    arePhased[0] = true; arePhased[2] = true;
+    t4.storeAlleles(t41, t42, arePhased);
+
+    targetEmissions.append(t4);
+
+    BitSetGT t5(samplesT);
+
+    t5.setIdInfo(ChromeIds::getIndex("17"), 63345, "RS63345");
+    t5.setAllele("A");
+    t5.setAllele("T");
+
+    QList<int> t51; t51.append(0); t51.append(1); t51.append(1);
+    QList<int> t52; t52.append(missingVal); t52.append(0); t52.append(0);
+    arePhased[0] = defaultPhasing; arePhased[2] = defaultPhasing;
+    t5.storeAlleles(t51, t52, arePhased);
+
+    targetEmissions.append(t5);
+  }
 }
 
 class GLUser     // For testing when a class "has a" FuzzyGL object.
@@ -125,9 +168,11 @@ public:
   FuzzyGL myGL;
 };
 
-class TestPar : public Par
+
+class TestParW : public Par
 {
-  int window() const {return 10;}
+public:
+  int window() const {return 4;}
   int overlap() const {return 2;}
 };
 
@@ -178,23 +223,50 @@ private:
   int _nRecs;
 };
 
-static QList<SampleHapPairs> prevOverlapHapsTestList;
+class RefTargDataReaderTest6x3 : public TargDataReader
+{
+public:
+  RefTargDataReaderTest6x3() : _position(0)
+  {
+    loadTestDataForTargetData3x3(_samples, _targetEmissionsData, 1, true, true);
+    _nRecs = _targetEmissionsData.length();
+  }
+
+  bool canAdvanceWindow() const {return _position < _nRecs;}
+  bool hasNextRec() const {return _position < _nRecs;}
+  BitSetGT nextRec() const {return _targetEmissionsData[_position];}
+  void advanceRec() {_position++;}
+
+private:
+  QList<BitSetGT> _targetEmissionsData;
+
+  int _position;
+  int _nRecs;
+};
+
+static QList<int> prevShpOverlapHapsTestList;
+static QList<int> prevHpOverlapHapsTestList;
 static QList<CurrentData> cdCopiesTestList;
-static QList<SampleHapPairs> targPairsTestList;
-static QList<SampleHapPairs> postOverlapHapsTestList;
+static QList<int> shptargPairsTestList;
+static QList<int> hptargPairsTestList;
+static QList<int> postShpOverlapHapsTestList;
+static QList<int> postHpOverlapHapsTestList;
 static QList<int> overlapAmountsTestList;
 
 void clearStaticTestLists()
 {
-  prevOverlapHapsTestList.clear();
+  prevShpOverlapHapsTestList.clear();
+  prevHpOverlapHapsTestList.clear();
   cdCopiesTestList.clear();
-  targPairsTestList.clear();
-  postOverlapHapsTestList.clear();
+  shptargPairsTestList.clear();
+  hptargPairsTestList.clear();
+  postShpOverlapHapsTestList.clear();
+  postHpOverlapHapsTestList.clear();
   overlapAmountsTestList.clear();
 }
 
 
-int testWindowDriverHelper(SampleHapPairs &overlapHaps, /* const CurrentData &cd, */ const SampleHapPairs &targetHapPairs)
+int testWindowDriverHelper(SampleHapPairs &overlapHaps, const CurrentData &cd, const SampleHapPairs &targetHapPairs)
 {
   /*
   if (gv!=null)
@@ -208,14 +280,31 @@ int testWindowDriverHelper(SampleHapPairs &overlapHaps, /* const CurrentData &cd
   */
 
   // Testing....
-  prevOverlapHapsTestList.append(overlapHaps);
-  // cdCopiesTestList.append(cd);
-  targPairsTestList.append(targetHapPairs);
+
+  const SampleHapPairs& ovlhshp = *(&overlapHaps);
+  prevShpOverlapHapsTestList.append(ovlhshp.nMarkers());
+  for(int i=0; i < ovlhshp.nMarkers(); i++)
+    prevShpOverlapHapsTestList.append(ovlhshp.allele(i, i));
+  const HapPairs& ovlhhp = *(&overlapHaps);
+  prevHpOverlapHapsTestList.append(ovlhhp.nMarkers());
+  for(int i=0; i < ovlhhp.nMarkers(); i++)
+    prevHpOverlapHapsTestList.append(ovlhhp.allele(i, i));
+
+  cdCopiesTestList.append(cd);
+
+  const SampleHapPairs& thpshp = *(&targetHapPairs);
+  shptargPairsTestList.append(thpshp.nMarkers());
+  for(int i=0; i < thpshp.nMarkers(); i++)
+    shptargPairsTestList.append(thpshp.allele(i, i));
+  const HapPairs& thphp = *(&targetHapPairs);
+  hptargPairsTestList.append(thphp.nMarkers());
+  for(int i=0; i < thphp.nMarkers(); i++)
+    hptargPairsTestList.append(thphp.allele(i, i));
 
   // Normal code for driver-helper function:
 
-  // overlapHaps = ImputeDriver::overlapHaps(cd, targetHapPairs);
-  return 0; // return cd.nMarkers() - cd.nextOverlapStart();
+  overlapHaps = ImputeDriver::overlapHaps(cd, targetHapPairs);
+  return cd.nMarkers() - cd.nextOverlapStart();
 }
 
 void testWindowDriver(InputData &data, TargDataReader &targReader, RefDataReader &refReader, int windowSize, const Par &par)
@@ -228,8 +317,8 @@ void testWindowDriver(InputData &data, TargDataReader &targReader, RefDataReader
     data.advanceWindow(overlap, par.window(), targReader, refReader);
     data.setCdData(cd, par, overlapHaps, targReader, refReader);
 
-    // if (cd.targetGL().isRefData())
-    //   overlap = testWindowDriverHelper(overlapHaps, cd, GLSampleHapPairs(cd.targetGL()));
+    if (cd.targetGL().isRefData())
+      overlap = testWindowDriverHelper(overlapHaps, cd, GLSampleHapPairs(cd.targetGL(), true));
     // else
     // {
     //   // QList<HapPair> hapPairs = ImputeDriver::phase(cd);
@@ -238,7 +327,16 @@ void testWindowDriver(InputData &data, TargDataReader &targReader, RefDataReader
     // }
 
     // Testing....
-    postOverlapHapsTestList.append(overlapHaps);
+
+    SampleHapPairs& ovlhshp = *(&overlapHaps);
+    postShpOverlapHapsTestList.append(ovlhshp.nMarkers());
+    for(int i=0; i < ovlhshp.nMarkers(); i++)
+      postShpOverlapHapsTestList.append(ovlhshp.allele(i, i));
+    HapPairs& ovlhhp = *(&overlapHaps);
+    postHpOverlapHapsTestList.append(ovlhhp.nMarkers());
+    for(int i=0; i < ovlhhp.nMarkers(); i++)
+      postHpOverlapHapsTestList.append(ovlhhp.allele(i, i));
+
     overlapAmountsTestList.append(overlap);
   }
 }

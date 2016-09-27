@@ -207,6 +207,22 @@ void SampleHapPairs::checkSamples()
   }
 }
 
+Samples SampleHapPairs::samples(int hapPair) const
+{
+  Q_ASSERT_X(hapPair >= 0 && hapPair < _samples.nSamples(),
+             "SamplesHapPairs::samples(int)",
+             "out of bounds HapPair index");
+  return _samples;
+}
+
+int SampleHapPairs::sampleIndex(int hapPair) const
+{
+  Q_ASSERT_X(hapPair >= 0 && hapPair < _samples.nSamples(),
+             "SampleHapPairs::samples(int)",
+             "out of bounds HapPair index");
+  return hapPair;
+}
+
 RefHapPairs::RefHapPairs(const Samples &samples, const QList<BitSetRefGT> &refVcfRecs)
   : SampleHapPairs(samples), _refVcfRecs(refVcfRecs)
 {
@@ -234,22 +250,6 @@ int RefHapPairs::allele(int marker, int haplotype) const
     return allele1(marker, hapPair);
   else
     return allele2(marker, hapPair);
-}
-
-Samples RefHapPairs::samples(int hapPair) const
-{
-  Q_ASSERT_X(hapPair >= 0 && hapPair < _samples.nSamples(),
-             "RefHapPairs::samples(int)",
-             "out of bounds HapPair index");
-  return _samples;
-}
-
-int RefHapPairs::sampleIndex(int hapPair) const
-{
-  Q_ASSERT_X(hapPair >= 0 && hapPair < _samples.nSamples(),
-             "RefHapPairs::samples(int)",
-             "out of bounds HapPair index");
-  return hapPair;
 }
 
 GLSampleHapPairs::GLSampleHapPairs(const GLSampleHapPairs &otherGL, bool checkRef, bool reverse)
@@ -346,21 +346,16 @@ int GLSampleHapPairs::allele2(int marker, int sampNum) const
   }
 }
 
-Samples GLSampleHapPairs::samples(int hapPair) const
+int GLSampleHapPairs::allele(int marker, int haplotype) const
 {
-  Q_ASSERT_X(hapPair >= 0 && hapPair < _samples.nSamples(),
-             "GLSampleHapPairs::samples(int)",
-             "out of bounds HapPair index");
-  return _samples;
+  int sample = haplotype / 2;
+  if ((haplotype & 1) == 0) {
+    return allele1(marker, sample);
+  } else {
+    return allele2(marker, sample);
+  }
 }
 
-int GLSampleHapPairs::sampleIndex(int hapPair) const
-{
-  Q_ASSERT_X(hapPair >= 0 && hapPair < _samples.nSamples(),
-             "GLSampleHapPairs::samples(int)",
-             "out of bounds HapPair index");
-  return hapPair;
-}
 
 SplicedGL::SplicedGL(const Samples &samples, const QList<BitSetGT> &vma) : GLSampleHapPairs(samples)
 {

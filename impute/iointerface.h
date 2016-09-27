@@ -42,8 +42,8 @@ protected:
   virtual bool hasNextRec() const { return false; }
   virtual BitSetRefGT nextRec() const { return BitSetRefGT(); }
   virtual void advanceRec() {}
-  bool sameChrom(BitSetRefGT a, BitSetRefGT b) const;
-  bool samePosition(BitSetRefGT a, BitSetRefGT b) const;
+  bool sameChrom(const BitSetRefGT &a, const BitSetRefGT &b) const;
+  bool samePosition(const BitSetRefGT &a, const BitSetRefGT &b) const;
   int currentChromIndex() const;
 
   Samples _samples;
@@ -71,8 +71,8 @@ protected:
   virtual BitSetGT nextRec() const = 0;
   virtual void advanceRec() = 0;
 
-  bool sameChrom(BitSetGT a, BitSetGT b) const;
-  bool samePosition(BitSetGT a, BitSetGT b) const;
+  bool sameChrom(const BitSetGT &a, const BitSetGT &b) const;
+  bool samePosition(const BitSetGT &a, const BitSetGT &b) const;
   int currentChromIndex() const;
 
   Samples _samples;
@@ -143,6 +143,7 @@ public:
                  const TargDataReader &tr, const RefDataReader &rr);
 
 private:
+  /* Returns the index of the first marker in the overlap */
   int nextOverlapStart(int targetOverlap, const TargDataReader &tr);
 
   VcfWindow _vcfWindow;
@@ -182,52 +183,52 @@ public:
   /**
    * Returns the marker window index.
    */
-  int window() { return _window; }
+  int window() const { return _window; }
   /**
    * Returns the first marker index in the overlap between this
    * marker window and the next marker window, or
    * returns {@code this.nMarkers()} there is no overlap.
    */
-  int nextOverlapStart() { return _nextOverlapStart; }
+  int nextOverlapStart() const { return _nextOverlapStart; }
   /**
    * Returns the first target marker index in the overlap between this
    * marker window and the next marker window, or
    * returns {@code this.nMarkers()} if there is no overlap or if there are
    * no target markers in the overlap.
    */
-  int nextTargetOverlapStart() { return _nextTargetOverlapStart; }
+  int nextTargetOverlapStart() const { return _nextTargetOverlapStart; }
   /**
    * Returns the first marker index after the splice point with
    * the previous marker window. Returns 0 if the current marker window
    * is the first marker window.
    */
-  int prevSpliceStart() { return _prevSpliceStart; }
+  int prevSpliceStart() const { return _prevSpliceStart; }
   /**
    * Returns the first marker index after the splice point between this
    * marker window and the next marker window, or returns
    * {@code this.nMarkers()} if there is no overlap or if there are
    * no markers after the splice point.
    */
-  int nextSpliceStart() { return _nextSpliceStart; }
+  int nextSpliceStart() const { return _nextSpliceStart; }
   /**
    * Returns the first target marker index after the splice point with
    * the previous marker window. Returns 0 if the current marker window
    * is the first marker window.
    */
-  int prevTargetSpliceStart() { return (_initHaps.nHaps() == 0) ? 0 : _initHaps.nMarkers(); }
+  int prevTargetSpliceStart() const { return (_initHaps.nHaps() == 0) ? 0 : _initHaps.nMarkers(); }
   /**
    * Returns the first target marker index after the splice point between this
    * marker window and the next marker window, or returns
    * {@code this.nTargetMarkers()} if there is no overlap or if there are
    * no target markers after the splice point
    */
-  int nextTargetSpliceStart() { return _nextTargetSpliceStart; }
+  int nextTargetSpliceStart() const { return _nextTargetSpliceStart; }
   /**
    * Returns the target data haplotype pairs in the segment of the current
    * marker window preceding the splice point with the previous marker window:
    * {@code this.targetMarkers().restrict(0, this.prevTargetSplice())}
    */
-  SampleHapPairs initHaps() { return _initHaps; }
+  SampleHapPairs initHaps() const { return _initHaps; }
   /**
    * Returns the parent-offspring relationships.
    */
@@ -245,69 +246,69 @@ public:
   /**
    * Returns the number of reference samples. Might be zero.
    */
-  int nRefSamples() { return _nRefSamples; }
+  int nRefSamples() const { return _nRefSamples; }
   /**
    * Returns the list of reference samples.
    */
-  Samples refSamples() { return _refSamples; }
+  Samples refSamples() const { return _refSamples; }
   /**
    * Returns the number of target samples.
    */
-  int nTargetSamples() { return _targetSamples.nSamples(); }
+  int nTargetSamples() const { return _targetSamples.nSamples(); }
   /**
    * Returns the list of target samples.
    */
-  Samples targetSamples() { return _targetSamples; }
+  Samples targetSamples() const { return _targetSamples; }
   /**
    * Returns the number of reference and target samples.
    */
-  int nAllSamples() { return _allSamples.nSamples(); }
+  int nAllSamples() const { return _allSamples.nSamples(); }
   /**
    * Returns a list of all target and reference samples.
    * Target samples are listed first in the same order as the list returned
    * by {@code this.targetSamples()}. Reference samples are listed last
    * in the same order as the list returned by {@code this.refSamples()}.
    */
-  Samples allSamples() { return _allSamples; }
+  Samples allSamples() const { return _allSamples; }
   /**
    * Returns the number of target data markers.
    */
-  int nTargetMarkers() { return _targetMarkers.nMarkers(); }
+  int nTargetMarkers() const { return _targetMarkers.nMarkers(); }
   /**
    * Returns the list of target data markers.
    */
-  Markers targetMarkers() { return _targetMarkers; }
+  Markers targetMarkers() const { return _targetMarkers; }
   /**
    * Returns the number of reference data markers.
    */
-  int nMarkers() { return _markers.nMarkers(); }
+  int nMarkers() const { return _markers.nMarkers(); }
   /**
    * Returns the list of reference data markers.
    */
-  Markers markers() { return _markers; }
+  Markers markers() const { return _markers; }
   /**
    * Returns the index of the specified marker in the reference data markers.
    * @param targetMarker index of a marker in the list of target data markers
    */
-  int markerIndex(int targetMarker) { return _markerIndex[targetMarker]; }
+  int markerIndex(int targetMarker) const { return _markerIndex[targetMarker]; }
   /**
    * Returns an array of length {@code this.nTargetMarkers()} which maps
    * the {@code k}-th marker in the list of target data markers to the
    * index of the marker in the list of reference data markers.
    */
-  QList<int> markerIndices() { return _markerIndex; }
+  QList<int> markerIndices() const { return _markerIndex; }
   /**
    * Returns the index of the specified marker in the target data, or
    * returns -1 if the marker is not present in the target data.
    * @param marker index of a marker in the reference data
    */
-  int targetMarkerIndex(int marker) { return _targetMarkerIndex[marker]; }
+  int targetMarkerIndex(int marker) const { return _targetMarkerIndex[marker]; }
   /**
    * Returns an array of length {@code this.nMarkers()} whose {@code k}-th
    * element is the index of the {@code k}-th marker in the list of target
    * markers or is -1 if the marker is not present in the target data.
    */
-  QList<int> targetMarkerIndices() { return _targetMarkerIndex; }
+  QList<int> targetMarkerIndices() const { return _targetMarkerIndex; }
   /**
    * Add the reference haplotype pairs that are restricted
    * to the target data markers to the specified list.
@@ -319,17 +320,17 @@ public:
    * to the target data markers, or returns {@code null}
    * if there are no reference samples.
    */
-  SampleHapPairs restrictedRefSampleHapPairs() { return _restrictedRefSampleHapPairs; }
+  SampleHapPairs restrictedRefSampleHapPairs() const { return _restrictedRefSampleHapPairs; }
   /**
    * Returns a list of reference haplotype pairs, or returns {@code null}
    * if there are no reference samples.
    */
-  SampleHapPairs refSampleHapPairs() { return _refSampleHapPairs; }
+  SampleHapPairs refSampleHapPairs() const { return _refSampleHapPairs; }
   /**
    * Returns the genotype likelihoods for the
    * target samples at the target data markers.
    */
-  SplicedGL targetGL() { return _targetGL; }
+  SplicedGL targetGL() const { return _targetGL; }
   /**
    * Returns an array whose initial element is {@code 0} and whose
    * {@code j}-th element for {@code j > 0} is the recombination rate
@@ -342,9 +343,6 @@ public:
   // }
 
 private:
-  /* Returns the index of the first marker in the overlap */
-  int nextOverlapStart(int targetOverlap, const TargDataReader &tr);
-
   // QList<double> recombRate(Markers markers, GeneticMap map,
   //   double mapScale);
 
@@ -376,5 +374,11 @@ private:
 
   QList<float> _recombRate;
 };
+
+namespace ImputeDriver
+{
+  SampleHapPairs overlapHaps(const CurrentData &cd, const SampleHapPairs &targetHapPairs);
+}
+
 
 #endif

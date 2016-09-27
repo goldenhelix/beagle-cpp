@@ -1,10 +1,10 @@
 /* Copyright 2016 Golden Helix, Inc. */
 
-#include "impute/haplotypepair.h"
-#include "impute/iointerface.h"
 #include "impute/markers.h"
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
+#include "impute/haplotypepair.h"
+#include "impute/iointerface.h"
 
 #include "impute/tests/haptests.h"
 
@@ -21,6 +21,7 @@ private slots:
   void testVcfEmissions();
   void testHaplotypePairs();
   void testRefTargetData3x3();
+  void testRefTargetData6x3();
   void testTargetData3x3();
   void testAllData4x4and3x3();
 };
@@ -583,17 +584,28 @@ void TestImputeDataStructures::testHaplotypePairs()
 
   QCOMPARE(shpscx.nHaps(), 10);
   QCOMPARE(shpscx.nHapPairs(), 5);
-  Samples sshpscx4 = shpscx.samples(4);
+
   Samples sshpscx = shpscx.samples();
   QCOMPARE(shpscx.sampleIndex(0), 0);
-  QCOMPARE(shpscx.sampleIndex(1), 2);
-  QCOMPARE(shpscx.sampleIndex(2), 1);
+  QCOMPARE(shpscx.sampleIndex(1), 1);
+  QCOMPARE(shpscx.sampleIndex(2), 2);
   QCOMPARE(shpscx.sampleIndex(3), 3);
-  QCOMPARE(shpscx.sampleIndex(4), 0);
+  QCOMPARE(shpscx.sampleIndex(4), 4);
+
+  HapPairs& shpscxhps = *(&shpscx);
+  QCOMPARE(shpscxhps.sampleIndex(0), 0);
+  QCOMPARE(shpscxhps.sampleIndex(1), 2);
+  QCOMPARE(shpscxhps.sampleIndex(2), 1);
+  QCOMPARE(shpscxhps.sampleIndex(3), 3);
+  QCOMPARE(shpscxhps.sampleIndex(4), 0);
+
+  Samples sshpscx4 = shpscx.samples(4);
+  Samples sshpscx4hps = shpscxhps.samples(4);
 
   QCOMPARE(mksscx == marks, true);
   QCOMPARE(m2scx == m2, true);
-  QCOMPARE(sshpscx4 == samplesX, true);
+  QCOMPARE(sshpscx4 == samplesCompleteX, true);
+  QCOMPARE(sshpscx4hps == samplesX, true);
   QCOMPARE(sshpscx == samplesCompleteX, true);
   QCOMPARE(shpscx.nSamples(), 5);
 
@@ -607,17 +619,28 @@ void TestImputeDataStructures::testHaplotypePairs()
 
   QCOMPARE(shpscxr.nHaps(), 10);
   QCOMPARE(shpscxr.nHapPairs(), 5);
-  Samples sshpscxr4 = shpscxr.samples(4);
+
   Samples sshpscxr = shpscxr.samples();
   QCOMPARE(shpscxr.sampleIndex(0), 0);
-  QCOMPARE(shpscxr.sampleIndex(1), 2);
-  QCOMPARE(shpscxr.sampleIndex(2), 1);
+  QCOMPARE(shpscxr.sampleIndex(1), 1);
+  QCOMPARE(shpscxr.sampleIndex(2), 2);
   QCOMPARE(shpscxr.sampleIndex(3), 3);
-  QCOMPARE(shpscxr.sampleIndex(4), 0);
+  QCOMPARE(shpscxr.sampleIndex(4), 4);
+
+  HapPairs& shpscxrhps = *(&shpscxr);
+  QCOMPARE(shpscxrhps.sampleIndex(0), 0);
+  QCOMPARE(shpscxrhps.sampleIndex(1), 2);
+  QCOMPARE(shpscxrhps.sampleIndex(2), 1);
+  QCOMPARE(shpscxrhps.sampleIndex(3), 3);
+  QCOMPARE(shpscxrhps.sampleIndex(4), 0);
+
+  Samples sshpscxr4 = shpscxr.samples(4);
+  Samples sshpscxr4hps = shpscxrhps.samples(4);
 
   QCOMPARE(mksscxr == marks, false);
   QCOMPARE(m1scxr == m2, true);
-  QCOMPARE(sshpscxr4 == samplesX, true);
+  QCOMPARE(sshpscxr4 == samplesCompleteX, true);
+  QCOMPARE(sshpscxr4hps == samplesX, true);
   QCOMPARE(sshpscxr == samplesCompleteX, true);
   QCOMPARE(shpscxr.nSamples(), 5);
 
@@ -1047,16 +1070,97 @@ void TestImputeDataStructures::testRefTargetData3x3()
   clearStaticTestLists();
 
   RefDataReader rr;
-  TargDataReaderTest3x3 tr(true);  // "true" setting gives reference-ready data.
+  TargDataReaderTest3x3 tr(true);  // "true" setting gives reference-ready data over two chromosomes.
 
   TargetData td;
 
-  TestPar par;
+  TestParW parw;
 
-  testWindowDriver(td, tr, rr, 4, par);
+  testWindowDriver(td, tr, rr, parw.window(), parw);
+
+  QCOMPARE(prevShpOverlapHapsTestList.length(), 2);
+  QCOMPARE(prevShpOverlapHapsTestList[0], 0);
+  QCOMPARE(prevShpOverlapHapsTestList[1], 0);
+  QCOMPARE(prevHpOverlapHapsTestList.length(), 2);
+  QCOMPARE(prevHpOverlapHapsTestList[0], 0);
+  QCOMPARE(prevHpOverlapHapsTestList[1], 0);
+
+  QCOMPARE(cdCopiesTestList.length(), 2);
+
+  QCOMPARE(shptargPairsTestList.length(), 5);
+  QCOMPARE(shptargPairsTestList[0], 1);
+  QCOMPARE(shptargPairsTestList[1], 1);
+  QCOMPARE(shptargPairsTestList[2], 2);
+  QCOMPARE(shptargPairsTestList[3], 0);
+  QCOMPARE(shptargPairsTestList[4], 1);
+  QCOMPARE(hptargPairsTestList.length(), 2);
+  QCOMPARE(hptargPairsTestList[0], 0);
+  QCOMPARE(hptargPairsTestList[1], 0);
+
+  QCOMPARE(postShpOverlapHapsTestList.length(), 2);
+  QCOMPARE(postShpOverlapHapsTestList[0], 0);
+  QCOMPARE(postShpOverlapHapsTestList[1], 0);
+  QCOMPARE(postHpOverlapHapsTestList.length(), 2);
+  QCOMPARE(postHpOverlapHapsTestList[0], 0);
+  QCOMPARE(postHpOverlapHapsTestList[1], 0);
 
   QCOMPARE(overlapAmountsTestList.length(), 2);
-  // QCOMPARE(targPairsTestList.length(), 2);
+  QCOMPARE(overlapAmountsTestList[0], 0);
+  QCOMPARE(overlapAmountsTestList[1], 0);
+}
+
+void TestImputeDataStructures::testRefTargetData6x3()
+{
+  clearStaticTestLists();
+
+  RefDataReader rr;
+  RefTargDataReaderTest6x3 tr;
+
+  TargetData td;
+
+  TestParW parw;
+
+  testWindowDriver(td, tr, rr, parw.window(), parw);
+
+  QCOMPARE(prevShpOverlapHapsTestList.length(), 3);
+  QCOMPARE(prevShpOverlapHapsTestList[0], 0);
+  QCOMPARE(prevShpOverlapHapsTestList[1], 1);
+  QCOMPARE(prevShpOverlapHapsTestList[2], 0);
+  QCOMPARE(prevHpOverlapHapsTestList.length(), 3);
+  QCOMPARE(prevHpOverlapHapsTestList[0], 0);
+  QCOMPARE(prevHpOverlapHapsTestList[1], 1);
+  QCOMPARE(prevHpOverlapHapsTestList[2], 0);
+
+  QCOMPARE(cdCopiesTestList.length(), 2);
+
+  QCOMPARE(shptargPairsTestList.length(), 10);
+  QCOMPARE(shptargPairsTestList[0], 4);
+  QCOMPARE(shptargPairsTestList[1], 1);
+  QCOMPARE(shptargPairsTestList[2], 1);
+  QCOMPARE(shptargPairsTestList[3], 1);
+  QCOMPARE(shptargPairsTestList[4], 1);
+  QCOMPARE(shptargPairsTestList[5], 4);
+  QCOMPARE(shptargPairsTestList[6], 0);
+  QCOMPARE(shptargPairsTestList[7], 1);
+  QCOMPARE(shptargPairsTestList[8], 0);
+  QCOMPARE(shptargPairsTestList[9], 0);
+  QCOMPARE(hptargPairsTestList.length(), 3);
+  QCOMPARE(hptargPairsTestList[0], 0);
+  QCOMPARE(hptargPairsTestList[1], 1);
+  QCOMPARE(hptargPairsTestList[2], 0);
+
+  QCOMPARE(postShpOverlapHapsTestList.length(), 3);
+  QCOMPARE(postShpOverlapHapsTestList[0], 1);
+  QCOMPARE(postShpOverlapHapsTestList[1], 0);
+  QCOMPARE(postShpOverlapHapsTestList[1], 0);
+  QCOMPARE(postHpOverlapHapsTestList.length(), 3);
+  QCOMPARE(postHpOverlapHapsTestList[0], 1);
+  QCOMPARE(postHpOverlapHapsTestList[1], 0);
+  QCOMPARE(postHpOverlapHapsTestList[1], 0);
+
+  QCOMPARE(overlapAmountsTestList.length(), 2);
+  QCOMPARE(overlapAmountsTestList[0], 2);
+  QCOMPARE(overlapAmountsTestList[1], 0);
 }
 
 void TestImputeDataStructures::testTargetData3x3()
@@ -1068,12 +1172,23 @@ void TestImputeDataStructures::testTargetData3x3()
 
   TargetData td;
 
-  TestPar par;
+  TestParW parw;
 
-  testWindowDriver(td, tr, rr, 4, par);
+  testWindowDriver(td, tr, rr, parw.window(), parw);
+
+  QCOMPARE(prevShpOverlapHapsTestList.length(), 0);
+
+  QCOMPARE(cdCopiesTestList.length(), 0);
+
+  QCOMPARE(shptargPairsTestList.length(), 0);
+
+  QCOMPARE(postShpOverlapHapsTestList.length(), 1);
+  QCOMPARE(postShpOverlapHapsTestList[0], 0);
+  QCOMPARE(postHpOverlapHapsTestList.length(), 1);
+  QCOMPARE(postHpOverlapHapsTestList[0], 0);
 
   QCOMPARE(overlapAmountsTestList.length(), 1);
-  // QCOMPARE(targPairsTestList.length(), 1);
+  QCOMPARE(overlapAmountsTestList[0], 0);
 }
 
 void TestImputeDataStructures::testAllData4x4and3x3()
@@ -1086,12 +1201,13 @@ void TestImputeDataStructures::testAllData4x4and3x3()
 
   AllData ad;
 
-  TestPar par;
+  TestParW parw;
 
-  testWindowDriver(ad, tr, rr, 4, par);
+  testWindowDriver(ad, tr, rr, parw.window(), parw);
 
+  QCOMPARE(shptargPairsTestList.length(), 4);
   QCOMPARE(overlapAmountsTestList.length(), 1);
-  QCOMPARE(targPairsTestList.length(), 1);
+  QCOMPARE(overlapAmountsTestList[0], 0);
   */
 }
 

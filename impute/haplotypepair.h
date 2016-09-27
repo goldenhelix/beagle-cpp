@@ -180,23 +180,38 @@ public:
 
   SampleHapPairs(const SampleHapPairs &other) : HapPairs(other), _samples(other._samples) {}
   SampleHapPairs() : HapPairs() {}
-  /**
-   * Returns the list of samples containing the sample associated with
-   * the specified haplotype pair. (Redundant calling interface needed
-   * because of how subclassing works.)
-   *
-   * @param hapPair a haplotype pair index
-   */
-  Samples samples(int hapPair) const { return HapPairs::samples(hapPair); }
+
+  virtual int allele1(int marker, int hapPair) const { return HapPairs::allele1(marker, hapPair); }
+  virtual int allele2(int marker, int hapPair) const { return HapPairs::allele2(marker, hapPair); }
+  virtual int allele(int marker, int haplotype) const { return HapPairs::allele(marker, haplotype); }
+
+  virtual int nMarkers() const { return HapPairs::nMarkers(); }
+  virtual Markers markers() const { return HapPairs::markers(); }
+  virtual Marker marker(int mnum) const { return HapPairs::marker(mnum); }
+  virtual int nAlleles(int mnum) const { return HapPairs::nAlleles(mnum); }
+
   /**
    * Returns the samples.  The {@code k}-th sample corresponds to
    * the {@code k}-th haplotype pair.
    */
   Samples samples() const { return _samples; }
   /**
+   * Returns the list of samples containing the sample associated with
+   * the specified haplotype pair.
+   *
+   * @param hapPair a haplotype pair index
+   */
+  Samples samples(int hapPair) const;
+  /**
+   * Returns the index of the sample associated with the specified
+   * haplotype pair.
+   * @param hapPair a haplotype pair index
+   */
+  int sampleIndex(int hapPair) const;
+  /**
    * Returns the number of samples.
    */
-  int nSamples() const { return _samples.nSamples(); }
+  int nSamples() const {return _samples.nSamples(); }
   /**
    * Returns the number of haplotypes.
    */
@@ -235,13 +250,8 @@ public:
   int allele2(int marker, int hapPair) const { return _refVcfRecs[marker].allele2(hapPair); }
   int allele(int marker, int haplotype) const;
 
-  Samples samples(int hapPair) const;
-  Samples samples() const { return _samples; }
-  int sampleIndex(int hapPair) const;
-
-  int nAlleles(int marker) const { return _refVcfRecs[marker].nAlleles(); }
 private:
-  void createMarkers();
+  void createMarkers();  // Uses HapPairs::_markers.
 
   QList<BitSetRefGT> _refVcfRecs;
 };
@@ -258,16 +268,17 @@ class GLSampleHapPairs : public SampleHapPairs
 public:
   /**
    * Constructs a new {@code GLSampleHapPairs} instance from the
-   * specified data. Will always be in forward direction.
-   *
-   * @param another instance of a "GL"-family class. In default mode,
-   * must only contain phased, non-missing genotype data.
-   * @param optional parameter to be used only by the SplicedGL
-   * copy-and-maybe-reverse constructor.
-   * @param optional parameter to be used only by the SplicedGL
-   * copy-and-maybe-reverse constructor.
+   * specified data.
+   * @param another instance of a "GL"-family class. When this
+   * constructor is used directly by non-subclass code, that other
+   * instance should contain only phased, non-missing data.
+   * @param whether to check if the other instance of the "GL"-family
+   * class is reference-only data. Should be set to "true" if this
+   * constructor is used directly by non-subclass code.
+   * @param whether to cause references from the outside of this class
+   * to perceive the marker order as being reversed.
    */
-  GLSampleHapPairs(const GLSampleHapPairs &otherGL, bool checkRef = true, bool reverse = false);
+  GLSampleHapPairs(const GLSampleHapPairs &otherGL, bool checkRef=false, bool reverse=false);
 
   GLSampleHapPairs() : SampleHapPairs() {}
   /**
@@ -276,23 +287,10 @@ public:
    * and returns {@code false} otherwise.
    */
   virtual bool isRefData() const { return true; }
-  int allele(int marker, int haplotype) const
-  {
-    int sample = haplotype / 2;
-    if ((haplotype & 1) == 0) {
-      return allele1(marker, sample);
-    } else {
-      return allele2(marker, sample);
-    }
-  }
 
+  int allele(int marker, int haplotype) const;
   int allele1(int marker, int hapPair) const;
-
   int allele2(int marker, int hapPair) const;
-
-  Samples samples(int hapPair) const;
-  Samples samples() const { return _samples; }
-  int sampleIndex(int hapPair) const;
 
   /**
    * Returns the number of markers (overall).
@@ -370,7 +368,11 @@ public:
    */
   SplicedGL(const GLSampleHapPairs &otherGL, bool reverse);
 
+  /**
+   * Default constructor.
+   */
   SplicedGL() : GLSampleHapPairs(), _isRefData(false) {}
+
   /**
    * Returns {@code true} if the observed data for each marker and
    * sample includes a phased genotype that has no missing alleles,
@@ -423,6 +425,7 @@ public:
   FuzzyGL(const SplicedGL &gl, double err, bool reverse);
 
   FuzzyGL() : SplicedGL() {}
+
   double gl(int marker, int sample, int a1, int a2);
 
 private:

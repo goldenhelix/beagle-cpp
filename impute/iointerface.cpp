@@ -37,12 +37,12 @@ bool RefDataReader::lastWindowOnChrom() const
   return (!hasNextRec() || !(sameChrom(nextRec(), _vcfRefRecs[0])));
 }
 
-bool RefDataReader::sameChrom(BitSetRefGT a, BitSetRefGT b) const
+bool RefDataReader::sameChrom(const BitSetRefGT &a, const BitSetRefGT &b) const
 {
   return a.marker().chromIndex() == b.marker().chromIndex();
 }
 
-bool RefDataReader::samePosition(BitSetRefGT a, BitSetRefGT b) const
+bool RefDataReader::samePosition(const BitSetRefGT &a, const BitSetRefGT &b) const
 {
   return sameChrom(a, b) && a.marker().pos() == b.marker().pos();
 }
@@ -92,12 +92,12 @@ bool TargDataReader::lastWindowOnChrom() const
   return (!hasNextRec() || !(sameChrom(nextRec(), _vcfEmissions[0])));
 }
 
-bool TargDataReader::sameChrom(BitSetGT a, BitSetGT b) const
+bool TargDataReader::sameChrom(const BitSetGT &a, const BitSetGT &b) const
 {
   return a.marker().chromIndex() == b.marker().chromIndex();
 }
 
-bool TargDataReader::samePosition(BitSetGT a, BitSetGT b) const
+bool TargDataReader::samePosition(const BitSetGT &a, const BitSetGT &b) const
 {
   return sameChrom(a, b) && a.marker().pos() == b.marker().pos();
 }
@@ -228,3 +228,32 @@ void AllData::setCdData(CurrentData &cd, const Par &par, const SampleHapPairs &o
                         const TargDataReader &tr, const RefDataReader &rr)
 {}
 
+
+SampleHapPairs ImputeDriver::overlapHaps(const CurrentData &cd, const SampleHapPairs &targetHapPairs)
+{
+  int nextOverlap = cd.nextTargetOverlapStart();
+  int nextSplice = cd.nextTargetSpliceStart();
+  if (cd.nextOverlapStart() == cd.nextSpliceStart()) {
+    return SampleHapPairs();
+  }
+  int nSamples = targetHapPairs.nSamples();
+  int nMarkers = nextSplice - nextOverlap;
+  Markers markers = targetHapPairs.markers().restrict(nextOverlap, nextSplice);
+  Samples samples = targetHapPairs.samples();
+  QList<HapPair> list;
+  QList<int> a1;
+  QList<int> a2;
+  for (int m = 0; m < nMarkers; ++m)
+  {
+    a1.append(0);
+    a2.append(0);
+  }
+  for (int s = 0; s < nSamples; ++s) {
+    for (int m = 0; m < nMarkers; ++m) {
+      a1[m] = targetHapPairs.allele1(nextOverlap + m, s);
+      a2[m] = targetHapPairs.allele2(nextOverlap + m, s);
+    }
+    list.append(HapPair(markers, samples, s, a1, a2));
+  }
+  return SampleHapPairs(targetHapPairs.samples(), list, false);
+}
