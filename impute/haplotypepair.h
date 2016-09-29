@@ -180,16 +180,17 @@ public:
 
   SampleHapPairs(const SampleHapPairs &other) : HapPairs(other), _samples(other._samples) {}
   SampleHapPairs() : HapPairs() {}
-
   virtual int allele1(int marker, int hapPair) const { return HapPairs::allele1(marker, hapPair); }
   virtual int allele2(int marker, int hapPair) const { return HapPairs::allele2(marker, hapPair); }
-  virtual int allele(int marker, int haplotype) const { return HapPairs::allele(marker, haplotype); }
+  virtual int allele(int marker, int haplotype) const
+  {
+    return HapPairs::allele(marker, haplotype);
+  }
 
   virtual int nMarkers() const { return HapPairs::nMarkers(); }
   virtual Markers markers() const { return HapPairs::markers(); }
   virtual Marker marker(int mnum) const { return HapPairs::marker(mnum); }
   virtual int nAlleles(int mnum) const { return HapPairs::nAlleles(mnum); }
-
   /**
    * Returns the samples.  The {@code k}-th sample corresponds to
    * the {@code k}-th haplotype pair.
@@ -211,7 +212,7 @@ public:
   /**
    * Returns the number of samples.
    */
-  int nSamples() const {return _samples.nSamples(); }
+  int nSamples() const { return _samples.nSamples(); }
   /**
    * Returns the number of haplotypes.
    */
@@ -278,7 +279,7 @@ public:
    * @param whether to cause references from the outside of this class
    * to perceive the marker order as being reversed.
    */
-  GLSampleHapPairs(const GLSampleHapPairs &otherGL, bool checkRef=false, bool reverse=false);
+  GLSampleHapPairs(const GLSampleHapPairs &otherGL, bool checkRef = false, bool reverse = false);
 
   GLSampleHapPairs() : SampleHapPairs() {}
   /**
@@ -287,7 +288,6 @@ public:
    * and returns {@code false} otherwise.
    */
   virtual bool isRefData() const { return true; }
-
   int allele(int marker, int haplotype) const;
   int allele1(int marker, int hapPair) const;
   int allele2(int marker, int hapPair) const;
@@ -372,7 +372,6 @@ public:
    * Default constructor.
    */
   SplicedGL() : GLSampleHapPairs(), _isRefData(false) {}
-
   /**
    * Returns {@code true} if the observed data for each marker and
    * sample includes a phased genotype that has no missing alleles,
@@ -425,7 +424,6 @@ public:
   FuzzyGL(const SplicedGL &gl, double err, bool reverse);
 
   FuzzyGL() : SplicedGL() {}
-
   double gl(int marker, int sample, int a1, int a2);
 
 private:

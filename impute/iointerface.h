@@ -23,6 +23,12 @@ public:
   virtual int windowSize() const = 0;
   virtual int maxWindowSize() const = 0;
   virtual bool lastWindowOnChrom() const = 0;
+
+  Samples samples() const { return _samples; }
+  Markers markers() const { return _markers; }
+protected:
+  Samples _samples;
+  Markers _markers;
 };
 
 class RefDataReader : public GenericDataReader
@@ -35,8 +41,6 @@ public:
   int maxWindowSize() const { return 15000; }
   bool lastWindowOnChrom() const;
 
-  Samples samples() const { return _samples; }
-  Markers markers() const { return _markers; }
   QList<BitSetRefGT> refRecs() const { return _vcfRefRecs; }
 protected:
   virtual bool hasNextRec() const { return false; }
@@ -46,8 +50,6 @@ protected:
   bool samePosition(const BitSetRefGT &a, const BitSetRefGT &b) const;
   int currentChromIndex() const;
 
-  Samples _samples;
-  Markers _markers;
   QList<BitSetRefGT> _oldVcfRefRecs;
   QList<BitSetRefGT> _vcfRefRecs;
 };
@@ -63,8 +65,9 @@ public:
   int maxWindowSize() const { return 10000; }
   bool lastWindowOnChrom() const;
 
-  Samples samples() const { return _samples; }
-  Markers markers() const { return _markers; }
+  QList<int> restrictedMakeNewWindow(const QList<int> &oldRefIndices, int overlap);
+  void restrictedAdvanceWindow(QList<int> &refIndices, int refOverlap, const Markers &nextMarkers);
+  int restrictedCumMarkerCount() { return _restrictedCumMarkerCnt; }
   QList<BitSetGT> vcfRecs() const { return _vcfEmissions; }
 protected:
   virtual bool hasNextRec() const = 0;
@@ -75,10 +78,9 @@ protected:
   bool samePosition(const BitSetGT &a, const BitSetGT &b) const;
   int currentChromIndex() const;
 
-  Samples _samples;
-  Markers _markers;
   QList<BitSetGT> _oldVcfEmissions;
   QList<BitSetGT> _vcfEmissions;
+  int _restrictedCumMarkerCnt;
 };
 
 class VcfWindow
@@ -87,16 +89,16 @@ public:
   VcfWindow() : _overlap(0), _cumMarkerCnt(0) {}
   /**
    * Advances the sliding window of VCF records. The advanced window
-   * (a list of {@code BitSetRefGT} or of {@code BitSetGT} objects) is kept in the
-   * DataReader object.  The size of the advanced window and the
-   * number of markers of overlap between the marker window
+   * (a list of {@code BitSetRefGT} or of {@code BitSetGT} objects) is
+   * kept in the DataReader object.  The size of the advanced window
+   * and the number of markers of overlap between the marker window
    * immediately before method invocation and the marker window
-   * immediately after method invocation may differ from the
-   * requested values.  If the advanced window size or overlap is
-   * less than the requested value, the actual value will be as
-   * large as possible. If {@code this.lastWindowOnChrom() == true}
-   * before method invocation, then there will be no overlap between
-   * the advanced window and the previous window.
+   * immediately after method invocation may differ from the requested
+   * values.  If the advanced window size or overlap is less than the
+   * requested value, the actual value will be as large as
+   * possible. If {@code this.lastWindowOnChrom() == true} before
+   * method invocation, then there will be no overlap between the
+   * advanced window and the previous window.
    *
    * @param overlap the number of markers of overlap
    * @param windowSize the requested number of the markers in the window
@@ -115,59 +117,54 @@ private:
   int _cumMarkerCnt;
 };
 
-class RestrictedVcfWindow
-{
-public:
-  RestrictedVcfWindow() {}
-};
-
 class CurrentData;
 
 class InputData
 {
 public:
+  InputData() : _window(0) {}
   virtual bool canAdvanceWindow(const TargDataReader &tr, const RefDataReader &rr) const = 0;
   virtual void advanceWindow(int overlap, int windowSize, TargDataReader &tr,
                              RefDataReader &rr) = 0;
   virtual void setCdData(CurrentData &cd, const Par &par, const SampleHapPairs &overlapHaps,
                          const TargDataReader &tr, const RefDataReader &rr) = 0;
+
+protected:
+  /* Returns the index of the first marker in the overlap */
+  int nextOverlapStart(int targetOverlap, const GenericDataReader &gr);
+
+  VcfWindow _vcfWindow;
+  int _window;
+  SplicedGL _gl;
 };
 
 class TargetData : public InputData
 {
 public:
-  TargetData() : _window(0) {}
+  TargetData() : InputData() {}
   bool canAdvanceWindow(const TargDataReader &tr, const RefDataReader &rr) const;
   void advanceWindow(int overlap, int windowSize, TargDataReader &tr, RefDataReader &rr);
   void setCdData(CurrentData &cd, const Par &par, const SampleHapPairs &overlapHaps,
                  const TargDataReader &tr, const RefDataReader &rr);
-
-private:
-  /* Returns the index of the first marker in the overlap */
-  int nextOverlapStart(int targetOverlap, const TargDataReader &tr);
-
-  VcfWindow _vcfWindow;
-  int _window;
-  // Markers _markers;
-  SplicedGL _gl;
 };
 
 class AllData : public InputData
 {
 public:
-  AllData() : _window(0) {}
+  AllData() : InputData() { _refIndices.clear(); }
   bool canAdvanceWindow(const TargDataReader &tr, const RefDataReader &rr) const;
   void advanceWindow(int overlap, int windowSize, TargDataReader &tr, RefDataReader &rr);
   void setCdData(CurrentData &cd, const Par &par, const SampleHapPairs &overlapHaps,
                  const TargDataReader &tr, const RefDataReader &rr);
 
 private:
-  VcfWindow _refWindow;
-  RestrictedVcfWindow _targetWindow;
+  Samples allSamples(const TargDataReader &tr, const RefDataReader &rr);
+  void checkSampleOverlap(Samples ref, Samples nonRef);
 
-  int _window;
-  QList<int> refIndices;
-  QList<int> targetIndices;
+  RefHapPairs _refSampleHapPairs;
+
+  QList<int> _refIndices;
+  // QList<int> _targetIndices;
   Samples _allSamples;
   QList<HapPair> _refHapPairs;
   QList<HapPair> _targetRefHapPairs;
@@ -302,13 +299,13 @@ public:
    * returns -1 if the marker is not present in the target data.
    * @param marker index of a marker in the reference data
    */
-  int targetMarkerIndex(int marker) const { return _targetMarkerIndex[marker]; }
+  // int targetMarkerIndex(int marker) const { return _targetMarkerIndex[marker]; }
   /**
    * Returns an array of length {@code this.nMarkers()} whose {@code k}-th
    * element is the index of the {@code k}-th marker in the list of target
    * markers or is -1 if the marker is not present in the target data.
    */
-  QList<int> targetMarkerIndices() const { return _targetMarkerIndex; }
+  // QList<int> targetMarkerIndices() const { return _targetMarkerIndex; }
   /**
    * Add the reference haplotype pairs that are restricted
    * to the target data markers to the specified list.
@@ -365,20 +362,21 @@ private:
 
   Markers _markers;
   Markers _targetMarkers;
-  QList<int> _targetMarkerIndex;
+  // QList<int> _targetMarkerIndex;
   QList<int> _markerIndex;
 
   QList<HapPair> _restRefHapPairs;
   SampleHapPairs _refSampleHapPairs;
   SampleHapPairs _restrictedRefSampleHapPairs;
 
-  QList<float> _recombRate;
+  // QList<float> _recombRate;
 };
 
 namespace ImputeDriver
 {
   SampleHapPairs overlapHaps(const CurrentData &cd, const SampleHapPairs &targetHapPairs);
+  QList<HapPair> createHapPairList(const Markers &markers, const SampleHapPairs &targetHapPairs,
+                                   const QList<int> &mapping);
 }
-
 
 #endif

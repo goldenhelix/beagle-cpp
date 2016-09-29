@@ -1,6 +1,6 @@
 // Test-dedicated utility include file.
 
-void loadTestDataForRefData4x4(Samples &samplesR, QList<BitSetRefGT> &refEmissions)
+void loadTestDataForRefData4x4(Samples &samplesR, QList<BitSetRefGT> &refEmissions, bool useRef6x4=false)
 {
   // Set the data for "samplesR" before there are any other
   // references to the object.
@@ -62,9 +62,38 @@ void loadTestDataForRefData4x4(Samples &samplesR, QList<BitSetRefGT> &refEmissio
   r3.storePhasedAlleles(r31, r32);
 
   refEmissions.append(r3);
+
+  if(useRef6x4)
+  {
+    BitSetRefGT r4(samplesR);
+
+    r4.setIdInfo(ChromeIds::getIndex("17"), 52345, "RS52345");
+    r4.setAllele("G");
+    r4.setAllele("T");
+
+    QList<int> r41; r41.append(0); r41.append(0); r41.append(1); r41.append(1);
+    QList<int> r42; r42.append(1); r42.append(1); r42.append(1); r42.append(0);
+    r4.storePhasedAlleles(r41, r42);
+
+    refEmissions.append(r4);
+
+    BitSetRefGT r5(samplesR);
+
+    r5.setIdInfo(ChromeIds::getIndex("17"), 63345, "RS63345");
+    r5.setAllele("A");
+    r5.setAllele("T");
+
+    QList<int> r51; r51.append(0); r51.append(1); r51.append(1); r51.append(0);
+    QList<int> r52; r52.append(1); r52.append(0); r52.append(0); r52.append(0);
+    r5.storePhasedAlleles(r51, r52);
+
+    refEmissions.append(r5);
+  }
 }
 
-void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmissions, int missingVal=-1, bool defaultPhasing=false, bool read6x3=false)
+void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmissions,
+				  int missingVal=-1, bool defaultPhasing=false,
+				  bool read6x3=false, bool read4x3=false, bool read4x3B=false)
 {
   // Set the data for "samplesT" before there are any other
   // references to the object.
@@ -94,12 +123,21 @@ void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmis
 
   BitSetGT t1(samplesT);
 
-  t1.setIdInfo(ChromeIds::getIndex("17"), 22345, "RS22345");
-  t1.setAllele("G");
-  t1.setAllele("T");
+  if(read4x3B)
+  {
+    t1.setIdInfo(ChromeIds::getIndex("17"), 22678, "RS22678");
+    t1.setAllele("C");
+    t1.setAllele("G");
+  }
+  else
+  {
+    t1.setIdInfo(ChromeIds::getIndex("17"), 22345, "RS22345");
+    t1.setAllele("G");
+    t1.setAllele("T");
+  }
 
   QList<int> t11; t11.append(0); t11.append(0); t11.append(1);
-  QList<int> t12; t12.append(1); t12.append(missingVal); t12.append(1);
+  QList<int> t12; t12.append(1); t12.append((read4x3B) ? 1 : missingVal); t12.append(1);
   arePhased[0] = true; arePhased[2] = true;
   t1.storeAlleles(t11, t12, arePhased);
 
@@ -146,7 +184,10 @@ void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmis
     t4.storeAlleles(t41, t42, arePhased);
 
     targetEmissions.append(t4);
+  }
 
+  if(read4x3  ||  read4x3B  ||  read6x3)
+  {
     BitSetGT t5(samplesT);
 
     t5.setIdInfo(ChromeIds::getIndex("17"), 63345, "RS63345");
@@ -162,12 +203,6 @@ void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmis
   }
 }
 
-class GLUser     // For testing when a class "has a" FuzzyGL object.
-{
-public:
-  FuzzyGL myGL;
-};
-
 
 class TestParW : public Par
 {
@@ -180,9 +215,9 @@ public:
 class RefDataReaderTest4x4 : public RefDataReader
 {
 public:
-  RefDataReaderTest4x4() : _position(0)
+  RefDataReaderTest4x4(bool use6x4=false) : _position(0)
   {
-    loadTestDataForRefData4x4(_samples, _refEmissionsData);
+    loadTestDataForRefData4x4(_samples, _refEmissionsData, use6x4);
     _nRecs = _refEmissionsData.length();
   }
 
@@ -201,10 +236,14 @@ private:
 class TargDataReaderTest3x3 : public TargDataReader
 {
 public:
-  TargDataReaderTest3x3(bool refReady) : _position(0)
+ TargDataReaderTest3x3(bool refReady, bool use4x3=false, bool use4x3B=false) : _position(0)
   {
     if(refReady)
       loadTestDataForTargetData3x3(_samples, _targetEmissionsData, 1, true);
+    else if(use4x3)
+      loadTestDataForTargetData3x3(_samples, _targetEmissionsData, -1, false, false, true);
+    else if(use4x3B)
+      loadTestDataForTargetData3x3(_samples, _targetEmissionsData, -1, false, false, false, true);
     else
       loadTestDataForTargetData3x3(_samples, _targetEmissionsData);
 
@@ -319,6 +358,9 @@ void testWindowDriver(InputData &data, TargDataReader &targReader, RefDataReader
 
     if (cd.targetGL().isRefData())
       overlap = testWindowDriverHelper(overlapHaps, cd, GLSampleHapPairs(cd.targetGL(), true));
+    else
+      // "Politically incorrect" usage of GLSampleHapPairs....
+      overlap = testWindowDriverHelper(overlapHaps, cd, GLSampleHapPairs(cd.targetGL(), false));
     // else
     // {
     //   // QList<HapPair> hapPairs = ImputeDriver::phase(cd);

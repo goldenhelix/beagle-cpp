@@ -112,6 +112,58 @@ int TargDataReader::currentChromIndex() const
     return -1;
 }
 
+QList<int> TargDataReader::restrictedMakeNewWindow(const QList<int> &oldRefIndices,
+                                                   int overlapStart)
+{
+  int oldLen = oldRefIndices.length();
+  int restrictedOverlapStart = oldLen - 1;
+  while (restrictedOverlapStart >= 0 && oldRefIndices[restrictedOverlapStart] >= overlapStart)
+    restrictedOverlapStart--;
+  restrictedOverlapStart++;
+
+  QList<int> overlapRefIndices;
+  for (int oldIndex = restrictedOverlapStart; oldIndex < oldLen; oldIndex++)
+    overlapRefIndices.append(oldRefIndices[oldIndex] - overlapStart);
+
+  _oldVcfEmissions = _vcfEmissions.mid(restrictedOverlapStart);
+  _vcfEmissions.clear();
+  _vcfEmissions = _oldVcfEmissions;
+
+  return overlapRefIndices;
+}
+
+void TargDataReader::restrictedAdvanceWindow(QList<int> &refIndices, int refOverlap,
+                                             const Markers &nextMarkers)
+{
+  for (int j = refOverlap, n = nextMarkers.nMarkers(); j < n; ++j) {
+    Marker m = nextMarkers.marker(j);
+    if (hasNextRec() && nextRec().marker().chromIndex() == m.chromIndex()) {
+      while (hasNextRec() && nextRec().marker().pos() < m.pos())
+        advanceRec();
+
+      while (hasNextRec() && nextRec().marker().pos() == m.pos() &&
+             (nextRec().marker() == m) == false)
+        advanceRec();
+    }
+    if (hasNextRec() && nextRec().marker() == m) {
+      _restrictedCumMarkerCnt++;
+      _vcfEmissions.append(nextRec());
+      refIndices.append(j);
+      advanceRec();
+    }
+  }
+
+  Q_ASSERT_X(_vcfEmissions.length(),
+             "TargDataReader::restrictedAdvanceWindow",
+             "No target markers found that overlap the reference markers.");
+
+  QList<Marker> markerlist;
+  for (int i = 0; i < _vcfEmissions.length(); i++)
+    markerlist.append(_vcfEmissions[i].marker());
+
+  _markers = Markers(markerlist);
+}
+
 void VcfWindow::advanceWindow(int overlap, int desiredWindowSize, GenericDataReader &dr)
 {
   checkParameters(overlap, desiredWindowSize, dr);
@@ -136,6 +188,25 @@ void VcfWindow::checkParameters(int overlap, int desiredWindowSize, GenericDataR
              "overlap > 0 after last window on chromosome");
 }
 
+int InputData::nextOverlapStart(int targetOverlap, const GenericDataReader &gr)
+{
+  Q_ASSERT_X(targetOverlap >= 0, "InputData::nextOverlapStart", "targetOverlap < 0");
+
+  if (targetOverlap == 0 || gr.lastWindowOnChrom())
+    return gr.windowSize();
+
+  Markers markers = gr.markers();
+  int nextOverlap = gr.windowSize() - targetOverlap;
+  if (nextOverlap < 0)
+    nextOverlap = 0;
+  while (nextOverlap > 0 &&
+         markers.marker(nextOverlap).pos() == markers.marker(nextOverlap - 1).pos()) {
+    --nextOverlap;
+  }
+
+  return nextOverlap;
+}
+
 bool TargetData::canAdvanceWindow(const TargDataReader &tr, const RefDataReader &rr) const
 {
   return tr.canAdvanceWindow();
@@ -148,7 +219,6 @@ void TargetData::advanceWindow(int overlap,
 {
   _vcfWindow.advanceWindow(overlap, desiredWindowSize, tr);
   _gl = SplicedGL(tr.samples(), tr.vcfRecs());
-  // _markers = tr.markers();
   _window++;
 }
 
@@ -180,36 +250,13 @@ void TargetData::setCdData(CurrentData &cd, const Par &par, const SampleHapPairs
   cd._targetMarkers = tr.markers();
 
   for (int i = 0; i < cd._markers.nMarkers(); i++)  // Make trivial 1-to-1 mapping.
-  {
-    cd._targetMarkerIndex.append(i);
     cd._markerIndex.append(i);
-  }
 
   // cd._restRefHapPairs is left alone.
   // cd._refSampleHapPairs is left alone.
   // cd._restrictedRefSampleHapPairs is left alone.
 
   // cd._recombRate = recombRate(targetMarkers, genMap, par.mapscale());
-}
-
-/* Returns the index of the first marker in the overlap */
-int TargetData::nextOverlapStart(int targetOverlap, const TargDataReader &tr)
-{
-  Q_ASSERT_X(targetOverlap >= 0, "TargetData::nextOverlapStart", "targetOverlap < 0");
-
-  if (targetOverlap == 0 || tr.lastWindowOnChrom())
-    return tr.windowSize();
-
-  Markers markers = tr.markers();
-  int nextOverlap = tr.windowSize() - targetOverlap;
-  if (nextOverlap < 0)
-    nextOverlap = 0;
-  while (nextOverlap > 0 &&
-         markers.marker(nextOverlap).pos() == markers.marker(nextOverlap - 1).pos()) {
-    --nextOverlap;
-  }
-
-  return nextOverlap;
 }
 
 bool AllData::canAdvanceWindow(const TargDataReader &tr, const RefDataReader &rr) const
@@ -222,38 +269,156 @@ void AllData::advanceWindow(int overlap,
                             TargDataReader &tr,
                             RefDataReader &rr)
 {
+  int oldWindowSize = rr.windowSize();
+
+  _vcfWindow.advanceWindow(overlap, desiredWindowSize, rr);
+  _refSampleHapPairs = RefHapPairs(rr.samples(), rr.refRecs());
+
+  _refIndices = tr.restrictedMakeNewWindow(_refIndices, oldWindowSize - overlap);
+  tr.restrictedAdvanceWindow(_refIndices, overlap, rr.markers());
+
+  QList<int> oneToOneMapping;
+  for (int i = 0; i < rr.windowSize(); i++)
+    oneToOneMapping.append(i);
+  _refHapPairs = ImputeDriver::createHapPairList(rr.markers(), _refSampleHapPairs, oneToOneMapping);
+  _targetRefHapPairs =
+      ImputeDriver::createHapPairList(tr.markers(), _refSampleHapPairs, _refIndices);
+
+  _gl = SplicedGL(tr.samples(), tr.vcfRecs());
+  _window++;
 }
 
 void AllData::setCdData(CurrentData &cd, const Par &par, const SampleHapPairs &overlapHaps,
                         const TargDataReader &tr, const RefDataReader &rr)
-{}
+{
+  Q_ASSERT_X(overlapHaps.nHaps() == 0 || tr.samples() == overlapHaps.samples(),
+             "TargetData::setCdData",
+             "inconsistent samples");
 
+  cd._window = _window;
+  cd._initHaps = overlapHaps;
+  cd._prevSpliceStart = _vcfWindow.overlap() / 2;
+  cd._nextOverlapStart = nextOverlapStart(par.overlap(), rr);
+  cd._nextSpliceStart = (rr.windowSize() + cd._nextOverlapStart) / 2;
 
-SampleHapPairs ImputeDriver::overlapHaps(const CurrentData &cd, const SampleHapPairs &targetHapPairs)
+  int ws = tr.windowSize();
+  int i = 0;
+  while (i < ws && _refIndices[i] < cd._nextOverlapStart)
+    i++;
+  cd._nextTargetOverlapStart = i;
+
+  i = 0;
+  while (i < ws && _refIndices[i] < cd._nextSpliceStart)
+    i++;
+  cd._nextTargetSpliceStart = i;
+
+  // cd._families = families;
+  // cd._weights = new Weights(families);
+
+  cd._targetGL = SplicedGL(overlapHaps, _gl);
+
+  cd._refSamples = rr.samples();
+  cd._nRefSamples = cd._refSamples.nSamples();
+  cd._targetSamples = tr.samples();
+  cd._allSamples = allSamples(tr, rr);
+  cd._markers = rr.markers();
+  cd._targetMarkers = tr.markers();
+
+  cd._markerIndex = _refIndices;
+
+  cd._restRefHapPairs = _targetRefHapPairs;
+  cd._refSampleHapPairs = _refSampleHapPairs;
+  cd._restrictedRefSampleHapPairs = SampleHapPairs(cd._refSamples, _targetRefHapPairs, false);
+
+  // cd._recombRate = recombRate(targetMarkers, genMap, par.mapscale());
+}
+
+Samples AllData::allSamples(const TargDataReader &tr, const RefDataReader &rr)
+{
+  if (!_allSamples.nSamples()) {
+    checkSampleOverlap(rr.samples(), tr.samples());
+
+    /*
+      Create the all-samples Samples object. Target samples are listed
+      first so that sample indices agree with sample indices in target
+      data genotype likelihoods.
+    */
+    Samples refSamps = rr.samples();
+    Samples targSamps = tr.samples();
+    int nRef = refSamps.nSamples();
+    int nTarget = targSamps.nSamples();
+    for (int j = 0; j < nTarget; ++j) {
+      _allSamples.setSamp(targSamps.idIndex(j));
+    }
+    for (int j = 0; j < nRef; ++j) {
+      _allSamples.setSamp(refSamps.idIndex(j));
+    }
+  }
+
+  return _allSamples;
+}
+
+void AllData::checkSampleOverlap(Samples ref, Samples nonRef)
+{
+  int nRef = ref.nSamples();
+  int nNonRef = nonRef.nSamples();
+  int n = nRef + nNonRef;
+  QList<int> idIndices;
+
+  for (int j = 0; j < nRef; ++j)
+    idIndices.append(ref.idIndex(j));
+
+  for (int j = 0; j < nNonRef; ++j)
+    idIndices.append(nonRef.idIndex(j));
+
+  qStableSort(idIndices.begin(), idIndices.end());
+  for (int j = 1; j < idIndices.length(); ++j) {
+    Q_ASSERT_X(idIndices[j - 1] != idIndices[j],
+               "AllData::checkSampleOverlap",
+               "Overlap between reference and non-reference samples.");
+  }
+}
+
+SampleHapPairs ImputeDriver::overlapHaps(const CurrentData &cd,
+                                         const SampleHapPairs &targetHapPairs)
 {
   int nextOverlap = cd.nextTargetOverlapStart();
   int nextSplice = cd.nextTargetSpliceStart();
   if (cd.nextOverlapStart() == cd.nextSpliceStart()) {
-    return SampleHapPairs();
+    return SampleHapPairs();  // Default constructor creates an empty result.
   }
-  int nSamples = targetHapPairs.nSamples();
-  int nMarkers = nextSplice - nextOverlap;
+
   Markers markers = targetHapPairs.markers().restrict(nextOverlap, nextSplice);
   Samples samples = targetHapPairs.samples();
+
+  QList<int> mapping;
+  for (int i = nextOverlap; i < nextSplice; i++)
+    mapping.append(i);
+  QList<HapPair> list = ImputeDriver::createHapPairList(markers, targetHapPairs, mapping);
+
+  return SampleHapPairs(targetHapPairs.samples(), list, false);
+}
+
+QList<HapPair> ImputeDriver::createHapPairList(const Markers &markers,
+                                               const SampleHapPairs &targetHapPairs,
+                                               const QList<int> &mapping)
+{
+  Samples samples = targetHapPairs.samples();
+  int nSamples = samples.nSamples();
+  int nMarkers = markers.nMarkers();
   QList<HapPair> list;
   QList<int> a1;
   QList<int> a2;
-  for (int m = 0; m < nMarkers; ++m)
-  {
+  for (int m = 0; m < nMarkers; ++m) {
     a1.append(0);
     a2.append(0);
   }
   for (int s = 0; s < nSamples; ++s) {
     for (int m = 0; m < nMarkers; ++m) {
-      a1[m] = targetHapPairs.allele1(nextOverlap + m, s);
-      a2[m] = targetHapPairs.allele2(nextOverlap + m, s);
+      a1[m] = targetHapPairs.allele1(mapping[m], s);
+      a2[m] = targetHapPairs.allele2(mapping[m], s);
     }
     list.append(HapPair(markers, samples, s, a1, a2));
   }
-  return SampleHapPairs(targetHapPairs.samples(), list, false);
+  return list;
 }

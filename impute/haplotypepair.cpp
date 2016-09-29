@@ -356,7 +356,6 @@ int GLSampleHapPairs::allele(int marker, int haplotype) const
   }
 }
 
-
 SplicedGL::SplicedGL(const Samples &samples, const QList<BitSetGT> &vma) : GLSampleHapPairs(samples)
 {
   // "BasicGL constructor"....

@@ -1,10 +1,10 @@
 /* Copyright 2016 Golden Helix, Inc. */
 
+#include "impute/haplotypepair.h"
+#include "impute/iointerface.h"
 #include "impute/markers.h"
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
-#include "impute/haplotypepair.h"
-#include "impute/iointerface.h"
 
 #include "impute/tests/haptests.h"
 
@@ -24,6 +24,8 @@ private slots:
   void testRefTargetData6x3();
   void testTargetData3x3();
   void testAllData4x4and3x3();
+  void testAllData6x4and4x3();
+  void testAllData6x4and4x3B();
 };
 
 void TestImputeDataStructures::testSamples()
@@ -153,12 +155,12 @@ void TestImputeDataStructures::testMarkers()
   // using "QSharedData", let's test that shared data is being used
   // successfully.)
 
-  Marker *m6 = new Marker();
+  Marker* m6 = new Marker();
   m6->setIdInfo(cx, 23654, "RS93756");
   m6->setAllele("T");
   m6->setAllele("C");
 
-  Marker *m7 = new Marker;
+  Marker* m7 = new Marker;
   *m7 = *m6;  // Assign a "copy of m7" itself, rather than assigning a pointer.
   delete m6;  // The original m6 data should still be around after
               // deleting this "Marker" instance.
@@ -1043,26 +1045,6 @@ void TestImputeDataStructures::testHaplotypePairs()
   QCOMPARE(fzgl.gl(0, 2, 1, 0), 0.625);
   QCOMPARE(fzgl.gl(0, 2, 0, 1), 0.625);
   QCOMPARE(fzgl.gl(0, 2, 0, 0), 0.375);
-
-  GLUser gluser;
-
-  gluser.myGL = fzgl;
-  QCOMPARE(gluser.myGL.gl(0, 0, 1, 1), 0.0);
-  QCOMPARE(gluser.myGL.gl(0, 0, 1, 0), 1.0);
-  QCOMPARE(gluser.myGL.gl(0, 0, 0, 1), 1.0);
-  QCOMPARE(gluser.myGL.gl(0, 0, 0, 0), 1.0);
-  QCOMPARE(gluser.myGL.gl(2, 0, 1, 1), 0.5625);
-  QCOMPARE(gluser.myGL.gl(2, 0, 1, 0), 0.1875);
-  QCOMPARE(gluser.myGL.gl(2, 0, 0, 1), 0.1875);
-  QCOMPARE(gluser.myGL.gl(2, 0, 0, 0), 0.0625);
-  QCOMPARE(gluser.myGL.gl(0, 1, 1, 1), 0.1875);
-  QCOMPARE(gluser.myGL.gl(0, 1, 1, 0), 0.5625);
-  QCOMPARE(gluser.myGL.gl(0, 1, 0, 1), 0.0625);
-  QCOMPARE(gluser.myGL.gl(0, 1, 0, 0), 0.1875);
-  QCOMPARE(gluser.myGL.gl(0, 2, 1, 1), 0.375);
-  QCOMPARE(gluser.myGL.gl(0, 2, 1, 0), 0.625);
-  QCOMPARE(gluser.myGL.gl(0, 2, 0, 1), 0.625);
-  QCOMPARE(gluser.myGL.gl(0, 2, 0, 0), 0.375);
 }
 
 void TestImputeDataStructures::testRefTargetData3x3()
@@ -1070,7 +1052,8 @@ void TestImputeDataStructures::testRefTargetData3x3()
   clearStaticTestLists();
 
   RefDataReader rr;
-  TargDataReaderTest3x3 tr(true);  // "true" setting gives reference-ready data over two chromosomes.
+  TargDataReaderTest3x3 tr(
+      true);  // "true" setting gives reference-ready data over two chromosomes.
 
   TargetData td;
 
@@ -1176,11 +1159,18 @@ void TestImputeDataStructures::testTargetData3x3()
 
   testWindowDriver(td, tr, rr, parw.window(), parw);
 
-  QCOMPARE(prevShpOverlapHapsTestList.length(), 0);
+  QCOMPARE(prevShpOverlapHapsTestList.length(), 1);
+  QCOMPARE(prevShpOverlapHapsTestList[0], 0);
+  QCOMPARE(prevHpOverlapHapsTestList.length(), 1);
+  QCOMPARE(prevHpOverlapHapsTestList[0], 0);
 
-  QCOMPARE(cdCopiesTestList.length(), 0);
+  QCOMPARE(cdCopiesTestList.length(), 1);
 
-  QCOMPARE(shptargPairsTestList.length(), 0);
+  QCOMPARE(shptargPairsTestList.length(), 4);
+  QCOMPARE(shptargPairsTestList[0], 3);
+  QCOMPARE(shptargPairsTestList[1], 1);
+  QCOMPARE(shptargPairsTestList[2], 1);
+  QCOMPARE(shptargPairsTestList[3], 1);
 
   QCOMPARE(postShpOverlapHapsTestList.length(), 1);
   QCOMPARE(postShpOverlapHapsTestList[0], 0);
@@ -1193,11 +1183,13 @@ void TestImputeDataStructures::testTargetData3x3()
 
 void TestImputeDataStructures::testAllData4x4and3x3()
 {
-  /*
   clearStaticTestLists();
 
   RefDataReaderTest4x4 rr;
-  TargDataReaderTest3x3 tr(false); // "false" setting gives unphased data.
+  TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
+
+  // NOTE: The first, second, and fourth reference markers match
+  // target markers.
 
   AllData ad;
 
@@ -1205,10 +1197,132 @@ void TestImputeDataStructures::testAllData4x4and3x3()
 
   testWindowDriver(ad, tr, rr, parw.window(), parw);
 
+  QCOMPARE(prevShpOverlapHapsTestList.length(), 1);
+  QCOMPARE(prevShpOverlapHapsTestList[0], 0);
+  QCOMPARE(prevHpOverlapHapsTestList.length(), 1);
+  QCOMPARE(prevHpOverlapHapsTestList[0], 0);
+
+  QCOMPARE(cdCopiesTestList.length(), 1);
+
   QCOMPARE(shptargPairsTestList.length(), 4);
+  QCOMPARE(shptargPairsTestList[0], 3);
+  QCOMPARE(shptargPairsTestList[1], 1);
+  QCOMPARE(shptargPairsTestList[2], 1);
+  QCOMPARE(shptargPairsTestList[3], 1);
+  QCOMPARE(hptargPairsTestList.length(), 1);
+  QCOMPARE(hptargPairsTestList[0], 0);
+
+  QCOMPARE(postShpOverlapHapsTestList.length(), 1);
+  QCOMPARE(postShpOverlapHapsTestList[0], 0);
+  QCOMPARE(postHpOverlapHapsTestList.length(), 1);
+  QCOMPARE(postHpOverlapHapsTestList[0], 0);
+
   QCOMPARE(overlapAmountsTestList.length(), 1);
   QCOMPARE(overlapAmountsTestList[0], 0);
-  */
+}
+
+void TestImputeDataStructures::testAllData6x4and4x3()
+{
+  clearStaticTestLists();
+
+  RefDataReaderTest4x4 rr(true);          // Use 6 x 4 reference data.
+  TargDataReaderTest3x3 tr(false, true);  // Use 4 x 3 unphased data.
+
+  // NOTE: The first, second, fourth, and sixth reference markers
+  // match target markers.
+
+  AllData ad;
+
+  TestParW parw;
+
+  testWindowDriver(ad, tr, rr, parw.window(), parw);
+
+  QCOMPARE(prevShpOverlapHapsTestList.length(), 2);
+  QCOMPARE(prevShpOverlapHapsTestList[0], 0);
+  QCOMPARE(prevShpOverlapHapsTestList[1], 0);
+  QCOMPARE(prevHpOverlapHapsTestList.length(), 2);
+  QCOMPARE(prevHpOverlapHapsTestList[0], 0);
+  QCOMPARE(prevHpOverlapHapsTestList[1], 0);
+
+  QCOMPARE(cdCopiesTestList.length(), 2);
+
+  QCOMPARE(shptargPairsTestList.length(), 7);
+  QCOMPARE(shptargPairsTestList[0], 3);
+  QCOMPARE(shptargPairsTestList[1], 1);
+  QCOMPARE(shptargPairsTestList[2], 1);
+  QCOMPARE(shptargPairsTestList[3], 1);
+  QCOMPARE(shptargPairsTestList[4], 2);
+  QCOMPARE(shptargPairsTestList[5], 0);
+  QCOMPARE(shptargPairsTestList[6], -1);
+  QCOMPARE(hptargPairsTestList.length(), 2);
+  QCOMPARE(hptargPairsTestList[0], 0);
+  QCOMPARE(hptargPairsTestList[1], 0);
+
+  QCOMPARE(postShpOverlapHapsTestList.length(), 2);
+  QCOMPARE(postShpOverlapHapsTestList[0], 0);
+  QCOMPARE(postShpOverlapHapsTestList[1], 0);
+  QCOMPARE(postHpOverlapHapsTestList.length(), 2);
+  QCOMPARE(postHpOverlapHapsTestList[0], 0);
+  QCOMPARE(postHpOverlapHapsTestList[1], 0);
+
+  QCOMPARE(overlapAmountsTestList.length(), 2);
+  QCOMPARE(overlapAmountsTestList[0], 2);
+  QCOMPARE(overlapAmountsTestList[1], 0);
+}
+
+void TestImputeDataStructures::testAllData6x4and4x3B()
+{
+  clearStaticTestLists();
+
+  RefDataReaderTest4x4 rr(true);                 // Use 6 x 4 reference data.
+  TargDataReaderTest3x3 tr(false, false, true);  // Use 4 x 3 alternative unphased data.
+
+  // NOTE: The first, third, fourth, and sixth reference markers
+  // match target markers.
+
+  AllData ad;
+
+  TestParW parw;
+
+  testWindowDriver(ad, tr, rr, parw.window(), parw);
+
+  QCOMPARE(prevShpOverlapHapsTestList.length(), 3);
+  QCOMPARE(prevShpOverlapHapsTestList[0], 0);
+  QCOMPARE(prevShpOverlapHapsTestList[1], 1);
+  QCOMPARE(prevShpOverlapHapsTestList[2], 0);
+  QCOMPARE(prevHpOverlapHapsTestList.length(), 3);
+  QCOMPARE(prevHpOverlapHapsTestList[0], 0);
+  QCOMPARE(prevHpOverlapHapsTestList[1], 1);
+  QCOMPARE(prevHpOverlapHapsTestList[2], 0);
+
+  QCOMPARE(cdCopiesTestList.length(), 2);
+
+  QCOMPARE(shptargPairsTestList.length(), 8);
+  QCOMPARE(shptargPairsTestList[0], 3);
+  QCOMPARE(shptargPairsTestList[1], 1);
+  QCOMPARE(shptargPairsTestList[2], 1);
+  QCOMPARE(shptargPairsTestList[3], 1);
+  QCOMPARE(shptargPairsTestList[4], 3);
+  QCOMPARE(shptargPairsTestList[5], 0);
+  QCOMPARE(shptargPairsTestList[6], -1);
+  QCOMPARE(shptargPairsTestList[7], 1);
+  QCOMPARE(hptargPairsTestList.length(), 3);
+  QCOMPARE(hptargPairsTestList[0], 0);
+  QCOMPARE(hptargPairsTestList[1], 1);
+  QCOMPARE(hptargPairsTestList[2], 0);
+
+  QCOMPARE(postShpOverlapHapsTestList.length(), 3);
+  QCOMPARE(postShpOverlapHapsTestList[0], 1);
+  QCOMPARE(postShpOverlapHapsTestList[1], 0);
+  QCOMPARE(postShpOverlapHapsTestList[2], 0);
+  QCOMPARE(postHpOverlapHapsTestList.length(), 3);
+  QCOMPARE(postHpOverlapHapsTestList[0], 1);
+  QCOMPARE(postHpOverlapHapsTestList[1], 0);
+  QCOMPARE(postHpOverlapHapsTestList[2], 0);
+
+  QCOMPARE(overlapAmountsTestList.length(), 2);
+  QCOMPARE(overlapAmountsTestList[0], 2);
+  QCOMPARE(overlapAmountsTestList[1], 0);
 }
 
 QTEST_MAIN(TestImputeDataStructures)
