@@ -1,11 +1,11 @@
-/* Copyright 2016 Golden Helix, Inc. */
+/* Copyright notice.... */
 #ifndef IOUTILITIES_H
 #define IOUTILITIES_H
 
-#include "impute/haplotypepair.h"
 #include "impute/markers.h"
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
+#include "impute/haplotypepair.h"
 
 class Par
 {

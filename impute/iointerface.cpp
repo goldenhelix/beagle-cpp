@@ -1,7 +1,5 @@
 #include "impute/iointerface.h"
 
-#include "impute/haplotypepair.h"
-
 void RefDataReader::makeNewWindow(int overlap)
 {
   _oldVcfRefRecs = _vcfRefRecs.mid(_vcfRefRecs.length() - overlap);

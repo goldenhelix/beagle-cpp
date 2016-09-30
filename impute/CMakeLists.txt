@@ -6,6 +6,7 @@ set(IMPUTE_HEADERS
   markers.h
   vcfemission.h
   iointerface.h
+  dag.h
 )
 
 set(IMPUTE_SOURCES
@@ -14,6 +15,7 @@ set(IMPUTE_SOURCES
   markers.cpp
   vcfemission.cpp
   iointerface.cpp
+  dag.cpp
 )
 
 find_package(Qt5Core REQUIRED)

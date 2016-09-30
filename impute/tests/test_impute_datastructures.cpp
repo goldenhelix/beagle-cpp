@@ -1,10 +1,11 @@
 /* Copyright 2016 Golden Helix, Inc. */
 
-#include "impute/haplotypepair.h"
-#include "impute/iointerface.h"
 #include "impute/markers.h"
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
+#include "impute/haplotypepair.h"
+#include "impute/iointerface.h"
+#include "impute/dag.h"
 
 #include "impute/tests/haptests.h"
 
@@ -26,6 +27,7 @@ private slots:
   void testAllData4x4and3x3();
   void testAllData6x4and4x3();
   void testAllData6x4and4x3B();
+  void testTargetData3x3Phase();
 };
 
 void TestImputeDataStructures::testSamples()
@@ -1323,6 +1325,88 @@ void TestImputeDataStructures::testAllData6x4and4x3B()
   QCOMPARE(overlapAmountsTestList.length(), 2);
   QCOMPARE(overlapAmountsTestList[0], 2);
   QCOMPARE(overlapAmountsTestList[1], 0);
+}
+
+void TestImputeDataStructures::testTargetData3x3Phase()
+{
+  RefDataReader rr;
+  TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
+
+  TargetData td;
+
+  TestParW parw;
+
+  // testWindowDriver(td, tr, rr, parw.window(), parw):
+  // void testWindowDriver(InputData &data, TargDataReader &targReader, RefDataReader &refReader, int windowSize, const Par &par)
+
+  InputData& data = *(&td);
+  TargDataReader& targReader = *(&tr);
+  RefDataReader& refReader = *(&rr);
+  int windowSize = parw.window();
+  const Par& par = *(&parw);
+
+  CurrentData actualcd;
+  SampleHapPairs overlapHaps;
+  int overlap = 0;
+  QCOMPARE(data.canAdvanceWindow(targReader, refReader), true);
+
+  data.advanceWindow(overlap, par.window(), targReader, refReader);
+  data.setCdData(actualcd, par, overlapHaps, targReader, refReader);
+
+  QCOMPARE(actualcd.targetGL().isRefData(), false);
+
+  // QList<HapPair> hapPairs = ImputeDriver::phase(cd):
+  // QList<HapPair> ImputeDriver::phase(const CurrentData &cd)
+  //
+  // /// List<HapPair> hapPairs = hapSampler.initialHaps(cd);
+  // QList<HapPair> hapPairs = ImputeDriver::initialHaps(cd):
+  // QList<HapPair> ImputeDriver::initialHaps(const CurrentData &cd)
+
+  const CurrentData& cd = *(&actualcd);
+
+  SplicedGL freqGL = cd.targetGL();
+  // SplicedGL emitGL = cd.targetGL();
+  // bool useRevDag = false;
+  double minAlleleFreq = 0.0001f;
+  LinkageEquilibriumDag leDag(freqGL, minAlleleFreq);
+  const Dag& dag = *(&leDag);
+
+  QCOMPARE(dag.nEdges(0), 2);
+  QCOMPARE(dag.nParentNodes(1), 1);
+  QCOMPARE(dag.nChildNodes(2), 1);
+  QCOMPARE(dag.parentNode(0, 1), 0);
+  QCOMPARE(dag.childNode(2, 0), 0);
+  QCOMPARE(dag.symbol(1, 1), 1);
+  QCOMPARE(dag.edgeWeight(0, 0),  7.0/18.0);
+  QCOMPARE(dag.edgeWeight(0, 1), 11.0/18.0);
+  QCOMPARE(dag.parentWeight(0, 0), 1.0);
+  QCOMPARE(dag.condEdgeProb(0, 0),  7.0/18.0);
+  QCOMPARE(dag.condEdgeProb(0, 1), 11.0/18.0);
+  QCOMPARE(dag.edgeProb(0, 0),  7.0/18.0);
+  QCOMPARE(dag.edgeProb(0, 1), 11.0/18.0);
+  QCOMPARE(dag.parentProb(0, 0), 1.0);
+  QCOMPARE(dag.nLevels(), 3);
+  QCOMPARE(dag.nNodes(), 4);
+  QCOMPARE(dag.nEdges(), 6);
+  QCOMPARE(dag.maxNodes(), 1);
+  QCOMPARE(dag.maxEdges(), 2);
+  QCOMPARE(dag.nOutEdges(1, 0), 2);
+  QCOMPARE(dag.outEdge(2, 0, 1), 1);
+  QCOMPARE(dag.outEdgeBySymbol(1, 0, 1), 1);
+  QCOMPARE(dag.nInEdges(2, 0), 2);
+  QCOMPARE(dag.inEdge(1, 0, 1), 1);
+  QCOMPARE(dag.isChildOf(1, 1, 1), true);
+
+  QList<double> ledagPosArray = dag.posArray();
+  QCOMPARE(ledagPosArray[0], .28009608882833831);
+  QCOMPARE(ledagPosArray[1], .56922686119261168);
+  QCOMPARE(ledagPosArray[2], .86492802335152597);
+
+  // QList<HapPair> sampledHaps;
+  ///// sampledHaps = Collections.synchronizedList(sampledHaps);
+  // sample(dag, emitGL, useRevDag, par.nsamples(),
+  //        sampledHaps, par.nthreads());
+  // return sampledHaps;
 }
 
 QTEST_MAIN(TestImputeDataStructures)
