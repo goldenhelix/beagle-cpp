@@ -1,11 +1,14 @@
 #include "impute/dag.h"
 
 #include <math.h>
+#include <stdio.h>
 
+/* should be defined in math.h
 static double log10(double x)
 {
   return log(x) / log(10.);
 }
+*/
 
 LinkageEquilibriumDag::LinkageEquilibriumDag(const SplicedGL &gl, double minFreq)
 {
