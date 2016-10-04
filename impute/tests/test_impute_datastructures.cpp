@@ -1052,7 +1052,7 @@ void TestImputeDataStructures::testRefTargetData3x3()
   TargDataReaderTest3x3 tr(
       true);  // "true" setting gives reference-ready data over two chromosomes.
 
-  tr.tdrDump();
+  // tr.tdrDump();
 
   TargetData td;
 
@@ -1152,7 +1152,7 @@ void TestImputeDataStructures::testTargetData3x3()
   RefDataReader rr;
   TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
 
-  tr.tdrDump();
+  // tr.tdrDump();
 
   TargetData td;
 
@@ -1192,7 +1192,7 @@ void TestImputeDataStructures::testAllData4x4and3x3()
   // NOTE: The first, second, and fourth reference markers match
   // target markers.
 
-  tr.tdrDump();
+  // tr.tdrDump();
 
   AllData ad;
 
@@ -1234,7 +1234,7 @@ void TestImputeDataStructures::testAllData6x4and4x3()
   // NOTE: The first, second, fourth, and sixth reference markers
   // match target markers.
 
-  tr.tdrDump();
+  // tr.tdrDump();
 
   AllData ad;
 
@@ -1285,7 +1285,7 @@ void TestImputeDataStructures::testAllData6x4and4x3B()
   // NOTE: The first, third, fourth, and sixth reference markers
   // match target markers.
 
-  tr.tdrDump();
+  // tr.tdrDump();
 
   AllData ad;
 
@@ -1337,7 +1337,7 @@ void TestImputeDataStructures::testTargetData3x3Sample()
   RefDataReader rr;
   TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
 
-  tr.tdrDump();
+  // tr.tdrDump();
 
   TargetData td;
 
@@ -1418,7 +1418,7 @@ void TestImputeDataStructures::testTargetData3x3Sample()
   //// return new BasicSampleHapPairs(cd.targetSamples(), hapPairs);
 
   SampleHapPairs shp(cd.targetSamples(), sampledHaps, false);
-  shpDump(shp);
+  // shpDump(shp);
 }
 
 QTEST_MAIN(TestImputeDataStructures)
