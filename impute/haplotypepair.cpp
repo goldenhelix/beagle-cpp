@@ -9,7 +9,7 @@
  * @param alleles2 the sequence of alleles indices for the second haplotype
  */
 HapPair::HapPair(const Markers &markers, const Samples &samples, int sampleIndex,
-                 QList<int> &alleles1, QList<int> &alleles2)
+                 const QList<int> &alleles1, const QList<int> &alleles2)
 {
   Q_ASSERT_X(alleles1.length() == markers.nMarkers() && alleles2.length() == markers.nMarkers(),
              "HapPair constructor", "inconsistent markers");
@@ -45,7 +45,7 @@ HapPair::HapPair(const HapPair &other, bool reverse)
   }
 }
 
-QBitArray HapPair::toBitArray(const Markers &markers, QList<int> &alleles)
+QBitArray HapPair::toBitArray(const Markers &markers, const QList<int> &alleles)
 {
   int index = 0;
   QBitArray bs(_markers.sumHaplotypeBits(), false);
@@ -477,4 +477,29 @@ double FuzzyGL::phasedGL(int obs1, int obs2, int a1, int a2)
   } else {
     return obs2 == a2 ? _ef : _ee;
   }
+}
+
+
+QList<HapPair> HapUtility::createHapPairList(const Markers &markers,
+                                             const SampleHapPairs &targetHapPairs,
+                                             const QList<int> &mapping)
+{
+  Samples samples = targetHapPairs.samples();
+  int nSamples = samples.nSamples();
+  int nMarkers = markers.nMarkers();
+  QList<HapPair> list;
+  QList<int> a1;
+  QList<int> a2;
+  for (int m = 0; m < nMarkers; ++m) {
+    a1.append(0);
+    a2.append(0);
+  }
+  for (int s = 0; s < nSamples; ++s) {
+    for (int m = 0; m < nMarkers; ++m) {
+      a1[m] = targetHapPairs.allele1(mapping[m], s);
+      a2[m] = targetHapPairs.allele2(mapping[m], s);
+    }
+    list.append(HapPair(markers, samples, s, a1, a2));
+  }
+  return list;
 }

@@ -209,6 +209,8 @@ class TestParW : public Par
 public:
   int window() const {return 4;}
   int overlap() const {return 2;}
+  int nThreads() const {return 1;}
+  int nSamples() const {return 1;}
 };
 
 
@@ -233,6 +235,36 @@ private:
   int _nRecs;
 };
 
+void tdrDumpUtility(const QList<BitSetGT> &vma)
+{
+  qDebug("");
+  qDebug("Target Data Dump:");
+  QString markers("Markers: ");
+  for(int m=0; m < vma.length(); m++)
+    markers.append("  " + vma[m].marker().id());
+  qDebug("  %s\n", (const char *) markers.toLatin1());
+
+  Samples samples = vma[0].samples();
+  int nSamples = samples.nSamples();
+  for(int sampnum=0; sampnum < nSamples; sampnum++)
+  {
+    QString haps( QString("For Sample %1:").arg((QString) samples.name(sampnum)) );
+
+    for(int m=0; m < vma.length(); m++)
+    {
+      int al1 = vma[m].allele1(sampnum);
+	  int al2 = vma[m].allele2(sampnum);
+      QString al1s((al1 >= 0) ? QString("%1").arg(al1) : "?");
+      QString al2s((al1 >= 0) ? QString("%1").arg(al1) : "?");
+      if (vma[m].isPhased(sampnum))
+        haps.append(QString("   %1 | %2").arg(al1s).arg(al2s));
+      else
+        haps.append(QString("   %1 _ %2").arg(al1s).arg(al2s));
+    }
+    qDebug("%s", (const char *) haps.toLatin1());
+  }
+}
+
 class TargDataReaderTest3x3 : public TargDataReader
 {
 public:
@@ -255,6 +287,8 @@ public:
   BitSetGT nextRec() const {return _targetEmissionsData[_position];}
   void advanceRec() {_position++;}
 
+  void tdrDump() {tdrDumpUtility(_targetEmissionsData);}
+
 private:
   QList<BitSetGT> _targetEmissionsData;
 
@@ -276,12 +310,39 @@ public:
   BitSetGT nextRec() const {return _targetEmissionsData[_position];}
   void advanceRec() {_position++;}
 
+  void tdrDump() {tdrDumpUtility(_targetEmissionsData);}
+
 private:
   QList<BitSetGT> _targetEmissionsData;
 
   int _position;
   int _nRecs;
 };
+
+void hpDump(const HapPairs &hp)
+{
+  QString markers("Markers: ");
+  for(int m=0; m < hp.nMarkers(); m++)
+    markers.append("  " + hp.marker(m).id());
+  qDebug("  %s\n", (const char *) markers.toLatin1());
+
+  for(int hpnum=0; hpnum < hp.nHapPairs(); hpnum++)
+  {
+    QString haps( QString("For Sample %1:").arg((QString) hp.samples(hpnum).name(hp.sampleIndex(hpnum))) );
+
+    for(int m=0; m < hp.nMarkers(); m++)
+      haps.append(QString("   %1 | %2").arg(hp.allele1(m, hpnum)).arg(hp.allele2(m, hpnum)));
+
+	qDebug("%s", (const char *) haps.toLatin1());
+  }
+}
+
+void shpDump(const SampleHapPairs &shp)
+{
+  qDebug("");
+  qDebug("SampleHapPairs:");
+  hpDump(shp);
+}
 
 static QList<int> prevShpOverlapHapsTestList;
 static QList<int> prevHpOverlapHapsTestList;

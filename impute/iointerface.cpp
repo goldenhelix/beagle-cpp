@@ -278,9 +278,9 @@ void AllData::advanceWindow(int overlap,
   QList<int> oneToOneMapping;
   for (int i = 0; i < rr.windowSize(); i++)
     oneToOneMapping.append(i);
-  _refHapPairs = ImputeDriver::createHapPairList(rr.markers(), _refSampleHapPairs, oneToOneMapping);
+  _refHapPairs = HapUtility::createHapPairList(rr.markers(), _refSampleHapPairs, oneToOneMapping);
   _targetRefHapPairs =
-      ImputeDriver::createHapPairList(tr.markers(), _refSampleHapPairs, _refIndices);
+      HapUtility::createHapPairList(tr.markers(), _refSampleHapPairs, _refIndices);
 
   _gl = SplicedGL(tr.samples(), tr.vcfRecs());
   _window++;
@@ -377,46 +377,3 @@ void AllData::checkSampleOverlap(Samples ref, Samples nonRef)
   }
 }
 
-SampleHapPairs ImputeDriver::overlapHaps(const CurrentData &cd,
-                                         const SampleHapPairs &targetHapPairs)
-{
-  int nextOverlap = cd.nextTargetOverlapStart();
-  int nextSplice = cd.nextTargetSpliceStart();
-  if (cd.nextOverlapStart() == cd.nextSpliceStart()) {
-    return SampleHapPairs();  // Default constructor creates an empty result.
-  }
-
-  Markers markers = targetHapPairs.markers().restrict(nextOverlap, nextSplice);
-  Samples samples = targetHapPairs.samples();
-
-  QList<int> mapping;
-  for (int i = nextOverlap; i < nextSplice; i++)
-    mapping.append(i);
-  QList<HapPair> list = ImputeDriver::createHapPairList(markers, targetHapPairs, mapping);
-
-  return SampleHapPairs(targetHapPairs.samples(), list, false);
-}
-
-QList<HapPair> ImputeDriver::createHapPairList(const Markers &markers,
-                                               const SampleHapPairs &targetHapPairs,
-                                               const QList<int> &mapping)
-{
-  Samples samples = targetHapPairs.samples();
-  int nSamples = samples.nSamples();
-  int nMarkers = markers.nMarkers();
-  QList<HapPair> list;
-  QList<int> a1;
-  QList<int> a2;
-  for (int m = 0; m < nMarkers; ++m) {
-    a1.append(0);
-    a2.append(0);
-  }
-  for (int s = 0; s < nSamples; ++s) {
-    for (int m = 0; m < nMarkers; ++m) {
-      a1[m] = targetHapPairs.allele1(mapping[m], s);
-      a2[m] = targetHapPairs.allele2(mapping[m], s);
-    }
-    list.append(HapPair(markers, samples, s, a1, a2));
-  }
-  return list;
-}

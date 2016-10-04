@@ -1,11 +1,6 @@
 /* Copyright 2016 Golden Helix, Inc. */
 
-#include "impute/markers.h"
-#include "impute/samples.h"
-#include "impute/vcfemission.h"
-#include "impute/haplotypepair.h"
-#include "impute/iointerface.h"
-#include "impute/dag.h"
+#include "impute/imputedriver.h"
 
 #include "impute/tests/haptests.h"
 
@@ -27,7 +22,7 @@ private slots:
   void testAllData4x4and3x3();
   void testAllData6x4and4x3();
   void testAllData6x4and4x3B();
-  void testTargetData3x3Phase();
+  void testTargetData3x3Sample();
 };
 
 void TestImputeDataStructures::testSamples()
@@ -1057,6 +1052,8 @@ void TestImputeDataStructures::testRefTargetData3x3()
   TargDataReaderTest3x3 tr(
       true);  // "true" setting gives reference-ready data over two chromosomes.
 
+  tr.tdrDump();
+
   TargetData td;
 
   TestParW parw;
@@ -1155,6 +1152,8 @@ void TestImputeDataStructures::testTargetData3x3()
   RefDataReader rr;
   TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
 
+  tr.tdrDump();
+
   TargetData td;
 
   TestParW parw;
@@ -1192,6 +1191,8 @@ void TestImputeDataStructures::testAllData4x4and3x3()
 
   // NOTE: The first, second, and fourth reference markers match
   // target markers.
+
+  tr.tdrDump();
 
   AllData ad;
 
@@ -1232,6 +1233,8 @@ void TestImputeDataStructures::testAllData6x4and4x3()
 
   // NOTE: The first, second, fourth, and sixth reference markers
   // match target markers.
+
+  tr.tdrDump();
 
   AllData ad;
 
@@ -1282,6 +1285,8 @@ void TestImputeDataStructures::testAllData6x4and4x3B()
   // NOTE: The first, third, fourth, and sixth reference markers
   // match target markers.
 
+  tr.tdrDump();
+
   AllData ad;
 
   TestParW parw;
@@ -1327,10 +1332,12 @@ void TestImputeDataStructures::testAllData6x4and4x3B()
   QCOMPARE(overlapAmountsTestList[1], 0);
 }
 
-void TestImputeDataStructures::testTargetData3x3Phase()
+void TestImputeDataStructures::testTargetData3x3Sample()
 {
   RefDataReader rr;
   TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
+
+  tr.tdrDump();
 
   TargetData td;
 
@@ -1357,7 +1364,7 @@ void TestImputeDataStructures::testTargetData3x3Phase()
 
   // QList<HapPair> hapPairs = ImputeDriver::phase(cd):
   // QList<HapPair> ImputeDriver::phase(const CurrentData &cd)
-  //
+
   // /// List<HapPair> hapPairs = hapSampler.initialHaps(cd);
   // QList<HapPair> hapPairs = ImputeDriver::initialHaps(cd):
   // QList<HapPair> ImputeDriver::initialHaps(const CurrentData &cd)
@@ -1365,11 +1372,11 @@ void TestImputeDataStructures::testTargetData3x3Phase()
   const CurrentData& cd = *(&actualcd);
 
   SplicedGL freqGL = cd.targetGL();
-  // SplicedGL emitGL = cd.targetGL();
+  SplicedGL emitGL = cd.targetGL();
   // bool useRevDag = false;
   double minAlleleFreq = 0.0001f;
   LinkageEquilibriumDag leDag(freqGL, minAlleleFreq);
-  const Dag& dag = *(&leDag);
+  Dag& dag = *(&leDag);
 
   QCOMPARE(dag.nEdges(0), 2);
   QCOMPARE(dag.nParentNodes(1), 1);
@@ -1402,11 +1409,16 @@ void TestImputeDataStructures::testTargetData3x3Phase()
   QCOMPARE(ledagPosArray[1], .56922686119261168);
   QCOMPARE(ledagPosArray[2], .86492802335152597);
 
-  // QList<HapPair> sampledHaps;
-  ///// sampledHaps = Collections.synchronizedList(sampledHaps);
-  // sample(dag, emitGL, useRevDag, par.nsamples(),
-  //        sampledHaps, par.nthreads());
-  // return sampledHaps;
+  QList<HapPair> sampledHaps;
+  ImputeDriver::sample(dag, emitGL, parw.seed(), false /* useRevDag */,
+                       par.nSamples(), sampledHaps,
+                       par.nThreads(), par.lowMem());
+
+  //// return sampledHaps; (from initialHaps()) (called hapPairs in phase())
+  //// return new BasicSampleHapPairs(cd.targetSamples(), hapPairs);
+
+  SampleHapPairs shp(cd.targetSamples(), sampledHaps, false);
+  shpDump(shp);
 }
 
 QTEST_MAIN(TestImputeDataStructures)

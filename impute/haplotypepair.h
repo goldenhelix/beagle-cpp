@@ -24,8 +24,8 @@ public:
    * @param alleles1 the sequence of allele indices for the first haplotype
    * @param alleles2 the sequence of alleles indices for the second haplotype
    */
-  HapPair(const Markers &markers, const Samples &samples, int sampleIndex, QList<int> &alleles1,
-          QList<int> &alleles2);
+  HapPair(const Markers &markers, const Samples &samples, int sampleIndex,
+          const QList<int> &alleles1, const QList<int> &alleles2);
 
   /**
    * (A type of) copy constructor. Can copy in reversed order if specified.
@@ -63,7 +63,7 @@ public:
    */
   int sampleIndex() const { return _sampleIndex; }
 private:
-  QBitArray toBitArray(const Markers &markers, QList<int> &alleles);
+  QBitArray toBitArray(const Markers &markers, const QList<int> &alleles);
   int allele(const QBitArray &bitset, int marker) const;
 
   Markers _markers;
@@ -432,6 +432,13 @@ private:
   double _ee;
   double _ef;
   double _ff;
+};
+
+namespace HapUtility
+{
+  QList<HapPair> createHapPairList(const Markers &markers,
+                                   const SampleHapPairs &targetHapPairs,
+                                   const QList<int> &mapping);
 };
 
 #endif

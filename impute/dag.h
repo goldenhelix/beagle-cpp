@@ -2,10 +2,10 @@
 #ifndef DAG_H
 #define DAG_H
 
-#include "impute/haplotypepair.h"
 #include "impute/markers.h"
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
+#include "impute/haplotypepair.h"
 
 class Dag
 {

@@ -7,6 +7,8 @@ set(IMPUTE_HEADERS
   vcfemission.h
   iointerface.h
   dag.h
+  phase.h
+  imputedriver.h
 )
 
 set(IMPUTE_SOURCES
@@ -16,6 +18,8 @@ set(IMPUTE_SOURCES
   vcfemission.cpp
   iointerface.cpp
   dag.cpp
+  phase.cpp
+  imputedriver.cpp
 )
 
 find_package(Qt5Core REQUIRED)

@@ -12,6 +12,10 @@ class Par
 public:
   virtual int window() const { return 50000; }
   virtual int overlap() const { return 3000; }
+  virtual int nThreads() const { return 4; }
+  virtual int nSamples() const { return 4; }
+  virtual int seed() const { return 12345; }
+  virtual bool lowMem() const { return true; }
 };
 
 class GenericDataReader
@@ -371,12 +375,5 @@ private:
 
   // QList<float> _recombRate;
 };
-
-namespace ImputeDriver
-{
-  SampleHapPairs overlapHaps(const CurrentData &cd, const SampleHapPairs &targetHapPairs);
-  QList<HapPair> createHapPairList(const Markers &markers, const SampleHapPairs &targetHapPairs,
-                                   const QList<int> &mapping);
-}
 
 #endif
