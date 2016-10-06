@@ -210,7 +210,7 @@ public:
   int window() const {return 4;}
   int overlap() const {return 2;}
   int nThreads() const {return 1;}
-  int nSamples() const {return 1;}
+  int nSamplingsPerIndividual() const {return 4;} // Actually, no change here.
 };
 
 
@@ -235,33 +235,38 @@ private:
   int _nRecs;
 };
 
+static bool outputDumps = false;
+
 void tdrDumpUtility(const QList<BitSetGT> &vma)
 {
-  qDebug("");
-  qDebug("Target Data Dump:");
-  QString markers("Markers: ");
-  for(int m=0; m < vma.length(); m++)
-    markers.append("  " + vma[m].marker().id());
-  qDebug("  %s\n", (const char *) markers.toLatin1());
-
-  Samples samples = vma[0].samples();
-  int nSamples = samples.nSamples();
-  for(int sampnum=0; sampnum < nSamples; sampnum++)
+  if(outputDumps)
   {
-    QString haps( QString("For Sample %1:").arg((QString) samples.name(sampnum)) );
-
+    qDebug("");
+    qDebug("Target Data Dump:");
+    QString markers("Markers: ");
     for(int m=0; m < vma.length(); m++)
+      markers.append("  " + vma[m].marker().id());
+    qDebug("  %s\n", (const char *) markers.toLatin1());
+
+    Samples samples = vma[0].samples();
+    int nSamples = samples.nSamples();
+    for(int sampnum=0; sampnum < nSamples; sampnum++)
     {
-      int al1 = vma[m].allele1(sampnum);
-	  int al2 = vma[m].allele2(sampnum);
-      QString al1s((al1 >= 0) ? QString("%1").arg(al1) : "?");
-      QString al2s((al1 >= 0) ? QString("%1").arg(al1) : "?");
-      if (vma[m].isPhased(sampnum))
-        haps.append(QString("   %1 | %2").arg(al1s).arg(al2s));
-      else
-        haps.append(QString("   %1 _ %2").arg(al1s).arg(al2s));
+      QString haps( QString("For Sample %1:").arg((QString) samples.name(sampnum)) );
+
+      for(int m=0; m < vma.length(); m++)
+      {
+        int al1 = vma[m].allele1(sampnum);
+        int al2 = vma[m].allele2(sampnum);
+        QString al1s((al1 >= 0) ? QString("%1").arg(al1) : "?");
+        QString al2s((al2 >= 0) ? QString("%1").arg(al2) : "?");
+        if (vma[m].isPhased(sampnum))
+          haps.append(QString("   %1 | %2").arg(al1s).arg(al2s));
+        else
+          haps.append(QString("   %1 _ %2").arg(al1s).arg(al2s));
+      }
+      qDebug("%s", (const char *) haps.toLatin1());
     }
-    qDebug("%s", (const char *) haps.toLatin1());
   }
 }
 
@@ -321,27 +326,33 @@ private:
 
 void hpDump(const HapPairs &hp)
 {
-  QString markers("Markers: ");
-  for(int m=0; m < hp.nMarkers(); m++)
-    markers.append("  " + hp.marker(m).id());
-  qDebug("  %s\n", (const char *) markers.toLatin1());
-
-  for(int hpnum=0; hpnum < hp.nHapPairs(); hpnum++)
+  if(outputDumps)
   {
-    QString haps( QString("For Sample %1:").arg((QString) hp.samples(hpnum).name(hp.sampleIndex(hpnum))) );
-
+    QString markers("Markers: ");
     for(int m=0; m < hp.nMarkers(); m++)
-      haps.append(QString("   %1 | %2").arg(hp.allele1(m, hpnum)).arg(hp.allele2(m, hpnum)));
+      markers.append("  " + hp.marker(m).id());
+    qDebug("  %s\n", (const char *) markers.toLatin1());
 
-	qDebug("%s", (const char *) haps.toLatin1());
+    for(int hpnum=0; hpnum < hp.nHapPairs(); hpnum++)
+    {
+      QString haps( QString("For Sample %1:").arg((QString) hp.samples(hpnum).name(hp.sampleIndex(hpnum))) );
+
+      for(int m=0; m < hp.nMarkers(); m++)
+        haps.append(QString("   %1 | %2").arg(hp.allele1(m, hpnum)).arg(hp.allele2(m, hpnum)));
+
+      qDebug("%s", (const char *) haps.toLatin1());
+    }
   }
 }
 
 void shpDump(const SampleHapPairs &shp)
 {
-  qDebug("");
-  qDebug("SampleHapPairs:");
-  hpDump(shp);
+  if(outputDumps)
+  {
+    qDebug("");
+    qDebug("SampleHapPairs:");
+    hpDump(shp);
+  }
 }
 
 static QList<int> prevShpOverlapHapsTestList;
@@ -366,16 +377,16 @@ void clearStaticTestLists()
 }
 
 
-int testWindowDriverHelper(SampleHapPairs &overlapHaps, const CurrentData &cd, const SampleHapPairs &targetHapPairs)
+int testWindowDriverHelper(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par, const SampleHapPairs &targetHapPairs)
 {
   /*
   if (gv!=null)
-    windowOut.printGV(cd, gv);        // (Except we won't be implementing GenotypeValues at this time.)
+    windowOut.printGV(cd, par, gv);        // (Except we won't be implementing GenotypeValues at this time.)
   else
   {
-    Map<IntPair, List<IbdSegment>> ibd = mh.refinedIbd(cd, targetHapPairs);   // (Nor IBD.)
-    AlleleProbs alProbs = mh.LSImpute(cd, targetHapPairs);
-    printOutput(cd, targetHapPairs, alProbs, ibd);  // (We would need to add an output method parameter to this test setup....)
+    Map<IntPair, List<IbdSegment>> ibd = mh.refinedIbd(cd, par, targetHapPairs);   // (Nor IBD.)
+    AlleleProbs alProbs = mh.LSImpute(cd, par, targetHapPairs);
+    printOutput(cd, par, targetHapPairs, alProbs, ibd);  // (We would need to add an output method parameter to this test setup....)
   }
   */
 
@@ -418,15 +429,15 @@ void testWindowDriver(InputData &data, TargDataReader &targReader, RefDataReader
     data.setCdData(cd, par, overlapHaps, targReader, refReader);
 
     if (cd.targetGL().isRefData())
-      overlap = testWindowDriverHelper(overlapHaps, cd, GLSampleHapPairs(cd.targetGL(), true));
+      overlap = testWindowDriverHelper(overlapHaps, cd, par, GLSampleHapPairs(cd.targetGL(), true));
     else
       // "Politically incorrect" usage of GLSampleHapPairs....
-      overlap = testWindowDriverHelper(overlapHaps, cd, GLSampleHapPairs(cd.targetGL(), false));
+      overlap = testWindowDriverHelper(overlapHaps, cd, par, GLSampleHapPairs(cd.targetGL(), false));
     // else
     // {
-    //   // QList<HapPair> hapPairs = ImputeDriver::phase(cd);
+    //   // QList<HapPair> hapPairs = ImputeDriver::phase(cd, par);
     //   QList<HapPair> hapPairs; // For now, default to no haps, just to allow compilation.
-    //   overlap = testWindowDriverHelper(overlapHaps, cd, SampleHapPairs(cd.targetSamples(), hapPairs));
+    //   overlap = testWindowDriverHelper(overlapHaps, cd, par, SampleHapPairs(cd.targetSamples(), hapPairs));
     // }
 
     // Testing....
@@ -441,6 +452,78 @@ void testWindowDriver(InputData &data, TargDataReader &targReader, RefDataReader
       postHpOverlapHapsTestList.append(ovlhhp.allele(i, i));
 
     overlapAmountsTestList.append(overlap);
+  }
+}
+
+QList<HapPair> testPhase(CurrentData &cd, const Par &par)
+{
+  QList<HapPair> hapPairs = ImputeDriver::initialHaps(cd, par);
+
+  //// Phasing happens....then "consensus phasing" happens....
+
+  HapPairs hp1(hapPairs, false);
+  hpDump(hp1);
+
+  hapPairs = hapPairs.mid(0, cd.nTargetSamples()); // For now, artificially chop off.
+  return hapPairs;
+
+  /*
+        List<HapPair> hapPairs = hapSampler.initialHaps(cd, par);
+        if (par.burnin_its()>0) {
+            runStats.println(Const.nl + "Starting burn-in iterations");
+            hapPairs = runBurnin1(cd, par, hapPairs);
+        }
+        if (par.phase_its()>0) {
+            boolean estGprobs = (par.gt()==null && par.niterations()==0);
+            hapPairs = runBurnin2(cd, par, hapPairs, (estGprobs ? gv : null));
+        }
+        if (par.niterations()>0) {
+            runStats.println(Const.nl + "Starting phasing iterations");
+            hapPairs = runRecomb(cd, par, hapPairs, gv);
+        }
+        else {
+            hapPairs = ConsensusPhaser.run(hapPairs);
+        }
+  return hapPairs;
+  */
+}
+
+int testPhaseDriverHelper(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par, const SampleHapPairs &targetHapPairs)
+{
+  /*
+  if (gv!=null)
+    windowOut.printGV(cd, par, gv);        // (Except we won't be implementing GenotypeValues at this time.)
+  else
+  {
+    Map<IntPair, List<IbdSegment>> ibd = mh.refinedIbd(cd, par, targetHapPairs);   // (Nor IBD.)
+    AlleleProbs alProbs = mh.LSImpute(cd, par, targetHapPairs);
+    printOutput(cd, par, targetHapPairs, alProbs, ibd);  // (We would need to add an output method parameter to this test setup....)
+  }
+  */
+
+  overlapHaps = ImputeDriver::overlapHaps(cd, targetHapPairs);
+  return cd.nMarkers() - cd.nextOverlapStart();
+}
+
+void testPhaseDriver(InputData &data, TargDataReader &targReader, RefDataReader &refReader, int windowSize, const Par &par)
+{
+  CurrentData cd;
+  SampleHapPairs overlapHaps;
+  int overlap = 0;
+  while(data.canAdvanceWindow(targReader, refReader))
+  {
+    data.advanceWindow(overlap, par.window(), targReader, refReader);
+    data.setCdData(cd, par, overlapHaps, targReader, refReader);
+
+    if (cd.targetGL().isRefData())
+      overlap = testWindowDriverHelper(overlapHaps, cd, par, GLSampleHapPairs(cd.targetGL(), true));
+    else
+    {
+      QList<HapPair> hapPairs = testPhase(cd, par);
+
+      //   QList<HapPair> hapPairs = ImputeDriver::phase(cd, par);
+      overlap = testPhaseDriverHelper(overlapHaps, cd, par, SampleHapPairs(cd.targetSamples(), hapPairs, false));
+    }
   }
 }
 

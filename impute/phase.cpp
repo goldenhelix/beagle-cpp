@@ -4,7 +4,7 @@
 
 #include <math.h>
 
-#define MIN_VALUE_FOR_BAUM   (100.*FLT_MIN)
+#define MIN_VALUE_FOR_BAUM      1.4e-43
 
 
 void SingleNodes::sumUpdate(int node1, int node2, double value)
@@ -178,21 +178,21 @@ void SingleBaumLevel::checkIndex(int state) const
 }
 
 
-SingleBaum::SingleBaum(Dag &dag, SplicedGL &gl, int seed, int nSamplesPerIndividual,
+SingleBaum::SingleBaum(Dag &dag, SplicedGL &gl, int seed, int nSamplingsPerIndividual,
                        bool lowMem) : _windowIndex(-9999), _arrayIndex(-9999)
 {
   Q_ASSERT_X(dag.markers() == gl.markers(),
 	     "SingleBaum::SingleBaum",
              "inconsistent markers");
-  Q_ASSERT_X(nSamplesPerIndividual >= 1,
+  Q_ASSERT_X(nSamplingsPerIndividual >= 1,
              "SingleBaum::SingleBaum",
-             "nSamplesPerIndividual < 1");
+             "nSamplingsPerIndividual < 1");
 
   _dag = &dag;
   _gl = &gl;
 
   _nMarkers = dag.nLevels();
-  _nSamplesPerIndividual = nSamplesPerIndividual;
+  _nSamplingsPerIndividual = nSamplingsPerIndividual;
   _seed = seed;
   // _random = new Random(seed);
 
@@ -200,7 +200,7 @@ SingleBaum::SingleBaum(Dag &dag, SplicedGL &gl, int seed, int nSamplesPerIndivid
   for(int j=0; j < _nMarkers; j++)
     zeroList.append(0);
 
-  for(int i=0; i < nSamplesPerIndividual; i++)
+  for(int i=0; i < nSamplingsPerIndividual; i++)
   {
     _node1.append(0);
     _node2.append(0);
@@ -232,7 +232,7 @@ QList<HapPair> SingleBaum::randomSample(int sample)
 QList<HapPair> SingleBaum::hapList(int sample) const
 {
   QList<HapPair> hList;
-  for (int copy=0; copy < _nSamplesPerIndividual; ++copy) {
+  for (int copy=0; copy < _nSamplingsPerIndividual; ++copy) {
     HapPair hpair(_gl->markers(), _gl->samples(), sample,
                   _alleles1[copy], _alleles2[copy]);
     hList.append(hpair);
@@ -243,9 +243,9 @@ QList<HapPair> SingleBaum::hapList(int sample) const
 void SingleBaum::initSampleAlleles(const SingleBaumLevel &level, int sample)
 {
   int m = level.marker();
-  for (int copy=0; copy < _nSamplesPerIndividual; ++copy)
+  for (int copy=0; copy < _nSamplingsPerIndividual; ++copy)
   {
-    int state = initialRandomState(level);
+    int state = initialRandomState(level, copy);
     _node1[copy] = level.parentNode1(state);
     _node2[copy] = level.parentNode2(state);
     _nodeValue[copy] =  parentSum(level, sample, state);
@@ -254,10 +254,11 @@ void SingleBaum::initSampleAlleles(const SingleBaumLevel &level, int sample)
   }
 }
 
-int SingleBaum::initialRandomState(const SingleBaumLevel &level)
+int SingleBaum::initialRandomState(const SingleBaumLevel &level, int copy)
 {
   //////////////////  double d = random.nextDouble();
-  double d = 0.5;
+  //////////////////  double d = 0.5;
+  double d = (double) copy / (double)(_nSamplingsPerIndividual + 1);
   double sum = 0.0;
   for (int j=0, n=level.size(); j<n; ++j) {
     sum += level.forwardValue(j);
@@ -285,10 +286,10 @@ double SingleBaum::parentSum(const SingleBaumLevel &level, int sample, int state
 void SingleBaum::sampleAlleles(const SingleBaumLevel &level, int sample)
 {
   int m = level.marker();
-  for (int copy=0; copy < _nSamplesPerIndividual; ++copy)
+  for (int copy=0; copy < _nSamplingsPerIndividual; ++copy)
   {
     int state = randomPreviousState(level, _node1[copy], _node2[copy],
-                                    _nodeValue[copy]);
+                                    _nodeValue[copy], copy);
     _node1[copy] = level.parentNode1(state);
     _node2[copy] = level.parentNode2(state);
     _nodeValue[copy] =  parentSum(level, sample, state);
@@ -298,10 +299,11 @@ void SingleBaum::sampleAlleles(const SingleBaumLevel &level, int sample)
 }
 
 int SingleBaum::randomPreviousState(const SingleBaumLevel &level, int node1,
-                                    int node2, double nodeValue)
+                                    int node2, double nodeValue, int copy)
 {
   //////////////////  double d = random.nextDouble() * nodeValue;
-  double d = 0.5 * nodeValue;
+  //////////////////  double d = 0.5 * nodeValue;
+  double d = (double) copy / (double)(_nSamplingsPerIndividual + 1);
   double sum = 0.0;
   for (int j=0, n=level.size(); j<n; ++j) {
     if ( node1==level.childNode1(j)

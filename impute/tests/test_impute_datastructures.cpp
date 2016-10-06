@@ -22,7 +22,12 @@ private slots:
   void testAllData4x4and3x3();
   void testAllData6x4and4x3();
   void testAllData6x4and4x3B();
+  void testTargetData3x3LEandInitHaps();
   void testTargetData3x3Sample();
+  void testTargetData4x3Sample();
+  void testAllData4x4and3x3Sample();
+  void testAllData6x4and4x3Sample();
+  void testAllData6x4and4x3BSample();
 };
 
 void TestImputeDataStructures::testSamples()
@@ -1332,12 +1337,12 @@ void TestImputeDataStructures::testAllData6x4and4x3B()
   QCOMPARE(overlapAmountsTestList[1], 0);
 }
 
-void TestImputeDataStructures::testTargetData3x3Sample()
+void TestImputeDataStructures::testTargetData3x3LEandInitHaps()
 {
   RefDataReader rr;
   TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
 
-  // tr.tdrDump();
+  tr.tdrDump();
 
   TargetData td;
 
@@ -1411,14 +1416,100 @@ void TestImputeDataStructures::testTargetData3x3Sample()
 
   QList<HapPair> sampledHaps;
   ImputeDriver::sample(dag, emitGL, parw.seed(), false /* useRevDag */,
-                       par.nSamples(), sampledHaps,
+                       par.nSamplingsPerIndividual(), sampledHaps,
                        par.nThreads(), par.lowMem());
 
   //// return sampledHaps; (from initialHaps()) (called hapPairs in phase())
+  //// Phasing happens....then "consensus phasing" happens....
   //// return new BasicSampleHapPairs(cd.targetSamples(), hapPairs);
 
-  SampleHapPairs shp(cd.targetSamples(), sampledHaps, false);
-  // shpDump(shp);
+  HapPairs hp(sampledHaps, false);
+  hpDump(hp);
+}
+
+void TestImputeDataStructures::testTargetData3x3Sample()
+{
+  RefDataReader rr;
+  TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
+
+  tr.tdrDump();
+
+  TargetData td;
+
+  TestParW parw;
+
+  testPhaseDriver(td, tr, rr, parw.window(), parw);
+}
+
+void TestImputeDataStructures::testTargetData4x3Sample()
+{
+  RefDataReader rr;
+  TargDataReaderTest3x3 tr(false, true);  // Use 4 x 3 unphased data.
+
+  tr.tdrDump();
+
+  TargetData td;
+
+  TestParW parw;
+
+  testPhaseDriver(td, tr, rr, parw.window(), parw);
+}
+
+void TestImputeDataStructures::testAllData4x4and3x3Sample()
+{
+  clearStaticTestLists();
+
+  RefDataReaderTest4x4 rr;
+  TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
+
+  // NOTE: The first, second, and fourth reference markers match
+  // target markers.
+
+  tr.tdrDump();
+
+  AllData ad;
+
+  TestParW parw;
+
+  testPhaseDriver(ad, tr, rr, parw.window(), parw);
+}
+
+void TestImputeDataStructures::testAllData6x4and4x3Sample()
+{
+  clearStaticTestLists();
+
+  RefDataReaderTest4x4 rr(true);          // Use 6 x 4 reference data.
+  TargDataReaderTest3x3 tr(false, true);  // Use 4 x 3 unphased data.
+
+  // NOTE: The first, second, fourth, and sixth reference markers
+  // match target markers.
+
+  tr.tdrDump();
+
+  AllData ad;
+
+  TestParW parw;
+
+  testPhaseDriver(ad, tr, rr, parw.window(), parw);
+}
+
+void TestImputeDataStructures::testAllData6x4and4x3BSample()
+{
+  clearStaticTestLists();
+
+  RefDataReaderTest4x4 rr(true);                 // Use 6 x 4 reference data.
+  TargDataReaderTest3x3 tr(false, false, true);  // Use 4 x 3 alternative unphased data.
+
+  // NOTE: The first, third, fourth, and sixth reference markers
+  // match target markers.
+
+  tr.tdrDump();
+
+  AllData ad;
+
+  TestParW parw;
+
+  testPhaseDriver(ad, tr, rr, parw.window(), parw);
 }
 
 QTEST_MAIN(TestImputeDataStructures)

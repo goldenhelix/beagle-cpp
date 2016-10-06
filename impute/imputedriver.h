@@ -19,12 +19,12 @@ namespace ImputeDriver
   //// void windowDriver(InputData &data, TargDataReader &targReader,
   ////                   RefDataReader &refReader, int windowSize, const Par &par);
 
-  //// QList<HapPair> ImputeDriver::phase(const CurrentData &cd);
+  //// QList<HapPair> ImputeDriver::phase(const CurrentData &cd, const Par &par);
 
-  //// QList<HapPair> ImputeDriver::initialHaps(const CurrentData &cd);
+  QList<HapPair> initialHaps(CurrentData &cd, const Par &par);
 
   void sample(Dag &dag, SplicedGL &gl, int seed, bool markersAreReversed,
-              int nSamples, QList<HapPair> &sampledHaps, int nThreads, bool lowmem);
+              int nSamplingsPerIndividual, QList<HapPair> &sampledHaps, int nThreads, bool lowmem);
 };
 
 #endif

@@ -30,7 +30,7 @@ public:
      * Returns the number of haplotype pairs that are sampled for each
      * individual.
      */
-    virtual int nSamplesPerIndividual() const = 0;
+    virtual int nSamplingsPerIndividual() const = 0;
 
     /**
      * Returns the initial random seed.
@@ -38,7 +38,7 @@ public:
     virtual int seed() const = 0;
 
     /**
-     * <p>Returns a list of {@code this.nSamplesPerIndividual()} sampled
+     * <p>Returns a list of {@code this.nSamplingsPerIndividual()} sampled
      * haplotype pairs for the specified individual. Haplotype pairs are
      * sampled conditional on the HMM with transition probabilities
      * determined by {@code this.dag()} and emission probabilities
@@ -52,7 +52,7 @@ public:
     virtual QList<HapPair> randomSample(int sample) = 0;
 
     /**
-     * <p>Returns a list of {@code this.nSamplesPerIndividual()} sampled
+     * <p>Returns a list of {@code this.nSamplingsPerIndividual()} sampled
      * haplotype pairs for the specified individual. Haplotype pairs are
      * sampled conditional on the HMM with transition probabilities determined
      * by {@code this.dag()} and emission probabilities determined by
@@ -358,8 +358,8 @@ private:
   QList<int> _edges2;
   QList<double> _fwdValues;
   QList<double> _bwdValues;
-  double _fwdValueSum = 0.0;
-  double _bwdValueSum = 0.0;
+  double _fwdValueSum;
+  double _bwdValueSum;
 };
 
 
@@ -380,12 +380,12 @@ public:
    * transition probabilities
    * @param gl the emission probabilities
    * @param seed the random seed
-   * @param nSamplesPerIndividual the number of haplotype pairs that
+   * @param nSamplingsPerIndividual the number of haplotype pairs that
    * will be sampled for each individual
    * @param lowMem {@code true} if a low memory algorithm should be used, and
    * {@code false} otherwise
    */
-  SingleBaum(Dag &dag, SplicedGL &gl, int seed, int nSamplesPerIndividual,
+  SingleBaum(Dag &dag, SplicedGL &gl, int seed, int nSamplingsPerIndividual,
              bool lowMem);
 
   QList<HapPair> randomSample(int sample);
@@ -400,8 +400,8 @@ public:
     return *_gl;
   }
 
-  int nSamplesPerIndividual() const {
-    return _nSamplesPerIndividual;
+  int nSamplingsPerIndividual() const {
+    return _nSamplingsPerIndividual;
   }
 
   int seed() const {
@@ -411,11 +411,11 @@ public:
 private:
   QList<HapPair> hapList(int sample) const;
   void initSampleAlleles(const SingleBaumLevel &level, int sample);
-  int initialRandomState(const SingleBaumLevel &level);
+  int initialRandomState(const SingleBaumLevel &level, int copy);
   double parentSum(const SingleBaumLevel &level, int sample, int state) const;
   void sampleAlleles(const SingleBaumLevel &level, int sample);
   int randomPreviousState(const SingleBaumLevel &level, int node1,
-                            int node2, double nodeValue);
+			  int node2, double nodeValue, int copy);
   SingleBaumLevel &nextLevel();
 
   SingleBaumLevel &currentLevel() { return _levels[_arrayIndex]; }
@@ -426,7 +426,7 @@ private:
   Dag *_dag;
   SplicedGL *_gl;
   int _nMarkers;
-  int _nSamplesPerIndividual;
+  int _nSamplingsPerIndividual;
   long _seed;
   // Random _random;
 

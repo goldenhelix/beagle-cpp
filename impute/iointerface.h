@@ -13,7 +13,7 @@ public:
   virtual int window() const { return 50000; }
   virtual int overlap() const { return 3000; }
   virtual int nThreads() const { return 4; }
-  virtual int nSamples() const { return 4; }
+  virtual int nSamplingsPerIndividual() const { return 4; }
   virtual int seed() const { return 12345; }
   virtual bool lowMem() const { return true; }
 };

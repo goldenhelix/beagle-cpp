@@ -290,7 +290,7 @@ void AllData::setCdData(CurrentData &cd, const Par &par, const SampleHapPairs &o
                         const TargDataReader &tr, const RefDataReader &rr)
 {
   Q_ASSERT_X(overlapHaps.nHaps() == 0 || tr.samples() == overlapHaps.samples(),
-             "TargetData::setCdData",
+             "AllData::setCdData",
              "inconsistent samples");
 
   cd._window = _window;
