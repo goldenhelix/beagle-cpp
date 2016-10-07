@@ -194,13 +194,21 @@ SampleHapPairs::SampleHapPairs(const Samples &samples, const QList<HapPair> &hap
 
 void SampleHapPairs::checkSamples()
 {
-  Q_ASSERT_X(_samples.nSamples() == _hapPairs.size(), "SampleHapPairs::checkSamples",
+  Q_ASSERT_X(_samples.nSamples() == _hapPairs.length(), "SampleHapPairs::checkSamples",
              "inconsistent numbers of samples");
 
-  for (int j = 0, n = _hapPairs.length(); j < n; ++j) {
-    if (!(_samples == _hapPairs[j].samples())) {
-      HapPair hp = _hapPairs[j];
-      int i1 = _samples.idIndex(j);
+  for (int j = 0, n = _hapPairs.length(); j < n; ++j)
+  {
+    int i1 = _samples.idIndex(j);
+    HapPair &hp = _hapPairs[j];
+
+    if (_samples == hp.samples())
+    {
+      Q_ASSERT_X(hp.sampleIndex() == j, "SampleHapPairs::checkSamples",
+                 "inconsistent samples");
+    }
+    else
+    {
       int i2 = hp.samples().idIndex(hp.sampleIndex());
       Q_ASSERT_X(i1 == i2, "SampleHapPairs::checkSamples", "inconsistent samples");
     }

@@ -16,6 +16,9 @@ public:
   virtual int nSamplingsPerIndividual() const { return 4; }
   virtual int seed() const { return 12345; }
   virtual bool lowMem() const { return true; }
+  virtual int burnin_its() const { return 5; }
+  virtual int phase40_its() const { return 5; }
+  virtual int niterations() const { return 5; }
 };
 
 class GenericDataReader

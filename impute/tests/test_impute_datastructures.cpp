@@ -1429,6 +1429,8 @@ void TestImputeDataStructures::testTargetData3x3LEandInitHaps()
 
 void TestImputeDataStructures::testTargetData3x3Sample()
 {
+  // outputDumps = true;
+
   RefDataReader rr;
   TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
 

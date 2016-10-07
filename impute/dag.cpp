@@ -146,3 +146,28 @@ void LinkageEquilibriumDag::checkParentNode(int level, int node) const
   checkLevel(level);
   Q_ASSERT_X(node == 0, "LinkageEquilibriumDag::checkParentNode", "invalid parent node (!= 0)");
 }
+
+/*
+  /////////// Dag dag = getDagsAndUpdatePos(cd, hapPairs, useRevDag);
+  /////////// Dag dag(cd, par.modelscale(), hapPairs, useRevDag));
+    private Dag ImputeDriver::getDagsAndUpdatePos(CurrentData cd, List<HapPair> hapPairs,
+            boolean useRevDag) {
+        cd.addRestrictedRefHapPairs(hapPairs);
+        HapPairs dagHaps = new BasicHapPairs(hapPairs);
+        if (useRevDag) {
+            dagHaps = new RevHapPairs(dagHaps);
+        }
+        float[] wts = cd.weights().get(dagHaps);
+        Dag dag = makeDag(dagHaps, wts, par.modelscale());
+        runStats.setDagStats(dag);
+        return dag;
+    }
+
+    private Dag ImputeDriver::makeDag(HapPairs hapPairs, float[] weights, float scale) {
+        long t0 = System.nanoTime();
+        int nInitLevels = 500;
+        Dag dag = MergeableDag.dag(hapPairs, weights, scale, nInitLevels);
+        runStats.buildNanos(System.nanoTime() - t0);
+        return dag;
+    }
+*/

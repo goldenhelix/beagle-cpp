@@ -210,7 +210,10 @@ public:
   int window() const {return 4;}
   int overlap() const {return 2;}
   int nThreads() const {return 1;}
-  int nSamplingsPerIndividual() const {return 4;} // Actually, no change here.
+
+  int burnin_its() const { return 0; }
+  int phase40_its() const { return 0; }
+  int niterations() const { return 0; }
 };
 
 
@@ -464,28 +467,37 @@ QList<HapPair> testPhase(CurrentData &cd, const Par &par)
   HapPairs hp1(hapPairs, false);
   hpDump(hp1);
 
-  hapPairs = hapPairs.mid(0, cd.nTargetSamples()); // For now, artificially chop off.
-  return hapPairs;
+  if (par.burnin_its()>0)
+  {
+    // runStats.println(Const.nl + "Starting burn-in iterations");
+    hapPairs = ImputeDriver::runBurnin1(cd, par, hapPairs);
+
+    HapPairs hp2(hapPairs, false);
+    hpDump(hp2);
+  }
 
   /*
-        List<HapPair> hapPairs = hapSampler.initialHaps(cd, par);
-        if (par.burnin_its()>0) {
-            runStats.println(Const.nl + "Starting burn-in iterations");
-            hapPairs = runBurnin1(cd, par, hapPairs);
-        }
-        if (par.phase_its()>0) {
-            boolean estGprobs = (par.gt()==null && par.niterations()==0);
-            hapPairs = runBurnin2(cd, par, hapPairs, (estGprobs ? gv : null));
-        }
-        if (par.niterations()>0) {
-            runStats.println(Const.nl + "Starting phasing iterations");
-            hapPairs = runRecomb(cd, par, hapPairs, gv);
-        }
-        else {
-            hapPairs = ConsensusPhaser.run(hapPairs);
-        }
+  if (par.phase40_its()>0)
+  {
+    hapPairs = ImputeDriver::runBurnin2(cd, par, hapPairs);
+  }
+
+  if (par.niterations()>0)
+  {
+    // runStats.println(Const.nl + "Starting phasing iterations");
+    hapPairs = ImputeDriver::runRecomb(cd, par, hapPairs, gv);
+  }
+  else
+    hapPairs = ImputeDriver::consensusPhase(hapPairs);
+
   return hapPairs;
   */
+
+  QList<HapPair> shortHapPairs; // For now, artificially use the first haplotype for each individual.
+  for(int hpn=0; hpn < par.nSamplingsPerIndividual() * cd.nTargetSamples(); hpn += par.nSamplingsPerIndividual())
+    shortHapPairs.append(hapPairs[hpn]);
+
+  return shortHapPairs;
 }
 
 int testPhaseDriverHelper(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par, const SampleHapPairs &targetHapPairs)

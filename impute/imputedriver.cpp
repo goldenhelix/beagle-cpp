@@ -34,27 +34,59 @@ QList<HapPair> ImputeDriver::initialHaps(CurrentData &cd, const Par &par)
 {
   SplicedGL freqGL = cd.targetGL();
   SplicedGL emitGL = cd.targetGL();
-  // bool useRevDag = false;
   double minAlleleFreq = 0.0001;
   LinkageEquilibriumDag dag(freqGL, minAlleleFreq);
   QList<HapPair> sampledHaps;
-  ImputeDriver::sample(dag, emitGL, par.seed(), false /* useRevDag */,
+  ImputeDriver::sample(dag, emitGL, par.seed(), false,
                        par.nSamplingsPerIndividual(), sampledHaps,
                        par.nThreads(), par.lowMem());
   return sampledHaps;
 }
 
-/*
-    private List<HapPair> runBurnin1(CurrentData cd, const Par &par, List<HapPair> hapPairs) {
-        GenotypeValues gv = null;
-        for (int j=0; j<par.burnin_its(); ++j) {
-            boolean useRevDag = (j & 1)==1;
-            hapPairs = hapSampler.sample(cd, hapPairs, useRevDag, gv);
-            runStats.printIterationUpdate(cd.window(), j+1);
-        }
-        return hapPairs;
-    }
-*/
+QList<HapPair> ImputeDriver::runBurnin1(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs)
+{
+  for (int j=0; j < par.burnin_its(); ++j)
+  {
+    bool useRevDag = (j & 1)==1;
+    hapPairs = ImputeDriver::sample(cd, par, hapPairs, useRevDag);
+    // runStats.printIterationUpdate(cd.window(), j+1);
+  }
+  return hapPairs;
+}
+
+QList<HapPair> ImputeDriver::runBurnin2(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs)
+{
+  QList<HapPair> cumHapPairs;
+  int start = par.burnin_its();
+  int end = start + par.phase40_its();
+  for (int j=start; j<end; ++j)
+  {
+    bool useRevDag = (j & 1)==1;
+    hapPairs = ImputeDriver::sample(cd, par, hapPairs, useRevDag);
+    // runStats.printIterationUpdate(cd.window(), j+1);
+    cumHapPairs.append(hapPairs);
+  }
+  return cumHapPairs;
+}
+
+QList<HapPair> ImputeDriver::sample(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs,
+                                    bool useRevDag)
+{
+  Q_ASSERT_X(!hapPairs.isEmpty(),
+             "ImputeDriver::sample",
+             "hapPairs.isEmpty()");
+
+  int nThreads =  par.nThreads();
+  int nSampledHaps = par.nSamplingsPerIndividual() * cd.nTargetSamples();
+  SplicedGL gl(cd.targetGL(), useRevDag);
+  /////////// Dag dag = getDagsAndUpdatePos(cd, hapPairs, useRevDag);
+  /////////// Dag dag(cd, par.modelscale(), hapPairs, useRevDag));
+  QList<HapPair> sampledHaps;
+  // sample(dag, gl, par.seed(), useRevDag, par.nSamplingsPerIndividual(),
+  //        sampledHaps, nThreads, par.lowMem());
+
+  return sampledHaps;
+}
 
 void ImputeDriver::sample(Dag &dag, SplicedGL &gl, int seed,
                           bool markersAreReversed, int nSamplingsPerIndividual,
