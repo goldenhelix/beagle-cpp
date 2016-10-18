@@ -64,6 +64,34 @@ namespace ImputeDriver
                         bool useRevDag);
 
   /**
+   * Returns an array of length {@code haps.nHaps()} with
+   * per-haplotype weights. Array elements {@code 2*j} and {@code 2*j
+   * + 1} are the weights for the first and second haplotype in the
+   * {@code j}-th haplotype pair.
+   *
+   * From Weights.get(): "Reference haplotypes are assigned a weight
+   * of {@code 1.0f}.  Non-reference haplotypes are assigned a weight
+   * of {@code this.nonRefWt()} if the haplotype is not inherited from
+   * a parent in the sample, and a weight of {@code 0.01f} if the
+   * haplotype is inherited from a parent in the sample.  The first
+   * haplotype in the offspring is required to be the transmitted
+   * transmitted haplotype for a parent-offspring duo." (Should have
+   * then said that each weight is afterward divided by one plus the
+   * count of how many other haplotype pairs are assigned to the same
+   * sample.)
+   *
+   * Here, reference haplotypes are simply assigned a tentative weight
+   * of {@code 1.0f} and non-reference haplotypes are assigned a
+   * tentative weight of NON_REFERENCE_WEIGHT. Then, each is divided
+   * by one plus the count of how many other haplotype pairs are
+   * assigned to the same sample.
+   *
+   * @param haps an array of haplotype pairs
+   * @param cd the input data for the current marker window
+   */
+  QVector<double> getHapWeights(HapPairs haps, const CurrentData &cd);
+
+  /**
    * "Lower-level utility" for performing sampling.
    */
   void sample(Dag &dag, SplicedGL &gl, int seed, bool markersAreReversed,

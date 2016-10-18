@@ -1,5 +1,9 @@
 #include "impute/imputedriver.h"
 
+#include <QVector>
+
+#define NON_REFERENCE_WEIGHT    1.0
+
 SampleHapPairs ImputeDriver::overlapHaps(const CurrentData &cd,
                                          const SampleHapPairs &targetHapPairs)
 {
@@ -79,13 +83,89 @@ QList<HapPair> ImputeDriver::sample(const CurrentData &cd, const Par &par, QList
   int nThreads =  par.nThreads();
   int nSampledHaps = par.nSamplingsPerIndividual() * cd.nTargetSamples();
   SplicedGL gl(cd.targetGL(), useRevDag);
-  /////////// Dag dag = getDagsAndUpdatePos(cd, hapPairs, useRevDag);
-  /////////// Dag dag(cd, par.modelscale(), hapPairs, useRevDag));
+
+  //// Dag dag = getDagsAndUpdatePos(cd, hapPairs, useRevDag);
+  //// Dag dag(cd, par.modelscale(), hapPairs, useRevDag));
+  ////   private Dag ImputeDriver::getDagsAndUpdatePos(CurrentData cd, List<HapPair> hapPairs,
+  ////           boolean useRevDag) {
+
+  cd.addRestrictedRefHapPairs(hapPairs);
+  HapPairs dagHaps(hapPairs, useRevDag);
+
+  //// float[] wts = cd.weights().get(dagHaps, cd);
+  //// Dag dag = makeDag(dagHaps, wts, par.modelscale());
+  //// private Dag ImputeDriver::makeDag(HapPairs hapPairs, float[] weights, float scale) {
+  ////   long t0 = System.nanoTime();
+  ////   int nInitLevels = 500;
+  ////   Dag dag = MergeableDag.dag(hapPairs, weights, scale, nInitLevels);
+  ////   runStats.buildNanos(System.nanoTime() - t0);
+  ////   return dag;
+  //// }
+  ////       // runStats.setDagStats(dag);
+  ////       return dag;
+  ////   }
+
+  ImmutableDag dag(dagHaps, ImputeDriver::getHapWeights(dagHaps, cd), par.modelScale(),
+                   par.dagInitLevels());
+
   QList<HapPair> sampledHaps;
-  // sample(dag, gl, par.seed(), useRevDag, par.nSamplingsPerIndividual(),
-  //        sampledHaps, nThreads, par.lowMem());
+
+  sample(dag, gl, par.seed(), useRevDag, par.nSamplingsPerIndividual(),
+         sampledHaps, nThreads, par.lowMem());
 
   return sampledHaps;
+}
+
+QVector<double> ImputeDriver::getHapWeights(HapPairs haps, const CurrentData &cd)
+{
+  //// Samples samples = families().samples();
+  Samples samples = cd.targetSamples();
+  QVector<double> fa(haps.nHaps());
+
+  int nHapPairs = haps.nHapPairs();
+  QMap<int, int> cntMap;
+  for (int j=0; j < nHapPairs; ++j)
+  {
+    int idIndex = haps.samples(j).idIndex(haps.sampleIndex(j));
+
+    // "cntMap" defaults to zero if there is no value already assigned
+    // for idIndex.
+
+    cntMap[idIndex] = cntMap[idIndex] + 1;
+  }
+
+  int hapIndex = 0;
+  for (int j=0, n=nHapPairs; j<n; ++j)
+  {
+    int idIndex = haps.samples(j).idIndex(haps.sampleIndex(j));
+    int sampleIndex = samples.findLocalIndex(idIndex);
+
+    //// int parentCnt = 0;
+    //// if (sampleIndex != -1)
+    //// {
+    ////   // sample is a non-reference sample
+    ////   if (families().father(sampleIndex)>=0) {
+    ////     ++parentCnt;
+    ////   }
+    ////   if (families().mother(sampleIndex)>=0) {
+    ////     ++parentCnt;
+    ////   }
+    //// }
+
+    double sampleWeight = (sampleIndex == -1) ? 1.0 : NON_REFERENCE_WEIGHT;
+    int cnt = cntMap[idIndex];
+    double wt = sampleWeight/cnt;
+
+    //// float MIN_SAMPLE_WEIGHT = 0.01f;
+    //// float minWt = MIN_SAMPLE_WEIGHT/cnt;
+    //// fa[hapIndex++] = parentCnt>0  ? minWt : wt;
+    //// fa[hapIndex++] = parentCnt==2 ? minWt : wt;
+
+    fa[hapIndex++] = wt;
+    fa[hapIndex++] = wt;
+  }
+
+  return fa;
 }
 
 void ImputeDriver::sample(Dag &dag, SplicedGL &gl, int seed,

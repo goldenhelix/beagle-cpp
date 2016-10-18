@@ -1398,8 +1398,8 @@ void TestImputeDataStructures::testTargetData3x3LEandInitHaps()
   QCOMPARE(dag.edgeProb(0, 1), 11.0/18.0);
   QCOMPARE(dag.parentProb(0, 0), 1.0);
   QCOMPARE(dag.nLevels(), 3);
-  QCOMPARE(dag.nNodes(), 4);
-  QCOMPARE(dag.nEdges(), 6);
+  QCOMPARE(dag.nNodes(), (long) 4);
+  QCOMPARE(dag.nEdges(), (long) 6);
   QCOMPARE(dag.maxNodes(), 1);
   QCOMPARE(dag.maxEdges(), 2);
   QCOMPARE(dag.nOutEdges(1, 0), 2);

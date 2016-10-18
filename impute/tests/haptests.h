@@ -211,7 +211,7 @@ public:
   int overlap() const {return 2;}
   int nThreads() const {return 1;}
 
-  int burnin_its() const { return 0; }
+  int burnin_its() const { return 1; }
   int phase40_its() const { return 0; }
   int niterations() const { return 0; }
 };

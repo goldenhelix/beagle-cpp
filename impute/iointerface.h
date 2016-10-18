@@ -19,6 +19,8 @@ public:
   virtual int burnin_its() const { return 5; }
   virtual int phase40_its() const { return 5; }
   virtual int niterations() const { return 5; }
+  virtual int dagInitLevels() const { return 500; }
+  virtual double modelScale() const { return 0.8; }
 };
 
 class GenericDataReader
@@ -318,7 +320,7 @@ public:
    * to the target data markers to the specified list.
    * @param list a list of haplotype pairs for target data markers
    */
-  void addRestrictedRefHapPairs(QList<HapPair> list) { list.append(_restRefHapPairs); }
+  void addRestrictedRefHapPairs(QList<HapPair> list) const { list.append(_restRefHapPairs); }
   /**
    * Returns a list of reference haplotype pairs that are restricted
    * to the target data markers, or returns {@code null}
