@@ -1,4 +1,4 @@
-#include "impute/phase.h"
+#include "impute/baumhmm.h"
 
 #include <QMap>
 

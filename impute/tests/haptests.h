@@ -210,9 +210,9 @@ public:
   int window() const {return 4;}
   int overlap() const {return 2;}
   int nThreads() const {return 1;}
-
-  int burnin_its() const { return 1; }
-  int phase40_its() const { return 0; }
+  int nSamplingsPerIndividual() const { return 4; }
+  int burnin_its() const { return 4; }
+  int phase40_its() const { return 4; }
   int niterations() const { return 0; }
 };
 
@@ -464,40 +464,38 @@ QList<HapPair> testPhase(CurrentData &cd, const Par &par)
 
   //// Phasing happens....then "consensus phasing" happens....
 
-  HapPairs hp1(hapPairs, false);
-  hpDump(hp1);
+  // HapPairs hp1(hapPairs, false);
+  // hpDump(hp1);
 
   if (par.burnin_its()>0)
   {
     // runStats.println(Const.nl + "Starting burn-in iterations");
     hapPairs = ImputeDriver::runBurnin1(cd, par, hapPairs);
 
-    HapPairs hp2(hapPairs, false);
-    hpDump(hp2);
+    // HapPairs hp2(hapPairs, false);
+    // hpDump(hp2);
   }
 
-  /*
   if (par.phase40_its()>0)
   {
     hapPairs = ImputeDriver::runBurnin2(cd, par, hapPairs);
+
+    // HapPairs hp3(hapPairs, false);
+    // hpDump(hp3);
   }
 
   if (par.niterations()>0)
   {
     // runStats.println(Const.nl + "Starting phasing iterations");
-    hapPairs = ImputeDriver::runRecomb(cd, par, hapPairs, gv);
+    // hapPairs = ImputeDriver::runRecomb(cd, par, hapPairs, gv);
   }
   else
-    hapPairs = ImputeDriver::consensusPhase(hapPairs);
+    hapPairs = ConsensusPhaser::consensusPhase(hapPairs);
+
+  HapPairs hp4(hapPairs, false);
+  hpDump(hp4);
 
   return hapPairs;
-  */
-
-  QList<HapPair> shortHapPairs; // For now, artificially use the first haplotype for each individual.
-  for(int hpn=0; hpn < par.nSamplingsPerIndividual() * cd.nTargetSamples(); hpn += par.nSamplingsPerIndividual())
-    shortHapPairs.append(hapPairs[hpn]);
-
-  return shortHapPairs;
 }
 
 int testPhaseDriverHelper(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par, const SampleHapPairs &targetHapPairs)
@@ -531,9 +529,7 @@ void testPhaseDriver(InputData &data, TargDataReader &targReader, RefDataReader 
       overlap = testWindowDriverHelper(overlapHaps, cd, par, GLSampleHapPairs(cd.targetGL(), true));
     else
     {
-      QList<HapPair> hapPairs = testPhase(cd, par);
-
-      //   QList<HapPair> hapPairs = ImputeDriver::phase(cd, par);
+      QList<HapPair> hapPairs = testPhase(cd, par);  //   QList<HapPair> hapPairs = ImputeDriver::phase(cd, par);
       overlap = testPhaseDriverHelper(overlapHaps, cd, par, SampleHapPairs(cd.targetSamples(), hapPairs, false));
     }
   }

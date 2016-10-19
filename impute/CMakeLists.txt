@@ -7,7 +7,8 @@ set(IMPUTE_HEADERS
   vcfemission.h
   iointerface.h
   dag.h
-  phase.h
+  baumhmm.h
+  consensusphaser.h
   imputedriver.h
 )
 
@@ -18,7 +19,8 @@ set(IMPUTE_SOURCES
   vcfemission.cpp
   iointerface.cpp
   dag.cpp
-  phase.cpp
+  baumhmm.cpp
+  consensusphaser.cpp
   imputedriver.cpp
 )
 

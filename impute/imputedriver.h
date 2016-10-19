@@ -7,7 +7,8 @@
 #include "impute/haplotypepair.h"
 #include "impute/iointerface.h"
 #include "impute/dag.h"
-#include "impute/phase.h"
+#include "impute/baumhmm.h"
+#include "impute/consensusphaser.h"
 
 namespace ImputeDriver
 {

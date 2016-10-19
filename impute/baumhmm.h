@@ -1,5 +1,5 @@
-#ifndef PHASE_H
-#define PHASE_H
+#ifndef BAUMHMM_H
+#define BAUMHMM_H
 
 #include "impute/markers.h"
 #include "impute/samples.h"

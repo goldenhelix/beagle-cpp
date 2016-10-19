@@ -1429,7 +1429,7 @@ void TestImputeDataStructures::testTargetData3x3LEandInitHaps()
 
 void TestImputeDataStructures::testTargetData3x3Sample()
 {
-  // outputDumps = true;
+  outputDumps = true;
 
   RefDataReader rr;
   TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
@@ -1445,6 +1445,8 @@ void TestImputeDataStructures::testTargetData3x3Sample()
 
 void TestImputeDataStructures::testTargetData4x3Sample()
 {
+  // outputDumps = false;
+
   RefDataReader rr;
   TargDataReaderTest3x3 tr(false, true);  // Use 4 x 3 unphased data.
 
@@ -1497,6 +1499,8 @@ void TestImputeDataStructures::testAllData6x4and4x3Sample()
 
 void TestImputeDataStructures::testAllData6x4and4x3BSample()
 {
+  outputDumps = true;
+
   clearStaticTestLists();
 
   RefDataReaderTest4x4 rr(true);                 // Use 6 x 4 reference data.
