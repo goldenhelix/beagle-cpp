@@ -82,7 +82,7 @@ public:
   }
 
 private:
-  float HapAlleleProbs::lastAlleleProb(int marker) const;
+  float lastAlleleProb(int marker) const;
 
   Markers _markers;
   Samples _samples;
