@@ -9,6 +9,7 @@ set(IMPUTE_HEADERS
   dag.h
   baumhmm.h
   consensusphaser.h
+  hapalleleprobs.h
   imputedriver.h
 )
 
@@ -21,6 +22,7 @@ set(IMPUTE_SOURCES
   dag.cpp
   baumhmm.cpp
   consensusphaser.cpp
+  hapalleleprobs.cpp
   imputedriver.cpp
 )
 

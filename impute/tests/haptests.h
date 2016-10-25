@@ -249,7 +249,7 @@ void tdrDumpUtility(const QList<BitSetGT> &vma)
     QString markers("Markers: ");
     for(int m=0; m < vma.length(); m++)
       markers.append("  " + vma[m].marker().id());
-    qDebug("  %s\n", (const char *) markers.toLatin1());
+    qDebug("%s", (const char *) markers.toLatin1());
 
     Samples samples = vma[0].samples();
     int nSamples = samples.nSamples();
@@ -270,6 +270,7 @@ void tdrDumpUtility(const QList<BitSetGT> &vma)
       }
       qDebug("%s", (const char *) haps.toLatin1());
     }
+    qDebug("");
   }
 }
 
@@ -334,7 +335,7 @@ void hpDump(const HapPairs &hp)
     QString markers("Markers: ");
     for(int m=0; m < hp.nMarkers(); m++)
       markers.append("  " + hp.marker(m).id());
-    qDebug("  %s\n", (const char *) markers.toLatin1());
+    qDebug("%s", (const char *) markers.toLatin1());
 
     for(int hpnum=0; hpnum < hp.nHapPairs(); hpnum++)
     {
@@ -345,6 +346,7 @@ void hpDump(const HapPairs &hp)
 
       qDebug("%s", (const char *) haps.toLatin1());
     }
+    qDebug("");
   }
 }
 
@@ -458,6 +460,117 @@ void testWindowDriver(InputData &data, TargDataReader &targReader, RefDataReader
   }
 }
 
+class TestDataWriter : public ImputeDataWriter
+{
+public:
+  TestDataWriter(const Samples &samples) : ImputeDataWriter(samples) {}
+
+  void writeHeader();
+  void writeEOF() {}
+
+protected:
+  void initializeWindowBuffering(const int initSize);
+  void appendPhasedVariantData();
+  void finishAndWriteRec();
+
+private:
+  void outputMarker();
+  void outputInfo();
+  void outputFormat();
+
+  QString _variantRec;
+  QString _outRec;
+};
+
+void TestDataWriter::writeHeader()
+{
+  _outRec = "Samples:";
+
+  for(int s=0, n=_samples.nSamples(); s<n; s++)
+    _outRec.append( QString("  %1").arg((QString) _samples.name(s)) );
+
+  qDebug("%s", (const char *) _outRec.toLatin1());
+}
+
+void TestDataWriter::initializeWindowBuffering(const int initSize)
+{
+  _variantRec.clear();
+}
+
+void TestDataWriter::appendPhasedVariantData()
+{
+  _variantRec.append( QString("  %1|%2").arg(_allele1).arg(_allele2) );
+
+  if (_printDS)
+  {
+    for (int j=1; j < _nAlleles; ++j)
+    {
+      _variantRec.append( QString("%1%2").arg((j==1) ? ":" : "," ).arg(_dose[j], 4, 'f', 2) );
+    }
+  }
+
+  if (_printGP)
+  {
+    for (int j=0; j < _gtProbs.length(); ++j)
+    {
+      _variantRec.append( QString("%1%2").arg((j==0) ? ":" : "," ).arg(_gtProbs[j], 4, 'f', 2) );
+    }
+  }
+}
+
+void TestDataWriter::finishAndWriteRec()
+{
+  outputMarker();
+  _outRec.append("  ?  PASS  ");   // QUAL  FILTER
+  outputInfo();                    // INFO
+  outputFormat();                  // FORMAT
+
+  qDebug("%s  %s", (const char *) _outRec.toLatin1(), (const char *) _variantRec.toLatin1());
+
+  _variantRec.clear();
+}
+
+void TestDataWriter::outputMarker()
+{
+  _outRec = QString("%1 %2 %3 %4 %5")
+    .arg( (QString) _marker.chrom() )
+    .arg( _marker.pos() )
+    .arg( (QString) _marker.id() )
+    .arg( (QString) _marker.allele(0) )
+    .arg( (_marker.nAlleles() == 1) ? "?" : (QString) _marker.allele(1) );
+}
+
+void TestDataWriter::outputInfo()
+{
+  if (_printDS || _printGP)
+  {
+    _outRec.append( QString("AR2=%1;DR2=%2")
+                    .arg(_r2Est.allelicR2(), 4, 'f', 2)
+                    .arg(_r2Est.doseR2(), 4, 'f', 2) );
+
+    for (int j=1; j < _nAlleles; ++j)
+    {
+      _outRec.append( QString("%1%2")
+                      .arg((j==1) ? ";AF=" : "," )
+                      .arg(_cumAlleleProbs[j]/(2*_r2Est.nGenotypes()), 4, 'f', 2) );
+    }
+
+    if (_isImputed[_mNum])
+      _outRec.append(";IMP");
+  }
+  else
+    _outRec.append("?");
+}
+
+void TestDataWriter::outputFormat()
+{
+  if (_printDS)
+    _outRec.append( QString("  %1").arg((_printGP) ? "GT:DS:GP" : "GT:DS") );
+  else
+    _outRec.append("  GT");
+}
+
+
 QList<HapPair> testPhase(CurrentData &cd, const Par &par)
 {
   QList<HapPair> hapPairs = ImputeDriver::initialHaps(cd, par);
@@ -498,28 +611,30 @@ QList<HapPair> testPhase(CurrentData &cd, const Par &par)
   return hapPairs;
 }
 
-int testPhaseDriverHelper(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par, const SampleHapPairs &targetHapPairs)
+int testPhaseDriverHelper(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par,
+                          ImputeDataWriter &impWriter, const SampleHapPairs &targetHapPairs)
 {
-  /*
-  if (gv!=null)
-    windowOut.printGV(cd, par, gv);        // (Except we won't be implementing GenotypeValues at this time.)
+  // Neither a "printGV" method nor a "refinedIbd" method is invoked here at this time.
+  // (COULD RE-COMBINE THE printOutput CALLS (ALWAYS CALLING LSImpute()), SINCE WE ALWAYS NOW USE ConstrainedAlleleProbs.)
+
+  if (cd.nMarkers()==cd.nTargetMarkers() || par.impute() == false)
+    impWriter.printWindowOutput(cd, targetHapPairs, ConstrainedAlleleProbs(targetHapPairs), par);
   else
   {
-    Map<IntPair, List<IbdSegment>> ibd = mh.refinedIbd(cd, par, targetHapPairs);   // (Nor IBD.)
-    AlleleProbs alProbs = mh.LSImpute(cd, par, targetHapPairs);
-    printOutput(cd, par, targetHapPairs, alProbs, ibd);  // (We would need to add an output method parameter to this test setup....)
+    /// impWriter.printWindowOutput(cd, targetHapPairs, imputeDriver::LSImpute(cd, targetHapPairs), par);
   }
-  */
-
+  
   overlapHaps = ImputeDriver::overlapHaps(cd, targetHapPairs);
   return cd.nMarkers() - cd.nextOverlapStart();
 }
 
-void testPhaseDriver(InputData &data, TargDataReader &targReader, RefDataReader &refReader, int windowSize, const Par &par)
+void testPhaseDriver(InputData &data, TargDataReader &targReader, RefDataReader &refReader,
+                     ImputeDataWriter &impWriter, int windowSize, const Par &par)
 {
   CurrentData cd;
   SampleHapPairs overlapHaps;
   int overlap = 0;
+  impWriter.writeHeader();
   while(data.canAdvanceWindow(targReader, refReader))
   {
     data.advanceWindow(overlap, par.window(), targReader, refReader);
@@ -530,8 +645,9 @@ void testPhaseDriver(InputData &data, TargDataReader &targReader, RefDataReader 
     else
     {
       QList<HapPair> hapPairs = testPhase(cd, par);  //   QList<HapPair> hapPairs = ImputeDriver::phase(cd, par);
-      overlap = testPhaseDriverHelper(overlapHaps, cd, par, SampleHapPairs(cd.targetSamples(), hapPairs, false));
+      overlap = testPhaseDriverHelper(overlapHaps, cd, par, impWriter, SampleHapPairs(cd.targetSamples(), hapPairs, false));
     }
   }
+  impWriter.writeEOF();
 }
 

@@ -9,6 +9,7 @@
 #include "impute/dag.h"
 #include "impute/baumhmm.h"
 #include "impute/consensusphaser.h"
+#include "impute/hapalleleprobs.h"
 
 namespace ImputeDriver
 {

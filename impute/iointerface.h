@@ -6,6 +6,7 @@
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
 #include "impute/haplotypepair.h"
+#include "impute/hapalleleprobs.h"
 
 class Par
 {
@@ -21,6 +22,8 @@ public:
   virtual int niterations() const { return 5; }
   virtual int dagInitLevels() const { return 500; }
   virtual double modelScale() const { return 0.8; }
+  virtual bool impute() const { return true; }
+  virtual bool gprobs() const { return false; }
 };
 
 class GenericDataReader
@@ -379,6 +382,99 @@ private:
   SampleHapPairs _restrictedRefSampleHapPairs;
 
   // QList<float> _recombRate;
+};
+
+class R2Estimator
+{
+public:
+  void clear();
+  void addSampleData(QVector<double> doseProbs);
+
+  /**
+   * Returns the estimated squared correlation between the most probable
+   * ALT allele dose and the true ALT allele dose for the current
+   * genotype data.
+   * Returns 0 if the marker is monomorphic or if the most probable ALT
+   * allele dose is monomorphic.
+   */
+  double allelicR2();
+
+  /**
+   * Returns the estimated squared correlation between the expected
+   * ALT allele dose and the true ALT allele dose for the current
+   * genotype data. Returns 0 if the marker is monomorphic.
+   */
+  double doseR2();
+
+  /**
+   * Returns the current number of genotypes with allele dose data.
+   */
+  int nGenotypes() { return _nGenotypes; }
+
+private:
+  int _nGenotypes;
+  double _sumCall;
+  double _sumSquareCall;
+  double _sumExpected;
+  double _sumExpectedSquare;
+  double _sumSquareExpected;
+  double _sumCallExpected;
+};
+
+class ImputeDataWriter
+{
+public:
+  ImputeDataWriter(const Samples &samples) : _samples(samples) {}
+
+  void printWindowOutput(const CurrentData &cd,
+                         const SampleHapPairs &targetHapPairs,
+                         const ConstrainedAlleleProbs &alProbs,
+                         const Par &par);
+
+  virtual void writeHeader() = 0;
+  virtual void writeEOF() = 0;
+
+  Samples samples() const { return _samples; }
+  // Markers markers() const { return _markers; }
+
+protected:
+  virtual void initializeWindowBuffering(const int initSize) = 0;
+  virtual void appendPhasedVariantData() = 0;
+  virtual void finishAndWriteRec() = 0;
+
+  Samples _samples;
+  // Markers _markers;
+
+  QVector<bool> _isImputed;
+  int _start;
+  int _end;
+  bool _printDS;
+  bool _printGP;
+
+  QVector<double> _gt3Probs;
+
+  R2Estimator _r2Est;
+
+  int _mNum;
+  Marker _marker;
+  int _nAlleles;
+  int _nGenotypes;
+  int _allele1;
+  int _allele2;
+  QVector<double> _gtProbs;
+  QVector<double> _dose;
+  QVector<double> _cumAlleleProbs;
+
+  QVector<double> _alProbs1;
+  QVector<double> _alProbs2;
+
+private:
+  void setIsImputed(const CurrentData &cd);
+  void printWindowData(const ConstrainedAlleleProbs &alProbs);
+  void initializeForWindow(const int initSize);
+  void resetRec(const Marker &marker);
+  void constructSampleDataForMarker();
+  int maxIndex(QVector<double> &da, int expLength);
 };
 
 #endif

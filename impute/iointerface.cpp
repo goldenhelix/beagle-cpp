@@ -1,5 +1,7 @@
 #include "impute/iointerface.h"
 
+#define MIN_R2_DEN      1e-8
+
 void RefDataReader::makeNewWindow(int overlap)
 {
   _oldVcfRefRecs = _vcfRefRecs.mid(_vcfRefRecs.length() - overlap);
@@ -377,3 +379,223 @@ void AllData::checkSampleOverlap(Samples ref, Samples nonRef)
   }
 }
 
+static int checkDataAndReturnMaxIndex(QVector<double> probs)
+{
+  int maxIndex = 0;
+  double sum = 0.0;
+  for (int j=0; j<probs.length(); ++j)
+  {
+    Q_ASSERT_X(probs[j] >= 0,
+               "checkDataAndReturnMaxIndex (iointerface.cpp)",
+               "probs[j] < 0");
+
+    sum += probs[j];
+
+    if (probs[j] > probs[maxIndex])
+      maxIndex = j;
+  }
+
+  Q_ASSERT_X(abs(sum - 1.0) <= 1e-5,
+             "checkDataAndReturnMaxIndex (iointerface.cpp)",
+             "abs(sum - 1.0) > 1e-5");
+
+  return maxIndex;
+}
+
+void R2Estimator::clear()
+{
+  _nGenotypes = 0;
+  _sumCall = 0.0;
+  _sumSquareCall = 0.0;
+  _sumExpected = 0.0;
+  _sumExpectedSquare = 0.0;
+  _sumSquareExpected = 0.0;
+  _sumCallExpected = 0.0;
+}
+
+void R2Estimator::addSampleData(QVector<double> doseProbs)
+{
+  Q_ASSERT_X(doseProbs.length() == 3,
+             "R2Estimator::addSampleData",
+             "doseProbs.length() != 3");
+
+  ++_nGenotypes;
+  int call = checkDataAndReturnMaxIndex(doseProbs);
+  double exp = (doseProbs[1] + 2*doseProbs[2]);
+  double expSquare = (doseProbs[1] + 4*doseProbs[2]);
+  _sumCall += call;
+  _sumSquareCall += call*call;
+  _sumExpected += exp;
+  _sumExpectedSquare += expSquare;
+  _sumSquareExpected += (exp*exp);
+  _sumCallExpected += (call*exp);
+}
+
+double R2Estimator::allelicR2()
+{
+  double f = 1.0/_nGenotypes;
+  double cov = _sumCallExpected - (_sumCall * _sumExpected * f);
+  double varBest = _sumSquareCall - (_sumCall * _sumCall * f);
+  double varExp = _sumExpectedSquare - (_sumExpected * _sumExpected * f);
+  double den = varBest*varExp;
+  return (den < MIN_R2_DEN) ? 0.0 : (cov*cov/den);
+}
+
+double R2Estimator::doseR2()
+{
+  double f = 1.0/_nGenotypes;
+  double num = _sumSquareExpected - (_sumExpected * _sumExpected * f);
+  double den = _sumExpectedSquare - (_sumExpected * _sumExpected * f);
+
+  if (num < 0.0)
+    num = 0.0;
+
+  return (den < MIN_R2_DEN) ? 0.0 : (num / den);
+}
+
+
+void ImputeDataWriter::printWindowOutput(const CurrentData &cd,
+                                         const SampleHapPairs &targetHapPairs,
+                                         const ConstrainedAlleleProbs &alProbs,
+                                         const Par &par)
+{
+  bool markersAreImputed = cd.nTargetMarkers() < cd.nMarkers();
+  setIsImputed(cd);
+
+  _start = cd.prevSpliceStart();
+  _end = cd.nextSpliceStart();
+
+  Q_ASSERT_X(_start <= _end,
+             "ImputeDataWriter::printWindowOutput",
+             "start > end");
+
+  _printDS = markersAreImputed;     // Dosage
+  _printGP = markersAreImputed  &&  par.gprobs();  // Genotype probs
+
+  printWindowData(alProbs);
+
+  /// if (par.ibd())
+  ///   printIbd(cd, ibd);
+}
+
+void ImputeDataWriter::setIsImputed(const CurrentData &cd)
+{
+  _isImputed.fill(false, cd.nMarkers());
+
+  if (cd.nTargetMarkers() < _isImputed.length())
+  {
+    for (int j=0, n=cd.nTargetMarkers(); j<n; j++)
+      _isImputed[cd.markerIndex(j)] = true;
+  }
+}
+
+void ImputeDataWriter::printWindowData(const ConstrainedAlleleProbs &alProbs)
+{
+  Q_ASSERT_X(_isImputed.length() == alProbs.nMarkers(),
+             "ImputeDataWriter::printWindowData",
+             "inconsistent data");
+
+  initializeForWindow(4*alProbs.nSamples());
+
+  for (int _mNum=_start; _mNum < _end; ++_mNum)
+  {
+    const Marker &marker = alProbs.marker(_mNum);
+    resetRec(marker);
+    _alProbs1.fill(0.0, marker.nAlleles());
+    _alProbs2.fill(0.0, marker.nAlleles());
+    for (int sample=0, n=alProbs.nSamples(); sample<n; ++sample)
+    {
+      for (int j=0; j < _alProbs1.length(); ++j)
+      {
+        _alProbs1[j] = alProbs.alProb1(_mNum, sample, j);
+        _alProbs2[j] = alProbs.alProb2(_mNum, sample, j);
+      }
+      constructSampleDataForMarker();
+    }
+    finishAndWriteRec();
+  }
+}
+
+void ImputeDataWriter::initializeForWindow(int initSize)
+{
+  _gt3Probs.fill(0.0, 3);
+
+  initializeWindowBuffering(initSize);
+}
+
+void ImputeDataWriter::resetRec(const Marker &marker)
+{
+  _r2Est.clear();
+
+  _marker = marker;
+  _allele1 = -1;
+  _allele2 = -1;
+  _nAlleles = marker.nAlleles();
+  _nGenotypes = marker.nGenotypes();
+  _gtProbs.fill(0.0, marker.nGenotypes());
+  _cumAlleleProbs.fill(0.0, marker.nAlleles());
+  _dose.fill(0.0, marker.nAlleles());
+}
+
+void ImputeDataWriter::constructSampleDataForMarker()
+{
+  _gt3Probs.fill(0.0, 3);
+  _allele1 = maxIndex(_alProbs1, _nAlleles);
+  _allele2 = maxIndex(_alProbs2, _nAlleles);
+  _dose[0] = _alProbs1[0] + _alProbs2[0];
+  _gtProbs[0] = _alProbs1[0] * _alProbs2[0];
+  _gt3Probs[0] = _gtProbs[0];
+  int gt = 1;
+  for (int a2=1; a2 < _alProbs1.length(); ++a2)
+  {
+    _dose[a2] = _alProbs1[a2] + _alProbs2[a2];
+
+    for (int a1=0; a1 <= a2; ++a1)
+    {
+      double gtProb = _alProbs1[a1]*_alProbs2[a2];
+      if (a1 != a2)
+        gtProb += _alProbs1[a2]*_alProbs2[a1];
+
+      _gtProbs[gt++] = gtProb;
+      _gt3Probs[(a1==0) ? 1 : 2] += gtProb;
+    }
+  }
+
+  for (int j=0; j < _dose.length(); ++j)
+    _cumAlleleProbs[j] += _dose[j];
+
+  _r2Est.addSampleData(_gt3Probs);
+
+  appendPhasedVariantData();
+}
+
+
+int ImputeDataWriter::maxIndex(QVector<double> &da, int expLength)
+{
+  Q_ASSERT_X(da.length() == expLength,
+             "ImputeDataWriter::maxIndex",
+             "da.length() != expLength");
+
+  int maxIndex = 0;
+  double sum = 0;
+
+  for (int j=0; j < da.length(); ++j)
+  {
+    Q_ASSERT_X(da[j] >= 0.0,
+               "ImputeDataWriter::maxIndex",
+               "da[j] < 0");
+
+    sum += da[j];
+
+    if (da[j] > da[maxIndex])
+      maxIndex = j;
+  }
+
+  if (sum != 1.0)
+  {
+    for (int j=0; j < da.length(); ++j)
+      da[j] /= sum;
+  }
+
+  return maxIndex;
+}

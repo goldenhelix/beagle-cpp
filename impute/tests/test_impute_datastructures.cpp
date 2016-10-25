@@ -844,6 +844,17 @@ void TestImputeDataStructures::testHaplotypePairs()
   pteList.append(pair1s);
   pteList.append(pair2s);
   SampleHapPairs shppte(samplesT2, pteList, false);
+
+  ConstrainedAlleleProbs caprob(shppte);
+
+  QCOMPARE(caprob.isImputed(1), false);
+  QCOMPARE(caprob.alProb1(1, 1, 0), 1.0);
+  QCOMPARE(caprob.alProb2(1, 1, 0), 0.0);
+  QCOMPARE(caprob.alProb2(1, 1, 1), 1.0);
+  QCOMPARE(caprob.gtProb(1, 1, 0, 1), 1.0);
+  QCOMPARE(caprob.allele1(1, 1), 0);
+  QCOMPARE(caprob.allele2(1, 1), 1);
+
   SplicedGL spliced(shppte, unphasedtarggl);
 
   QCOMPARE(spliced.allele1(1, 1), 0);
@@ -1429,7 +1440,7 @@ void TestImputeDataStructures::testTargetData3x3LEandInitHaps()
 
 void TestImputeDataStructures::testTargetData3x3Sample()
 {
-  outputDumps = true;
+  outputDumps = false;
 
   RefDataReader rr;
   TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
@@ -1439,8 +1450,8 @@ void TestImputeDataStructures::testTargetData3x3Sample()
   TargetData td;
 
   TestParW parw;
-
-  testPhaseDriver(td, tr, rr, parw.window(), parw);
+  TestDataWriter dw(tr.samples());
+  testPhaseDriver(td, tr, rr, dw, parw.window(), parw);
 }
 
 void TestImputeDataStructures::testTargetData4x3Sample()
@@ -1456,7 +1467,8 @@ void TestImputeDataStructures::testTargetData4x3Sample()
 
   TestParW parw;
 
-  testPhaseDriver(td, tr, rr, parw.window(), parw);
+  TestDataWriter dw(tr.samples());
+  testPhaseDriver(td, tr, rr, dw, parw.window(), parw);
 }
 
 void TestImputeDataStructures::testAllData4x4and3x3Sample()
@@ -1475,7 +1487,8 @@ void TestImputeDataStructures::testAllData4x4and3x3Sample()
 
   TestParW parw;
 
-  testPhaseDriver(ad, tr, rr, parw.window(), parw);
+  TestDataWriter dw(tr.samples());
+  testPhaseDriver(ad, tr, rr, dw, parw.window(), parw);
 }
 
 void TestImputeDataStructures::testAllData6x4and4x3Sample()
@@ -1494,12 +1507,13 @@ void TestImputeDataStructures::testAllData6x4and4x3Sample()
 
   TestParW parw;
 
-  testPhaseDriver(ad, tr, rr, parw.window(), parw);
+  TestDataWriter dw(tr.samples());
+  testPhaseDriver(ad, tr, rr, dw, parw.window(), parw);
 }
 
 void TestImputeDataStructures::testAllData6x4and4x3BSample()
 {
-  outputDumps = true;
+  // outputDumps = true;
 
   clearStaticTestLists();
 
@@ -1515,7 +1529,8 @@ void TestImputeDataStructures::testAllData6x4and4x3BSample()
 
   TestParW parw;
 
-  testPhaseDriver(ad, tr, rr, parw.window(), parw);
+  TestDataWriter dw(tr.samples());
+  testPhaseDriver(ad, tr, rr, dw, parw.window(), parw);
 }
 
 QTEST_MAIN(TestImputeDataStructures)
