@@ -1,0 +1,101 @@
+COMMUNICATION PROTOCOL BETWEEN THIS IMPUTE LIBRARY AND AN OUTSIDE PROGRAM
+
+This protocol assumes Qt's QDataStream will be used to encode the data
+in both directions. This program wraps standard in and standard out in
+QFile's, which are used as the I/O devices by the QDataStream, and the
+outside program should invoke this library through a QProcess, which
+will also be used by QDataStream as the I/O device.
+
+The following outlines the basic overall flow between the outside program and this impute
+library. If this library traps an error, it will signal an error and stop.
+
+<- The outside program sends parameters and how many samples are in
+   the reference data and the target data.
+-> This library responds with an "OK" signal, and possibly with a
+   computed best window size.
+
+<- The outside program sends reference sample data, if reference data
+   is being used.
+-> This library responds with an "OK" signal.
+
+<- The outside program sends target sample data.
+-> This library responds with an "OK" signal.
+
+While there is more marker data:
+   -> This library asks for another window of data
+
+   If there are both reference and target data:
+
+      While there is more reference data:
+
+         <- The outside program signals that there is further reference (target)
+            data immediately forthcoming, possibly indicating the exact
+            size of the next chunk.
+         <- The outside program sends about 1/10 th of a window's worth of data.
+         -> This library responds with an "OK" signal.
+
+      <- The outside program either signals that further data exists
+         beyond what has been sent, or alternatively, it signals that
+         the end of the data has been reached.
+
+      While this library finds there is possibly a need for more target data (to
+         match the reference data already read for this window):
+
+         -> This library signals the possible need for more target data.
+
+         If there is more target data available:
+
+            <- The outside program signals that there is further target data available and
+               immediately forthcoming, possibly indicating the exact size
+               of the next chunk.
+            <- The outside program sends about 1/10 th of a window's
+               worth of data, and this library reads that data and
+               matches it up with the reference data.
+
+         Else (no further target data actually available):
+
+            <- The outside program signals that there is no further target data.
+
+      -> This library signals that it has enough target data for this window.
+
+   Else (target only):
+
+      While there is more target data:
+
+         <- The outside program signals that there is further target
+            data immediately forthcoming, possibly indicating the exact
+            size of the next chunk.
+         <- The outside program sends about 1/10 th of a window's worth of data.
+         -> This library responds with an "OK" signal.
+
+      <- The outside program either signals that further data exists
+         beyond what has been sent, or alternatively, it signals that
+         the end of the data has been reached.
+
+   While phasing this window:
+      -> This library signals progress.
+
+   If the phased results are to be output:
+
+      While there is further phasing data to be output for this window:
+
+         -> This library signals that there is further phased output.
+         -> This library sends about 1/10th of a window's worth of phasing data.
+         <- The outside program responds with an "OK" signal.
+
+      -> This library signals that there is no further phased output.
+
+   If imputation has been requested:
+
+      While performing imputation on this window:
+         -> This library signals progress.
+
+      While there is further imputation data to be output for this window:
+
+         -> This library signals that there is further imputation output.
+         -> This library sends about 1/10th of a window's worth of imputation data.
+         <- The outside program responds with an "OK" signal.
+
+      -> This library signals that there is no further imputation output.
+
+-> This library signals that it is finished, and stops.
