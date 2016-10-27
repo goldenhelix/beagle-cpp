@@ -1,5 +1,13 @@
 // Test-dedicated utility include file.
 
+void storePhasedAlleles(BitSetRefGT &rrec, const QList<int> &r1, const QList<int> &r2)
+{
+  QVector<int> rv1 = r1.toVector();
+  QVector<int> rv2 = r2.toVector();
+
+  rrec.storePhasedAlleles(rv1, rv2);
+}
+
 void loadTestDataForRefData4x4(Samples &samplesR, QList<BitSetRefGT> &refEmissions, bool useRef6x4=false)
 {
   // Set the data for "samplesR" before there are any other
@@ -18,48 +26,48 @@ void loadTestDataForRefData4x4(Samples &samplesR, QList<BitSetRefGT> &refEmissio
   BitSetRefGT r0(samplesR);
 
   r0.setIdInfo(ChromeIds::getIndex("17"), 12345, "RS12345");
-  r0.setAllele("A");
-  r0.setAllele("C");
+  r0.addAllele("A");
+  r0.addAllele("C");
 
   QList<int> r01; r01.append(1); r01.append(0); r01.append(0); r01.append(1);
   QList<int> r02; r02.append(1); r02.append(1); r02.append(0); r02.append(1);
-  r0.storePhasedAlleles(r01, r02);
+  storePhasedAlleles(r0, r01, r02);
 
   refEmissions.append(r0);
 
   BitSetRefGT r1(samplesR);
 
   r1.setIdInfo(ChromeIds::getIndex("17"), 22345, "RS22345");
-  r1.setAllele("G");
-  r1.setAllele("T");
+  r1.addAllele("G");
+  r1.addAllele("T");
 
   QList<int> r11; r11.append(0); r11.append(0); r11.append(1); r11.append(0);
   QList<int> r12; r12.append(1); r12.append(1); r12.append(1); r12.append(1);
-  r1.storePhasedAlleles(r11, r12);
+  storePhasedAlleles(r1, r11, r12);
 
   refEmissions.append(r1);
 
   BitSetRefGT r2(samplesR);  // This marker will be inbetween two markers that overlap the target data.
 
   r2.setIdInfo(ChromeIds::getIndex("17"), 22678, "RS22678");
-  r2.setAllele("C");
-  r2.setAllele("G");
+  r2.addAllele("C");
+  r2.addAllele("G");
 
   QList<int> r21; r21.append(0); r21.append(1); r21.append(1); r21.append(0);
   QList<int> r22; r22.append(1); r22.append(0); r22.append(1); r22.append(1);
-  r2.storePhasedAlleles(r21, r22);
+  storePhasedAlleles(r2, r21, r22);
 
   refEmissions.append(r2);
 
   BitSetRefGT r3(samplesR);
 
   r3.setIdInfo(ChromeIds::getIndex("17"), 33345, "RS33345");
-  r3.setAllele("A");
-  r3.setAllele("T");
+  r3.addAllele("A");
+  r3.addAllele("T");
 
   QList<int> r31; r31.append(0); r31.append(1); r31.append(0); r31.append(0);
   QList<int> r32; r32.append(1); r32.append(0); r32.append(1); r32.append(1);
-  r3.storePhasedAlleles(r31, r32);
+  storePhasedAlleles(r3, r31, r32);
 
   refEmissions.append(r3);
 
@@ -68,27 +76,36 @@ void loadTestDataForRefData4x4(Samples &samplesR, QList<BitSetRefGT> &refEmissio
     BitSetRefGT r4(samplesR);
 
     r4.setIdInfo(ChromeIds::getIndex("17"), 52345, "RS52345");
-    r4.setAllele("G");
-    r4.setAllele("T");
+    r4.addAllele("G");
+    r4.addAllele("T");
 
     QList<int> r41; r41.append(0); r41.append(0); r41.append(1); r41.append(1);
     QList<int> r42; r42.append(1); r42.append(1); r42.append(1); r42.append(0);
-    r4.storePhasedAlleles(r41, r42);
+    storePhasedAlleles(r4, r41, r42);
 
     refEmissions.append(r4);
 
     BitSetRefGT r5(samplesR);
 
     r5.setIdInfo(ChromeIds::getIndex("17"), 63345, "RS63345");
-    r5.setAllele("A");
-    r5.setAllele("T");
+    r5.addAllele("A");
+    r5.addAllele("T");
 
     QList<int> r51; r51.append(0); r51.append(1); r51.append(1); r51.append(0);
     QList<int> r52; r52.append(1); r52.append(0); r52.append(0); r52.append(0);
-    r5.storePhasedAlleles(r51, r52);
+    storePhasedAlleles(r5, r51, r52);
 
     refEmissions.append(r5);
   }
+}
+
+void storeAlleles(BitSetGT &trec, const QList<int> &t1, const QList<int> &t2, const QList<bool> &arePhased)
+{
+  QVector<int> tv1 = t1.toVector();
+  QVector<int> tv2 = t2.toVector();
+  QVector<bool> aph = arePhased.toVector();
+
+  trec.storeAlleles(tv1, tv2, aph);
 }
 
 void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmissions,
@@ -110,14 +127,14 @@ void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmis
   BitSetGT t0(samplesT);
 
   t0.setIdInfo(ChromeIds::getIndex((defaultPhasing != read6x3) ? "1" : "17"), 12345, "RS12345");
-  t0.setAllele("A");
-  t0.setAllele("C");
+  t0.addAllele("A");
+  t0.addAllele("C");
 
   QList<int> t01; t01.append(1); t01.append(0); t01.append(missingVal);
   QList<int> t02; t02.append(1); t02.append(1); t02.append(0);
   // Have arePhased[1] be "true" on purpose....
   QList<bool> arePhased; arePhased.append(defaultPhasing); arePhased.append(true); arePhased.append(defaultPhasing);
-  t0.storeAlleles(t01, t02, arePhased);
+  storeAlleles(t0, t01, t02, arePhased);
 
   targetEmissions.append(t0);
 
@@ -126,33 +143,33 @@ void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmis
   if(read4x3B)
   {
     t1.setIdInfo(ChromeIds::getIndex("17"), 22678, "RS22678");
-    t1.setAllele("C");
-    t1.setAllele("G");
+    t1.addAllele("C");
+    t1.addAllele("G");
   }
   else
   {
     t1.setIdInfo(ChromeIds::getIndex("17"), 22345, "RS22345");
-    t1.setAllele("G");
-    t1.setAllele("T");
+    t1.addAllele("G");
+    t1.addAllele("T");
   }
 
   QList<int> t11; t11.append(0); t11.append(0); t11.append(1);
   QList<int> t12; t12.append(1); t12.append((read4x3B) ? 1 : missingVal); t12.append(1);
   arePhased[0] = true; arePhased[2] = true;
-  t1.storeAlleles(t11, t12, arePhased);
+  storeAlleles(t1, t11, t12, arePhased);
 
   targetEmissions.append(t1);
 
   BitSetGT t2(samplesT);
 
   t2.setIdInfo(ChromeIds::getIndex("17"), 33345, "RS33345");
-  t2.setAllele("A");
-  t2.setAllele("T");
+  t2.addAllele("A");
+  t2.addAllele("T");
 
   QList<int> t21; t21.append(0); t21.append(1); t21.append(1);
   QList<int> t22; t22.append(missingVal); t22.append(0); t22.append(0);
   arePhased[0] = defaultPhasing; arePhased[2] = defaultPhasing;
-  t2.storeAlleles(t21, t22, arePhased);
+  storeAlleles(t2, t21, t22, arePhased);
 
   targetEmissions.append(t2);
 
@@ -161,27 +178,27 @@ void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmis
     BitSetGT t3(samplesT);
 
     t3.setIdInfo(ChromeIds::getIndex("17"), 42345, "RS42345");
-    t3.setAllele("A");
-    t3.setAllele("C");
+    t3.addAllele("A");
+    t3.addAllele("C");
 
     QList<int> t31; t31.append(1); t31.append(0); t31.append(missingVal);
     QList<int> t32; t32.append(1); t32.append(1); t32.append(0);
     // Have arePhased[1] be "true" on purpose....
     QList<bool> arePhased; arePhased.append(defaultPhasing); arePhased.append(true); arePhased.append(defaultPhasing);
-    t3.storeAlleles(t31, t32, arePhased);
+    storeAlleles(t3, t31, t32, arePhased);
 
     targetEmissions.append(t3);
 
     BitSetGT t4(samplesT);
 
     t4.setIdInfo(ChromeIds::getIndex("17"), 52345, "RS52345");
-    t4.setAllele("G");
-    t4.setAllele("T");
+    t4.addAllele("G");
+    t4.addAllele("T");
 
     QList<int> t41; t41.append(0); t41.append(0); t41.append(1);
     QList<int> t42; t42.append(1); t42.append(missingVal); t42.append(1);
     arePhased[0] = true; arePhased[2] = true;
-    t4.storeAlleles(t41, t42, arePhased);
+    storeAlleles(t4, t41, t42, arePhased);
 
     targetEmissions.append(t4);
   }
@@ -191,13 +208,13 @@ void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmis
     BitSetGT t5(samplesT);
 
     t5.setIdInfo(ChromeIds::getIndex("17"), 63345, "RS63345");
-    t5.setAllele("A");
-    t5.setAllele("T");
+    t5.addAllele("A");
+    t5.addAllele("T");
 
     QList<int> t51; t51.append(0); t51.append(1); t51.append(1);
     QList<int> t52; t52.append(missingVal); t52.append(0); t52.append(0);
     arePhased[0] = defaultPhasing; arePhased[2] = defaultPhasing;
-    t5.storeAlleles(t51, t52, arePhased);
+    storeAlleles(t5, t51, t52, arePhased);
 
     targetEmissions.append(t5);
   }
@@ -230,6 +247,8 @@ public:
   bool hasNextRec() const {return _position < _nRecs;}
   BitSetRefGT nextRec() const {return _refEmissionsData[_position];}
   void advanceRec() {_position++;}
+
+  // bool lastWindowOnChrom() const;  // Use default implementation here.
 
 private:
   QList<BitSetRefGT> _refEmissionsData;
@@ -296,6 +315,8 @@ public:
   BitSetGT nextRec() const {return _targetEmissionsData[_position];}
   void advanceRec() {_position++;}
 
+  // bool lastWindowOnChrom() const;  // Use default implementation here.
+
   void tdrDump() {tdrDumpUtility(_targetEmissionsData);}
 
 private:
@@ -318,6 +339,8 @@ public:
   bool hasNextRec() const {return _position < _nRecs;}
   BitSetGT nextRec() const {return _targetEmissionsData[_position];}
   void advanceRec() {_position++;}
+
+  // bool lastWindowOnChrom() const;  // Use default implementation here.
 
   void tdrDump() {tdrDumpUtility(_targetEmissionsData);}
 

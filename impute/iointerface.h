@@ -33,7 +33,6 @@ public:
   virtual void makeNewWindow(int overlap) = 0;
   virtual void addNewDataToNewWindow(int windowSize) = 0;
   virtual int windowSize() const = 0;
-  virtual int maxWindowSize() const = 0;
   virtual bool lastWindowOnChrom() const = 0;
 
   Samples samples() const { return _samples; }
@@ -50,8 +49,7 @@ public:
   void makeNewWindow(int overlap);
   void addNewDataToNewWindow(int windowSize);
   int windowSize() const { return _vcfRefRecs.length(); }
-  int maxWindowSize() const { return 15000; }
-  bool lastWindowOnChrom() const;
+  virtual bool lastWindowOnChrom() const;  // Re-implementation of this method is optional.
 
   QList<BitSetRefGT> refRecs() const { return _vcfRefRecs; }
 protected:
@@ -74,8 +72,7 @@ public:
   void makeNewWindow(int overlap);
   void addNewDataToNewWindow(int windowSize);
   int windowSize() const { return _vcfEmissions.length(); }
-  int maxWindowSize() const { return 10000; }
-  bool lastWindowOnChrom() const;
+  virtual bool lastWindowOnChrom() const;  // Re-implementation of this method is optional.
 
   QList<int> restrictedMakeNewWindow(const QList<int> &oldRefIndices, int overlap);
   void restrictedAdvanceWindow(QList<int> &refIndices, int refOverlap, const Markers &nextMarkers);

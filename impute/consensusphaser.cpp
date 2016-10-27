@@ -30,7 +30,10 @@ static ConsensusPhaser::Phase flip(const ConsensusPhaser::Phase &phase)
   else if (phase == ConsensusPhaser::OPPOSITE)
     return ConsensusPhaser::IDENTICAL;
   else
+  {
     Q_ASSERT_X(false, "flip (consensusphaser.cpp)", "bad phase");
+    return ConsensusPhaser::INCONSISTENT;
+  }
 }
 
 static void storePhase(const QList<HapPair> &hapList, int marker, int a1, int a2,
@@ -159,6 +162,7 @@ static int hapPairWithConsensusGT(const QList<HapPair> &hapList, const Markers &
   }
 
   Q_ASSERT_X(false, "hapPairWithConsensusGT (consensusphaser.cpp)", "no sample with consensus GT");
+  return 0;
 }
 
 static HapPair consensus(const QList<HapPair> &hapList /*, Random rand */)

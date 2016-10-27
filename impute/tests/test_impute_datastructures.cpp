@@ -115,8 +115,8 @@ void TestImputeDataStructures::testMarkers()
 
   Marker m;
   m.setIdInfo(c1, 7632, "RS72351");
-  m.setAllele("A");
-  m.setAllele("C");
+  m.addAllele("A");
+  m.addAllele("C");
 
   QCOMPARE(m.chrom().constData(), "1");
   QCOMPARE(m.chromIndex(), 0);
@@ -127,15 +127,15 @@ void TestImputeDataStructures::testMarkers()
 
   Marker m2;
   m2.setIdInfo(c1, 7632, "RS72351");
-  m2.setAllele("A");
-  m2.setAllele("C");
+  m2.addAllele("A");
+  m2.addAllele("C");
 
   QCOMPARE(m == m2, true);
 
   Marker m3;
   m3.setIdInfo(c17, 5432, "RS89351");
-  m3.setAllele("G");
-  m3.setAllele("T");
+  m3.addAllele("G");
+  m3.addAllele("T");
 
   QCOMPARE(m3.chrom().constData(), "17");
   QCOMPARE(m3.pos(), 5432);
@@ -159,8 +159,8 @@ void TestImputeDataStructures::testMarkers()
 
   Marker* m6 = new Marker();
   m6->setIdInfo(cx, 23654, "RS93756");
-  m6->setAllele("T");
-  m6->setAllele("C");
+  m6->addAllele("T");
+  m6->addAllele("C");
 
   Marker* m7 = new Marker;
   *m7 = *m6;  // Assign a "copy of m7" itself, rather than assigning a pointer.
@@ -177,11 +177,11 @@ void TestImputeDataStructures::testMarkers()
   lm.append(Marker());
   lm.append(Marker());
   lm[0].setIdInfo(c17, 23465, "RS76542");
-  lm[0].setAllele("G");
-  lm[0].setAllele("C");
+  lm[0].addAllele("G");
+  lm[0].addAllele("C");
   lm[1].setIdInfo(cx, 5462, "RS6541");
-  lm[1].setAllele("T");
-  lm[1].setAllele("A");
+  lm[1].addAllele("T");
+  lm[1].addAllele("A");
 
   QCOMPARE(lm[0].chrom().constData(), "17");
   QCOMPARE(lm[0].pos(), 23465);
@@ -201,27 +201,27 @@ void TestImputeDataStructures::testMarkers()
 
   Marker m8;
   m8.setIdInfo(c1, 7635, "RS72351");
-  m8.setAllele("A");
-  m8.setAllele("C");
+  m8.addAllele("A");
+  m8.addAllele("C");
 
   Marker m9;
   m9.setIdInfo(c1, 7632, "RS72355");  // Should not make it any "different" from marker m.
-  m9.setAllele("A");
-  m9.setAllele("C");
+  m9.addAllele("A");
+  m9.addAllele("C");
 
   Marker m10;
   m10.setIdInfo(c1, 7632, "RS72351");
-  m10.setAllele("A");
+  m10.addAllele("A");
 
   Marker m11;
   m11.setIdInfo(c1, 7632, "RS72351");
-  m11.setAllele("G");
-  m11.setAllele("C");
+  m11.addAllele("G");
+  m11.addAllele("C");
 
   Marker m12;
   m12.setIdInfo(c1, 7632, "RS72351");
-  m12.setAllele("A");
-  m12.setAllele("G");
+  m12.addAllele("A");
+  m12.addAllele("G");
 
   QCOMPARE(m == m8, false);
   QCOMPARE(m == m9, true);

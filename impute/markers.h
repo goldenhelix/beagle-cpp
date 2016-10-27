@@ -42,8 +42,8 @@ public:
   Marker(MarkerSharedData *dpt) { _d = dpt; }  // For initializing from a "derived" class.
   Marker(const Marker &other) : _d(other._d) {}
   ~Marker() {}
-  void setIdInfo(int chromIndex, int pos, CString id);
-  void setAllele(CString allele);
+  void setIdInfo(int chromIndex, int pos, const CString &id);
+  void addAllele(const CString &allele);
 
   CString chrom() const;
 

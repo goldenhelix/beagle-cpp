@@ -5,6 +5,8 @@
 #include "impute/markers.h"
 #include "impute/samples.h"
 
+#include "QVector"
+
 class BitSetRefGTSharedData : public MarkerSharedData
 {
 public:
@@ -56,10 +58,10 @@ public:
   BitSetRefGT() { _d = new BitSetRefGTSharedData; }
   BitSetRefGT(const Samples &samples) { _d = new BitSetRefGTSharedData(samples); }
   BitSetRefGT(const BitSetRefGT &other) : _d(other._d) {}
-  void setIdInfo(int chromIndex, int pos, CString id);
-  void setAllele(CString allele);
+  void setIdInfo(int chromIndex, int pos, const CString &id);
+  void addAllele(const CString &allele);
 
-  void storePhasedAlleles(QList<int> &als1, QList<int> &als2);
+  void storePhasedAlleles(const QVector<int> &als1, const QVector<int> &als2);
 
   /**
    * Returns the number of samples.
@@ -122,10 +124,10 @@ public:
   BitSetGT() { _d = new BitSetGTSharedData; }
   BitSetGT(const Samples &samples) { _d = new BitSetGTSharedData(samples); }
   BitSetGT(const BitSetGT &other) : _d(other._d) {}
-  void setIdInfo(int chromIndex, int pos, CString id);
-  void setAllele(CString allele);
+  void setIdInfo(int chromIndex, int pos, const CString &id);
+  void addAllele(const CString &allele);
 
-  void storeAlleles(QList<int> &als1, QList<int> &als2, QList<bool> &arePhased);
+  void storeAlleles(const QVector<int> &als1, const QVector<int> &als2, const QVector<bool> &arePhased);
 
   /**
    * Returns the number of samples.

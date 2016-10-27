@@ -9,68 +9,67 @@ will also be used by QDataStream as the I/O device.
 The following outlines the basic overall flow between the outside program and this impute
 library. If this library traps an error, it will signal an error and stop.
 
+-> (The outside program's QProcess signals to the outside program's
+   code that this library has started.)
+
 <- The outside program sends parameters and how many samples are in
    the reference data and the target data.
--> This library responds with an "OK" signal, and possibly with a
-   computed best window size.
+-> This library responds with an "OK" signal, along with a computed best
+   phase/impute window size and a computed best data packet size.
 
-<- The outside program sends reference sample data, if reference data
-   is being used.
+<- The outside program sends reference sample data (sample names), if
+   reference data is being used.
 -> This library responds with an "OK" signal.
 
 <- The outside program sends target sample data.
 -> This library responds with an "OK" signal.
 
 While there is more marker data:
-   -> This library asks for another window of data
 
    If there are both reference and target data:
 
-      While there is more reference data:
+      While there is more reference data in the current window, window
+      boundaries being determined by suggested window size, as well as
+      not crossing chromosome boundaries:
 
-         <- The outside program signals that there is further reference (target)
-            data immediately forthcoming, possibly indicating the exact
-            size of the next chunk.
-         <- The outside program sends about 1/10 th of a window's worth of data.
+         <- The outside program sends a packet of data, preceded by
+            how many markers' worth of data is coming.
          -> This library responds with an "OK" signal.
 
-      <- The outside program either signals that further data exists
-         beyond what has been sent, or alternatively, it signals that
-         the end of the data has been reached.
+      <- The outside program sends a packet starting with zero.
 
-      While this library finds there is possibly a need for more target data (to
-         match the reference data already read for this window):
+      <- The outside program sends a boolean (which might instead be
+         included in the preceding packet, if that's just as easy) as
+         to whether this is the last phase/impute window on this
+         particular chromosome. (If it is, then no overlapping or
+         splicing for transitioning from this window to a "next"
+         window has to be done.)
 
-         -> This library signals the possible need for more target data.
+      While there is more target data ("more" is determined by the
+      chromosome/position range of the reference data just sent--the
+      target data that lies within this same range is what will now be
+      sent):
 
-         If there is more target data available:
+         <- The outside program sends a packet of data, preceded by
+            how many markers' worth of data is coming.
+         -> This library responds with an "OK" signal.
 
-            <- The outside program signals that there is further target data available and
-               immediately forthcoming, possibly indicating the exact size
-               of the next chunk.
-            <- The outside program sends about 1/10 th of a window's
-               worth of data, and this library reads that data and
-               matches it up with the reference data.
-
-         Else (no further target data actually available):
-
-            <- The outside program signals that there is no further target data.
-
-      -> This library signals that it has enough target data for this window.
+      <- The outside program sends a packet starting with zero.
 
    Else (target only):
 
-      While there is more target data:
+      While there is more target data in the current window, window
+      boundaries being determined by suggested window size, as well as
+      not crossing chromosome boundaries:
 
-         <- The outside program signals that there is further target
-            data immediately forthcoming, possibly indicating the exact
-            size of the next chunk.
-         <- The outside program sends about 1/10 th of a window's worth of data.
+         <- The outside program sends a packet of data, preceded by
+            how many markers' worth of data is coming.
          -> This library responds with an "OK" signal.
 
-      <- The outside program either signals that further data exists
-         beyond what has been sent, or alternatively, it signals that
-         the end of the data has been reached.
+      <- The outside program sends a packet starting with zero.
+
+      <- The outside program sends a boolean as to whether this is the
+         last phase/impute window on this particular chromosome.
 
    While phasing this window:
       -> This library signals progress.
@@ -79,11 +78,10 @@ While there is more marker data:
 
       While there is further phasing data to be output for this window:
 
-         -> This library signals that there is further phased output.
-         -> This library sends about 1/10th of a window's worth of phasing data.
+         -> This library sends a packet of phasing data.
          <- The outside program responds with an "OK" signal.
 
-      -> This library signals that there is no further phased output.
+      -> This library sends a packet starting with zero.
 
    If imputation has been requested:
 
@@ -92,10 +90,11 @@ While there is more marker data:
 
       While there is further imputation data to be output for this window:
 
-         -> This library signals that there is further imputation output.
-         -> This library sends about 1/10th of a window's worth of imputation data.
+         -> This library sends a packet of imputation data.
          <- The outside program responds with an "OK" signal.
 
-      -> This library signals that there is no further imputation output.
+      -> This library sends a packet starting with zero.
 
--> This library signals that it is finished, and stops.
+<- The outside program sends a packet starting with zero, to signal
+   that all data has come to an end, and that this library can
+   terminate.

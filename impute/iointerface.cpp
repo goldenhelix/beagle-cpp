@@ -180,9 +180,6 @@ void VcfWindow::checkParameters(int overlap, int desiredWindowSize, GenericDataR
              "VcfWindow::checkParameters",
              "overlap < 0  or  overlap >= desiredWindowSize");
 
-  Q_ASSERT_X(overlap <= dr.maxWindowSize(), "VcfWindow::checkParameters",
-             "overlap > max. window size");
-
   Q_ASSERT_X(overlap <= 0 || !dr.lastWindowOnChrom(),
              "VcfWindow::checkParameters",
              "overlap > 0 after last window on chromosome");

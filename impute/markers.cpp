@@ -44,7 +44,7 @@ int ChromeIds::getIndexIfIndexed(CString name)
     return -1;
 }
 
-void Marker::setIdInfo(int chromIndex, int pos, CString id)
+void Marker::setIdInfo(int chromIndex, int pos, const CString &id)
 {
   _d->chromIndex = chromIndex;
   _d->pos = pos;
@@ -52,7 +52,7 @@ void Marker::setIdInfo(int chromIndex, int pos, CString id)
   _d->nGenotypes = 0;
 }
 
-void Marker::setAllele(CString allele)
+void Marker::addAllele(const CString &allele)
 {
   _d->allelesInMarker.append(allele);
 
