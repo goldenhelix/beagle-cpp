@@ -6,7 +6,8 @@
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
 #include "impute/haplotypepair.h"
-#include "impute/hapalleleprobs.h"
+
+#include <QVector>
 
 class Par
 {
@@ -47,7 +48,7 @@ class RefDataReader : public GenericDataReader
 public:
   virtual bool canAdvanceWindow() const { return false; }
   void makeNewWindow(int overlap);
-  void addNewDataToNewWindow(int windowSize);
+  virtual void addNewDataToNewWindow(int windowSize);  // Re-implementation of this method is optional.
   int windowSize() const { return _vcfRefRecs.length(); }
   virtual bool lastWindowOnChrom() const;  // Re-implementation of this method is optional.
 
@@ -70,7 +71,7 @@ public:
   virtual bool canAdvanceWindow() const = 0;
 
   void makeNewWindow(int overlap);
-  void addNewDataToNewWindow(int windowSize);
+  virtual void addNewDataToNewWindow(int windowSize);  // Re-implementation of this method is optional.
   int windowSize() const { return _vcfEmissions.length(); }
   virtual bool lastWindowOnChrom() const;  // Re-implementation of this method is optional.
 
@@ -417,6 +418,8 @@ private:
   double _sumSquareExpected;
   double _sumCallExpected;
 };
+
+class ConstrainedAlleleProbs;
 
 class ImputeDataWriter
 {

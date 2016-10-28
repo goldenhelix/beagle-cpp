@@ -1,5 +1,7 @@
 #include "impute/iointerface.h"
 
+#include "impute/hapalleleprobs.h"
+
 #define MIN_R2_DEN      1e-8
 
 void RefDataReader::makeNewWindow(int overlap)

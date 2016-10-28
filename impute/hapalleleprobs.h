@@ -2,9 +2,9 @@
 #ifndef HAPALLELEPROBS_H
 #define HAPALLELEPROBS_H
 
-#include <QVector>
-
 #include "impute/haplotypepair.h"
+
+#include <QVector>
 
 /**
  * Class {@code HapAlleleProbs} stores allele probabilities for
