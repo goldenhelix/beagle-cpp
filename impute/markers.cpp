@@ -207,3 +207,18 @@ Markers Markers::restrict(int start, int end) const
 
   return Markers(_d->fwdMarkerArray.mid(start, end - start));
 }
+
+bool Markers::operator==(const Markers &otherMarkers) const
+{
+  int nm = nMarkers();
+  if(nm != otherMarkers.nMarkers())
+    return false;
+
+  for(int m=0; m < nm; m++)
+  {
+    if(!(marker(m) == otherMarkers.marker(m)))
+       return false;
+  }
+
+  return true;
+}

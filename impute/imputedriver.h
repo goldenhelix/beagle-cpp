@@ -97,7 +97,11 @@ namespace ImputeDriver
    * "Lower-level utility" for performing sampling.
    */
   void sample(Dag &dag, SplicedGL &gl, int seed, bool markersAreReversed,
-              int nSamplingsPerIndividual, QList<HapPair> &sampledHaps, int nThreads, bool lowmem);
+              int nSamplingsPerIndividual, QList<HapPair> &sampledHaps,
+              int nThreads, bool lowmem);
+
+  ConstrainedAlleleProbs LSImpute(const CurrentData &cd, const Par &par,
+                                  const SampleHapPairs &targetHapPairs);
 };
 
 #endif

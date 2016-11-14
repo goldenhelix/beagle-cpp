@@ -26,7 +26,7 @@ HapAlleleProbs::HapAlleleProbs(const Markers &markers, const Samples &samples, i
              "HapAlleleProbs::HapAlleleProbs",
              "index out of bounds");
 
-  _alleleBin.fill(alleleProbs.length() - markers.nMarkers());
+  _alleleBin.fill(0, alleleProbs.length() - markers.nMarkers());
   int index = 0;
   for (int m=0, n=markers.nMarkers(); m<n; ++m)
   {
@@ -126,7 +126,7 @@ static bool hapAPComparator(const HapAlleleProbs &p1, const HapAlleleProbs &p2)
 
 // "Normal" constructor:
 ConstrainedAlleleProbs::ConstrainedAlleleProbs(SampleHapPairs shp, QList<HapAlleleProbs> alProbs,
-                                               QList<int> indexMap)
+                                               QList<int> markerIndices)
 {
   Q_ASSERT_X(alProbs.length() > 0,
              "ConstrainedAlleleProbs::ConstrainedAlleleProbs",
@@ -149,30 +149,25 @@ ConstrainedAlleleProbs::ConstrainedAlleleProbs(SampleHapPairs shp, QList<HapAlle
              "inconsistent samples between allele probs");
   }
 
-  Q_ASSERT_X(shp.markers() == _markers,
-             "ConstrainedAlleleProbs::ConstrainedAlleleProbs",
-             "markers inconsistent between allele probs and shp");
-
   Q_ASSERT_X(shp.samples() == _samples,
              "ConstrainedAlleleProbs::ConstrainedAlleleProbs",
              "samples inconsistent between allele probs and shp");
 
-  Q_ASSERT_X(indexMap.length() == _markers.nMarkers(),
-             "ConstrainedAlleleProbs::ConstrainedAlleleProbs",
-             "indexMap.length() != _markers.nMarkers()");
+  int refn  = _markers.nMarkers();
+  int targn = shp.nMarkers();
 
-  for (int j=0; j<indexMap.length(); ++j)
+  _indexMap.fill(-1, refn);
+
+  for (int j=0; j < targn; j++)
   {
-    if (indexMap[j] != -1)
-    {
-      Q_ASSERT_X(_markers.marker(j) == shp.marker(indexMap[j]),
-             "ConstrainedAlleleProbs::ConstrainedAlleleProbs",
-             "markers inconsistent with index map");
-    }
+    Q_ASSERT_X(_markers.marker(markerIndices[j]) == shp.marker(j),
+               "ConstrainedAlleleProbs::ConstrainedAlleleProbs",
+               "markers inconsistent with index map");
+
+    _indexMap[markerIndices[j]] = j;
   }
 
   _shp = shp;
-  _indexMap = indexMap;
 }
 
 // SampleHapPairs-based constructor:

@@ -1,5 +1,7 @@
 #include "impute/imputedriver.h"
 
+#include "impute/imputationdata.h"
+
 #include <QVector>
 
 #define NON_REFERENCE_WEIGHT    1.0
@@ -187,4 +189,27 @@ void ImputeDriver::sample(Dag &dag, SplicedGL &gl, int seed,
     else
       sampledHaps.append(newHaps);
   }
+}
+
+ConstrainedAlleleProbs ImputeDriver::LSImpute(const CurrentData &cd, const Par &par,
+                                              const SampleHapPairs &targetHapPairs)
+{
+  double scaleFactor = 1e-6;
+  PositionMap imputationMap(scaleFactor);
+
+  ImputationData impData = ImputationData(par, cd, targetHapPairs, imputationMap);
+
+  LSHapBaum hb(impData, true);
+
+  QList<HapAlleleProbs> hapAlProbList;
+
+  for (int sample=0, n=targetHapPairs.nSamples(); sample<n; ++sample)
+  {
+    int hap1 = 2*sample;
+    int hap2 = 2*sample+1;
+    hapAlProbList.append(hb.randomHapSample(hap1));
+    hapAlProbList.append(hb.randomHapSample(hap2));
+  }
+
+  return ConstrainedAlleleProbs(targetHapPairs, hapAlProbList, cd.markerIndices());
 }

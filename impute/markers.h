@@ -165,10 +165,7 @@ public:
    * Returns true if the other Markers object has the same two shared
    * data objects in the same order.
    */
-  bool operator==(const Markers &otherMarkers) const
-  {
-    return (_d == otherMarkers._d && _drev == otherMarkers._drev);
-  }
+  bool operator==(const Markers &otherMarkers) const;
 
 private:
   void initSharedDataPointers();

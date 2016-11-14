@@ -110,7 +110,7 @@ void storeAlleles(BitSetGT &trec, const QList<int> &t1, const QList<int> &t2, co
 
 void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmissions,
 				  int missingVal=-1, bool defaultPhasing=false,
-				  bool read6x3=false, bool read4x3=false, bool read4x3B=false)
+				  bool read6x3=false, bool read4x3=false, bool read4x3B=false, bool read4x2=false)
 {
   // Set the data for "samplesT" before there are any other
   // references to the object.
@@ -138,27 +138,30 @@ void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmis
 
   targetEmissions.append(t0);
 
-  BitSetGT t1(samplesT);
-
-  if(read4x3B)
+  if(!read4x2)
   {
-    t1.setIdInfo(ChromeIds::getIndex("17"), 22678, "RS22678");
-    t1.addAllele("C");
-    t1.addAllele("G");
-  }
-  else
-  {
-    t1.setIdInfo(ChromeIds::getIndex("17"), 22345, "RS22345");
-    t1.addAllele("G");
-    t1.addAllele("T");
-  }
+    BitSetGT t1(samplesT);
 
-  QList<int> t11; t11.append(0); t11.append(0); t11.append(1);
-  QList<int> t12; t12.append(1); t12.append((read4x3B) ? 1 : missingVal); t12.append(1);
-  arePhased[0] = true; arePhased[2] = true;
-  storeAlleles(t1, t11, t12, arePhased);
+    if(read4x3B)
+    {
+      t1.setIdInfo(ChromeIds::getIndex("17"), 22678, "RS22678");
+      t1.addAllele("C");
+      t1.addAllele("G");
+    }
+    else
+    {
+      t1.setIdInfo(ChromeIds::getIndex("17"), 22345, "RS22345");
+      t1.addAllele("G");
+      t1.addAllele("T");
+    }
 
-  targetEmissions.append(t1);
+    QList<int> t11; t11.append(0); t11.append(0); t11.append(1);
+    QList<int> t12; t12.append(1); t12.append((read4x3B) ? 1 : missingVal); t12.append(1);
+    arePhased[0] = true; arePhased[2] = true;
+    storeAlleles(t1, t11, t12, arePhased);
+
+    targetEmissions.append(t1);
+  }
 
   BitSetGT t2(samplesT);
 
@@ -296,7 +299,7 @@ void tdrDumpUtility(const QList<BitSetGT> &vma)
 class TargDataReaderTest3x3 : public TargDataReader
 {
 public:
- TargDataReaderTest3x3(bool refReady, bool use4x3=false, bool use4x3B=false) : _position(0)
+ TargDataReaderTest3x3(bool refReady, bool use4x3=false, bool use4x3B=false, bool use4x2=false) : _position(0)
   {
     if(refReady)
       loadTestDataForTargetData3x3(_samples, _targetEmissionsData, 1, true);
@@ -304,6 +307,8 @@ public:
       loadTestDataForTargetData3x3(_samples, _targetEmissionsData, -1, false, false, true);
     else if(use4x3B)
       loadTestDataForTargetData3x3(_samples, _targetEmissionsData, -1, false, false, false, true);
+    else if(use4x2)
+      loadTestDataForTargetData3x3(_samples, _targetEmissionsData, -1, false, false, false, false, true);
     else
       loadTestDataForTargetData3x3(_samples, _targetEmissionsData);
 
@@ -644,7 +649,7 @@ int testPhaseDriverHelper(SampleHapPairs &overlapHaps, const CurrentData &cd, co
     impWriter.printWindowOutput(cd, targetHapPairs, ConstrainedAlleleProbs(targetHapPairs), par);
   else
   {
-    /// impWriter.printWindowOutput(cd, targetHapPairs, imputeDriver::LSImpute(cd, targetHapPairs), par);
+    impWriter.printWindowOutput(cd, targetHapPairs, ImputeDriver::LSImpute(cd, par, targetHapPairs), par);
   }
   
   overlapHaps = ImputeDriver::overlapHaps(cd, targetHapPairs);

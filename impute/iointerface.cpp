@@ -479,12 +479,12 @@ void ImputeDataWriter::printWindowOutput(const CurrentData &cd,
 
 void ImputeDataWriter::setIsImputed(const CurrentData &cd)
 {
-  _isImputed.fill(false, cd.nMarkers());
+  _isImputed.fill(true, cd.nMarkers());
 
   if (cd.nTargetMarkers() < _isImputed.length())
   {
     for (int j=0, n=cd.nTargetMarkers(); j<n; j++)
-      _isImputed[cd.markerIndex(j)] = true;
+      _isImputed[cd.markerIndex(j)] = false;
   }
 }
 
@@ -496,7 +496,7 @@ void ImputeDataWriter::printWindowData(const ConstrainedAlleleProbs &alProbs)
 
   initializeForWindow(4*alProbs.nSamples());
 
-  for (int _mNum=_start; _mNum < _end; ++_mNum)
+  for (_mNum=_start; _mNum < _end; ++_mNum)
   {
     const Marker &marker = alProbs.marker(_mNum);
     resetRec(marker);

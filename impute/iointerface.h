@@ -25,6 +25,9 @@ public:
   virtual double modelScale() const { return 0.8; }
   virtual bool impute() const { return true; }
   virtual bool gprobs() const { return false; }
+  virtual float cluster() const { return (float) 0.005; }
+  virtual float ne() const { return 1000000.0; }
+  virtual float err() const { return (float) 0.0001; }
 };
 
 class GenericDataReader
@@ -332,7 +335,7 @@ public:
    * Returns a list of reference haplotype pairs, or returns {@code null}
    * if there are no reference samples.
    */
-  SampleHapPairs refSampleHapPairs() const { return _refSampleHapPairs; }
+  RefHapPairs refSampleHapPairs() const { return _refSampleHapPairs; }
   /**
    * Returns the genotype likelihoods for the
    * target samples at the target data markers.
@@ -376,7 +379,7 @@ private:
   QList<int> _markerIndex;
 
   QList<HapPair> _restRefHapPairs;
-  SampleHapPairs _refSampleHapPairs;
+  RefHapPairs _refSampleHapPairs;
   SampleHapPairs _restrictedRefSampleHapPairs;
 
   // QList<float> _recombRate;

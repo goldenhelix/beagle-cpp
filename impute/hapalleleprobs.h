@@ -223,8 +223,8 @@ public:
   Samples samples() const { return _samples; }
 
 private:
-  SampleHapPairs _shp;   // Use _alleleProbs if _indexMap[j] == -1. Otherwise,
-  QList<int> _indexMap;  // use _shp on (target) marker #(_indexMap[j]).
+  SampleHapPairs _shp;     // Use _alleleProbs if _indexMap[j] == -1. Otherwise,
+  QVector<int> _indexMap;  // use _shp on (target) marker #(_indexMap[j]).
 
   Markers _markers;
   Samples _samples;

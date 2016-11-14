@@ -1476,7 +1476,7 @@ void TestImputeDataStructures::testAllData4x4and3x3Sample()
   clearStaticTestLists();
 
   RefDataReaderTest4x4 rr;
-  TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
+  TargDataReaderTest3x3 tr(false, false, false, true);  // Actually use 4x2 configuration for unphased data.
 
   // NOTE: The first, second, and fourth reference markers match
   // target markers.
