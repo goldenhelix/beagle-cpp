@@ -11,6 +11,7 @@ void RefDataReader::makeNewWindow(int overlap)
   _vcfRefRecs = _oldVcfRefRecs;
 }
 
+// Re-implementation of this method is optional.
 void RefDataReader::addNewDataToNewWindow(int desiredWindowSize)
 {
   int cci = currentChromIndex();
@@ -34,6 +35,7 @@ void RefDataReader::addNewDataToNewWindow(int desiredWindowSize)
   _markers = Markers(markerlist);
 }
 
+// Re-implementation of this method is optional.
 bool RefDataReader::lastWindowOnChrom() const
 {
   return (!hasNextRec() || !(sameChrom(nextRec(), _vcfRefRecs[0])));
@@ -64,54 +66,6 @@ void TargDataReader::makeNewWindow(int overlap)
   _oldVcfEmissions = _vcfEmissions.mid(_vcfEmissions.length() - overlap);
   _vcfEmissions.clear();
   _vcfEmissions = _oldVcfEmissions;
-}
-
-void TargDataReader::addNewDataToNewWindow(int desiredWindowSize)
-{
-  int cci = currentChromIndex();
-  while (_vcfEmissions.length() < desiredWindowSize && hasNextRec() &&
-         nextRec().marker().chromIndex() == cci) {
-    _vcfEmissions.append(nextRec());
-    advanceRec();
-  }
-
-  // add all markers at the same marker position
-  BitSetGT last = _vcfEmissions[_vcfEmissions.length() - 1];
-  while (hasNextRec() && samePosition(last, nextRec())) {
-    _vcfEmissions.append(nextRec());
-    advanceRec();
-  }
-
-  QList<Marker> markerlist;
-  for (int i = 0; i < _vcfEmissions.length(); i++)
-    markerlist.append(_vcfEmissions[i].marker());
-
-  _markers = Markers(markerlist);
-}
-
-bool TargDataReader::lastWindowOnChrom() const
-{
-  return (!hasNextRec() || !(sameChrom(nextRec(), _vcfEmissions[0])));
-}
-
-bool TargDataReader::sameChrom(const BitSetGT &a, const BitSetGT &b) const
-{
-  return a.marker().chromIndex() == b.marker().chromIndex();
-}
-
-bool TargDataReader::samePosition(const BitSetGT &a, const BitSetGT &b) const
-{
-  return sameChrom(a, b) && a.marker().pos() == b.marker().pos();
-}
-
-int TargDataReader::currentChromIndex() const
-{
-  if (_vcfEmissions.length()) {
-    return _vcfEmissions[0].marker().chromIndex();
-  } else if (hasNextRec()) {
-    return nextRec().marker().chromIndex();
-  } else
-    return -1;
 }
 
 QList<int> TargDataReader::restrictedMakeNewWindow(const QList<int> &oldRefIndices,
@@ -164,6 +118,56 @@ void TargDataReader::restrictedAdvanceWindow(QList<int> &refIndices, int refOver
     markerlist.append(_vcfEmissions[i].marker());
 
   _markers = Markers(markerlist);
+}
+
+// Re-implementation of this method is optional.
+void TargDataReader::addNewDataToNewWindow(int desiredWindowSize)
+{
+  int cci = currentChromIndex();
+  while (_vcfEmissions.length() < desiredWindowSize && hasNextRec() &&
+         nextRec().marker().chromIndex() == cci) {
+    _vcfEmissions.append(nextRec());
+    advanceRec();
+  }
+
+  // add all markers at the same marker position
+  BitSetGT last = _vcfEmissions[_vcfEmissions.length() - 1];
+  while (hasNextRec() && samePosition(last, nextRec())) {
+    _vcfEmissions.append(nextRec());
+    advanceRec();
+  }
+
+  QList<Marker> markerlist;
+  for (int i = 0; i < _vcfEmissions.length(); i++)
+    markerlist.append(_vcfEmissions[i].marker());
+
+  _markers = Markers(markerlist);
+}
+
+// Re-implementation of this method is optional.
+bool TargDataReader::lastWindowOnChrom() const
+{
+  return (!hasNextRec() || !(sameChrom(nextRec(), _vcfEmissions[0])));
+}
+
+bool TargDataReader::sameChrom(const BitSetGT &a, const BitSetGT &b) const
+{
+  return a.marker().chromIndex() == b.marker().chromIndex();
+}
+
+bool TargDataReader::samePosition(const BitSetGT &a, const BitSetGT &b) const
+{
+  return sameChrom(a, b) && a.marker().pos() == b.marker().pos();
+}
+
+int TargDataReader::currentChromIndex() const
+{
+  if (_vcfEmissions.length()) {
+    return _vcfEmissions[0].marker().chromIndex();
+  } else if (hasNextRec()) {
+    return nextRec().marker().chromIndex();
+  } else
+    return -1;
 }
 
 void VcfWindow::advanceWindow(int overlap, int desiredWindowSize, GenericDataReader &dr)
@@ -481,11 +485,8 @@ void ImputeDataWriter::setIsImputed(const CurrentData &cd)
 {
   _isImputed.fill(true, cd.nMarkers());
 
-  if (cd.nTargetMarkers() < _isImputed.length())
-  {
-    for (int j=0, n=cd.nTargetMarkers(); j<n; j++)
-      _isImputed[cd.markerIndex(j)] = false;
-  }
+  for (int j = 0, n = cd.nTargetMarkers(); j<n; j++)
+    _isImputed[cd.markerIndex(j)] = false;
 }
 
 void ImputeDataWriter::printWindowData(const ConstrainedAlleleProbs &alProbs)
@@ -494,6 +495,50 @@ void ImputeDataWriter::printWindowData(const ConstrainedAlleleProbs &alProbs)
              "ImputeDataWriter::printWindowData",
              "inconsistent data");
 
+  initializeForWindow(4*alProbs.nSamples());
+
+  for (_mNum=_start; _mNum < _end; ++_mNum)
+  {
+    const Marker &marker = alProbs.marker(_mNum);
+    resetRec(marker);
+    _alProbs1.fill(0.0, marker.nAlleles());
+    _alProbs2.fill(0.0, marker.nAlleles());
+    for (int sample=0, n=alProbs.nSamples(); sample<n; ++sample)
+    {
+      for (int j=0; j < _alProbs1.length(); ++j)
+      {
+        _alProbs1[j] = alProbs.alProb1(_mNum, sample, j);
+        _alProbs2[j] = alProbs.alProb2(_mNum, sample, j);
+      }
+      constructSampleDataForMarker();
+    }
+    finishAndWriteRec();
+  }
+}
+
+void ImputeDataWriter::printWindowOutput(const CurrentData &cd,
+                                         const SampleHapPairs &targetHapPairs,
+                                         const ConstrainedGLAlleleProbs &alProbs,
+                                         const Par &par)
+{
+  _start = cd.prevSpliceStart();
+  _end = cd.nextSpliceStart();
+
+  Q_ASSERT_X(_start <= _end,
+             "ImputeDataWriter::printWindowOutput",
+             "start > end");
+
+  _printDS = false;     // Dosage
+  _printGP = false;     // Genotype probs
+
+  printWindowData(alProbs);
+
+  /// if (par.ibd())
+  ///   printIbd(cd, ibd);
+}
+
+void ImputeDataWriter::printWindowData(const ConstrainedGLAlleleProbs &alProbs)
+{
   initializeForWindow(4*alProbs.nSamples());
 
   for (_mNum=_start; _mNum < _end; ++_mNum)

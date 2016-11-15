@@ -23,9 +23,11 @@ private slots:
   void testAllData6x4and4x3();
   void testAllData6x4and4x3B();
   void testTargetData3x3LEandInitHaps();
+  void testRefTargetData3x3Sample();
   void testTargetData3x3Sample();
   void testTargetData4x3Sample();
-  void testAllData4x4and3x3Sample();
+  void testAllData4x4and3x2Sample();
+  void testAllData4x4and3x2CSample();
   void testAllData6x4and4x3Sample();
   void testAllData6x4and4x3BSample();
 };
@@ -1438,20 +1440,39 @@ void TestImputeDataStructures::testTargetData3x3LEandInitHaps()
   hpDump(hp);
 }
 
-void TestImputeDataStructures::testTargetData3x3Sample()
+void TestImputeDataStructures::testRefTargetData3x3Sample()
 {
-  outputDumps = false;
+  // outputDumps = false;
 
   RefDataReader rr;
-  TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
+  TargDataReaderTest3x3 tr(
+      true);  // "true" setting gives reference-ready data over two chromosomes.
 
-  tr.tdrDump();
+  // tr.tdrDump();
 
   TargetData td;
 
   TestParW parw;
   TestDataWriter dw(tr.samples());
-  testPhaseDriver(td, tr, rr, dw, parw.window(), parw);
+
+  ImputeDriver::phaseAndImpute(td, tr, rr, dw, parw.window(), parw);
+}
+
+void TestImputeDataStructures::testTargetData3x3Sample()
+{
+  // outputDumps = false;
+
+  RefDataReader rr;
+  TargDataReaderTest3x3 tr(false);  // "false" setting gives unphased data.
+
+  // tr.tdrDump();
+
+  TargetData td;
+
+  TestParW parw;
+  TestDataWriter dw(tr.samples());
+
+  ImputeDriver::phaseAndImpute(td, tr, rr, dw, parw.window(), parw);
 }
 
 void TestImputeDataStructures::testTargetData4x3Sample()
@@ -1461,61 +1482,82 @@ void TestImputeDataStructures::testTargetData4x3Sample()
   RefDataReader rr;
   TargDataReaderTest3x3 tr(false, true);  // Use 4 x 3 unphased data.
 
-  tr.tdrDump();
+  // tr.tdrDump();
 
   TargetData td;
 
   TestParW parw;
 
   TestDataWriter dw(tr.samples());
-  testPhaseDriver(td, tr, rr, dw, parw.window(), parw);
+
+  ImputeDriver::phaseAndImpute(td, tr, rr, dw, parw.window(), parw);
 }
 
-void TestImputeDataStructures::testAllData4x4and3x3Sample()
+void TestImputeDataStructures::testAllData4x4and3x2Sample()
 {
-  clearStaticTestLists();
-
   RefDataReaderTest4x4 rr;
-  TargDataReaderTest3x3 tr(false, false, false, true);  // Actually use 4x2 configuration for unphased data.
 
-  // NOTE: The first, second, and fourth reference markers match
-  // target markers.
+  // Actually use 4x2 configuration for unphased data.
+  TargDataReaderTest3x3 tr(false, false, false, true);
 
-  tr.tdrDump();
+  // NOTE: The first and fourth reference markers match target
+  // markers.
+
+  // tr.tdrDump();
 
   AllData ad;
 
   TestParW parw;
 
   TestDataWriter dw(tr.samples());
-  testPhaseDriver(ad, tr, rr, dw, parw.window(), parw);
+
+  ImputeDriver::phaseAndImpute(ad, tr, rr, dw, parw.window(), parw);
+}
+
+void TestImputeDataStructures::testAllData4x4and3x2CSample()
+{
+  RefDataReaderTest4x4 rr;
+
+  // Use secondary 4x2 configuration ("4x2C") for unphased data.
+  TargDataReaderTest3x3 tr(false, false, false, false, true);
+
+  // NOTE: The first and third reference markers match target
+  // markers. Note the "overhang" of one reference marker past
+  // the last target marker.
+
+  // tr.tdrDump();
+
+  AllData ad;
+
+  TestParW parw;
+
+  TestDataWriter dw(tr.samples());
+
+  ImputeDriver::phaseAndImpute(ad, tr, rr, dw, parw.window(), parw);
 }
 
 void TestImputeDataStructures::testAllData6x4and4x3Sample()
 {
-  clearStaticTestLists();
-
   RefDataReaderTest4x4 rr(true);          // Use 6 x 4 reference data.
   TargDataReaderTest3x3 tr(false, true);  // Use 4 x 3 unphased data.
 
   // NOTE: The first, second, fourth, and sixth reference markers
   // match target markers.
 
-  tr.tdrDump();
+  // tr.tdrDump();
 
   AllData ad;
 
   TestParW parw;
 
   TestDataWriter dw(tr.samples());
-  testPhaseDriver(ad, tr, rr, dw, parw.window(), parw);
+
+  ImputeDriver::phaseAndImpute(ad, tr, rr, dw, parw.window(), parw);
 }
 
 void TestImputeDataStructures::testAllData6x4and4x3BSample()
 {
   // outputDumps = true;
-
-  clearStaticTestLists();
 
   RefDataReaderTest4x4 rr(true);                 // Use 6 x 4 reference data.
   TargDataReaderTest3x3 tr(false, false, true);  // Use 4 x 3 alternative unphased data.
@@ -1530,7 +1572,9 @@ void TestImputeDataStructures::testAllData6x4and4x3BSample()
   TestParW parw;
 
   TestDataWriter dw(tr.samples());
-  testPhaseDriver(ad, tr, rr, dw, parw.window(), parw);
+
+  // testPhaseDriver(ad, tr, rr, dw, parw.window(), parw);
+  ImputeDriver::phaseAndImpute(ad, tr, rr, dw, parw.window(), parw);
 }
 
 QTEST_MAIN(TestImputeDataStructures)

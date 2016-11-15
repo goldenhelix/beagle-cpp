@@ -49,17 +49,21 @@ protected:
 class RefDataReader : public GenericDataReader
 {
 public:
-  virtual bool canAdvanceWindow() const { return false; }
   void makeNewWindow(int overlap);
-  virtual void addNewDataToNewWindow(int windowSize);  // Re-implementation of this method is optional.
-  int windowSize() const { return _vcfRefRecs.length(); }
-  virtual bool lastWindowOnChrom() const;  // Re-implementation of this method is optional.
 
+  int windowSize() const { return _vcfRefRecs.length(); }
   QList<BitSetRefGT> refRecs() const { return _vcfRefRecs; }
+
+  virtual bool canAdvanceWindow() const { return false; }
+
+  virtual void addNewDataToNewWindow(int windowSize);      // Re-implementation of this method is optional.
+  virtual bool lastWindowOnChrom() const;                  // Re-implementation of this method is optional.
+
 protected:
   virtual bool hasNextRec() const { return false; }
   virtual BitSetRefGT nextRec() const { return BitSetRefGT(); }
   virtual void advanceRec() {}
+
   bool sameChrom(const BitSetRefGT &a, const BitSetRefGT &b) const;
   bool samePosition(const BitSetRefGT &a, const BitSetRefGT &b) const;
   int currentChromIndex() const;
@@ -71,17 +75,20 @@ protected:
 class TargDataReader : public GenericDataReader
 {
 public:
-  virtual bool canAdvanceWindow() const = 0;
-
   void makeNewWindow(int overlap);
-  virtual void addNewDataToNewWindow(int windowSize);  // Re-implementation of this method is optional.
-  int windowSize() const { return _vcfEmissions.length(); }
-  virtual bool lastWindowOnChrom() const;  // Re-implementation of this method is optional.
 
   QList<int> restrictedMakeNewWindow(const QList<int> &oldRefIndices, int overlap);
   void restrictedAdvanceWindow(QList<int> &refIndices, int refOverlap, const Markers &nextMarkers);
-  int restrictedCumMarkerCount() { return _restrictedCumMarkerCnt; }
+
+  int windowSize() const { return _vcfEmissions.length(); }
   QList<BitSetGT> vcfRecs() const { return _vcfEmissions; }
+  int restrictedCumMarkerCount() { return _restrictedCumMarkerCnt; }
+
+  virtual bool canAdvanceWindow() const = 0;
+
+  virtual void addNewDataToNewWindow(int windowSize);      // Re-implementation of this method is optional.
+  virtual bool lastWindowOnChrom() const;                  // Re-implementation of this method is optional.
+
 protected:
   virtual bool hasNextRec() const = 0;
   virtual BitSetGT nextRec() const = 0;
@@ -423,6 +430,7 @@ private:
 };
 
 class ConstrainedAlleleProbs;
+class ConstrainedGLAlleleProbs;
 
 class ImputeDataWriter
 {
@@ -434,11 +442,16 @@ public:
                          const ConstrainedAlleleProbs &alProbs,
                          const Par &par);
 
-  virtual void writeHeader() = 0;
-  virtual void writeEOF() = 0;
+  void printWindowOutput(const CurrentData &cd,
+                         const SampleHapPairs &targetHapPairs,
+                         const ConstrainedGLAlleleProbs &alProbs,
+                         const Par &par);
 
   Samples samples() const { return _samples; }
   // Markers markers() const { return _markers; }
+
+  virtual void writeHeader() = 0;
+  virtual void writeEOF() = 0;
 
 protected:
   virtual void initializeWindowBuffering(const int initSize) = 0;
@@ -474,6 +487,7 @@ protected:
 private:
   void setIsImputed(const CurrentData &cd);
   void printWindowData(const ConstrainedAlleleProbs &alProbs);
+  void printWindowData(const ConstrainedGLAlleleProbs &alProbs);
   void initializeForWindow(const int initSize);
   void resetRec(const Marker &marker);
   void constructSampleDataForMarker();

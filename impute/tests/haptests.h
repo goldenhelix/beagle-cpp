@@ -110,7 +110,8 @@ void storeAlleles(BitSetGT &trec, const QList<int> &t1, const QList<int> &t2, co
 
 void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmissions,
 				  int missingVal=-1, bool defaultPhasing=false,
-				  bool read6x3=false, bool read4x3=false, bool read4x3B=false, bool read4x2=false)
+				  bool read6x3=false, bool read4x3=false, bool read4x3B=false,
+				  bool read4x2=false, bool read4x2C=false)
 {
   // Set the data for "samplesT" before there are any other
   // references to the object.
@@ -142,7 +143,7 @@ void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmis
   {
     BitSetGT t1(samplesT);
 
-    if(read4x3B)
+    if(read4x3B  ||  read4x2C)
     {
       t1.setIdInfo(ChromeIds::getIndex("17"), 22678, "RS22678");
       t1.addAllele("C");
@@ -163,18 +164,21 @@ void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmis
     targetEmissions.append(t1);
   }
 
-  BitSetGT t2(samplesT);
+  if(!read4x2C)
+  {
+    BitSetGT t2(samplesT);
 
-  t2.setIdInfo(ChromeIds::getIndex("17"), 33345, "RS33345");
-  t2.addAllele("A");
-  t2.addAllele("T");
+    t2.setIdInfo(ChromeIds::getIndex("17"), 33345, "RS33345");
+    t2.addAllele("A");
+    t2.addAllele("T");
 
-  QList<int> t21; t21.append(0); t21.append(1); t21.append(1);
-  QList<int> t22; t22.append(missingVal); t22.append(0); t22.append(0);
-  arePhased[0] = defaultPhasing; arePhased[2] = defaultPhasing;
-  storeAlleles(t2, t21, t22, arePhased);
+    QList<int> t21; t21.append(0); t21.append(1); t21.append(1);
+    QList<int> t22; t22.append(missingVal); t22.append(0); t22.append(0);
+    arePhased[0] = defaultPhasing; arePhased[2] = defaultPhasing;
+    storeAlleles(t2, t21, t22, arePhased);
 
-  targetEmissions.append(t2);
+    targetEmissions.append(t2);
+  }
 
   if(read6x3)
   {
@@ -299,7 +303,8 @@ void tdrDumpUtility(const QList<BitSetGT> &vma)
 class TargDataReaderTest3x3 : public TargDataReader
 {
 public:
- TargDataReaderTest3x3(bool refReady, bool use4x3=false, bool use4x3B=false, bool use4x2=false) : _position(0)
+ TargDataReaderTest3x3(bool refReady, bool use4x3=false, bool use4x3B=false,
+		       bool use4x2=false, bool use4x2C=false) : _position(0)
   {
     if(refReady)
       loadTestDataForTargetData3x3(_samples, _targetEmissionsData, 1, true);
@@ -309,6 +314,8 @@ public:
       loadTestDataForTargetData3x3(_samples, _targetEmissionsData, -1, false, false, false, true);
     else if(use4x2)
       loadTestDataForTargetData3x3(_samples, _targetEmissionsData, -1, false, false, false, false, true);
+    else if(use4x2C)
+      loadTestDataForTargetData3x3(_samples, _targetEmissionsData, -1, false, false, false, false, false, true);
     else
       loadTestDataForTargetData3x3(_samples, _targetEmissionsData);
 
@@ -598,7 +605,7 @@ void TestDataWriter::outputFormat()
     _outRec.append("  GT");
 }
 
-
+/*
 QList<HapPair> testPhase(CurrentData &cd, const Par &par)
 {
   QList<HapPair> hapPairs = ImputeDriver::initialHaps(cd, par);
@@ -640,6 +647,15 @@ QList<HapPair> testPhase(CurrentData &cd, const Par &par)
 }
 
 int testPhaseDriverHelper(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par,
+                          ImputeDataWriter &impWriter, const GLSampleHapPairs &targetHapPairs)
+{
+  impWriter.printWindowOutput(cd, targetHapPairs, ConstrainedGLAlleleProbs(targetHapPairs), par);
+  
+  overlapHaps = ImputeDriver::overlapHaps(cd, targetHapPairs);
+  return cd.nMarkers() - cd.nextOverlapStart();
+}
+
+int testPhaseDriverHelper(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par,
                           ImputeDataWriter &impWriter, const SampleHapPairs &targetHapPairs)
 {
   // Neither a "printGV" method nor a "refinedIbd" method is invoked here at this time.
@@ -669,7 +685,7 @@ void testPhaseDriver(InputData &data, TargDataReader &targReader, RefDataReader 
     data.setCdData(cd, par, overlapHaps, targReader, refReader);
 
     if (cd.targetGL().isRefData())
-      overlap = testWindowDriverHelper(overlapHaps, cd, par, GLSampleHapPairs(cd.targetGL(), true));
+      overlap = testPhaseDriverHelper(overlapHaps, cd, par, impWriter, GLSampleHapPairs(cd.targetGL(), true));
     else
     {
       QList<HapPair> hapPairs = testPhase(cd, par);  //   QList<HapPair> hapPairs = ImputeDriver::phase(cd, par);
@@ -677,5 +693,5 @@ void testPhaseDriver(InputData &data, TargDataReader &targReader, RefDataReader 
     }
   }
   impWriter.writeEOF();
-}
+  } */
 

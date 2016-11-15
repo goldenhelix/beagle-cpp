@@ -1,26 +1,30 @@
 #ifndef IMPUTEDRIVER_H
 #define IMPUTEDRIVER_H
 
+#include "impute/baumhmm.h"
+#include "impute/consensusphaser.h"
+#include "impute/dag.h"
+#include "impute/hapalleleprobs.h"
+#include "impute/haplotypepair.h"
+#include "impute/iointerface.h"
 #include "impute/markers.h"
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
-#include "impute/haplotypepair.h"
-#include "impute/iointerface.h"
-#include "impute/dag.h"
-#include "impute/baumhmm.h"
-#include "impute/consensusphaser.h"
-#include "impute/hapalleleprobs.h"
 
 namespace ImputeDriver
 {
   SampleHapPairs overlapHaps(const CurrentData &cd, const SampleHapPairs &targetHapPairs);
 
-  //// int windowDriverHelper(SampleHapPairs &overlapHaps, const CurrentData &cd,
-  ////                        const SampleHapPairs &targetHapPairs);
+  QList<HapPair> phase(CurrentData &cd, const Par &par);
 
-  //// void windowDriver(InputData &data, TargDataReader &targReader,
-  ////                   RefDataReader &refReader, int windowSize, const Par &par);
+  int finishWindow(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par,
+                   ImputeDataWriter &impWriter, const GLSampleHapPairs &targetHapPairs);
 
+  int finishWindow(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par,
+                   ImputeDataWriter &impWriter, const SampleHapPairs &targetHapPairs);
+
+  void phaseAndImpute(InputData &data, TargDataReader &targReader, RefDataReader &refReader,
+                      ImputeDataWriter &impWriter, int windowSize, const Par &par);
 
   /**
    * Phases the current window of genotype data. Returns the phased
@@ -97,8 +101,7 @@ namespace ImputeDriver
    * "Lower-level utility" for performing sampling.
    */
   void sample(Dag &dag, SplicedGL &gl, int seed, bool markersAreReversed,
-              int nSamplingsPerIndividual, QList<HapPair> &sampledHaps,
-              int nThreads, bool lowmem);
+              int nSamplingsPerIndividual, QList<HapPair> &sampledHaps, int nThreads, bool lowmem);
 
   ConstrainedAlleleProbs LSImpute(const CurrentData &cd, const Par &par,
                                   const SampleHapPairs &targetHapPairs);

@@ -1,0 +1,53 @@
+INPUT-OUTPUT CONTROL FLOW FOR THE IMPUTATION MODULE
+
+Three classes (the source code for which is in iointerface.{h,cpp})
+control the input and output flow for this program. These classes, and
+the virtual methods they need to have re-implemented, are:
+
+(1) RefDataReader (subclasses GenericDataReader)
+  virtual bool canAdvanceWindow() const { return false; } *
+
+  virtual void addNewDataToNewWindow(int windowSize);      // Re-implementation of this method is optional. **
+  virtual bool lastWindowOnChrom() const;                  // Re-implementation of this method is optional. **
+
+  virtual bool hasNextRec() const { return false; } *
+  virtual BitSetRefGT nextRec() const { return BitSetRefGT(); } *
+  virtual void advanceRec() {} *
+
+(2) TargDataReader (also subclasses GenericDataReader)
+  virtual bool canAdvanceWindow() const = 0;
+
+  virtual void addNewDataToNewWindow(int windowSize);      // Re-implementation of this method is optional. **
+  virtual bool lastWindowOnChrom() const;                  // Re-implementation of this method is optional. **
+
+  virtual bool hasNextRec() const = 0;
+  virtual BitSetGT nextRec() const = 0;
+  virtual void advanceRec() = 0;
+
+(3) ImputeDataWriter
+  virtual void writeHeader() = 0;
+  virtual void writeEOF() = 0;
+
+  virtual void initializeWindowBuffering(const int initSize) = 0;
+  virtual void appendPhasedVariantData() = 0;
+  virtual void finishAndWriteRec() = 0;
+
+*  Implementations exist here for RefDataReader so it may be used as a dummy reader.
+
+** For debugging, I did not need to re-implement these. I also think
+   that these will not need to be re-implemented for reading from a
+   file. For inter-process streaming, however, it seems better to only
+   stream data from one chromosome at a time, and that would require
+   re-implementation of these two methods.
+
+
+These methods have been re-implemented for debugging in the following
+classes, to be found in tests/haptests.h:
+
+(1) RefDataReaderTest4x4
+
+(2) TargDataReaderTest3x3 and RefTargDataReaderTest6x3
+
+(3) TestDataWriter (NOTE: A little bit of the Java code was ported into
+    some parts of this class to assist in printing some of the data
+    fields.)
