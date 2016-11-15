@@ -1,0 +1,120 @@
+WHERE RANDOM NUMBERS ARE USED IN THE PHASING/IMPUTATION PROJECT
+
+To perform integration testing, it is much easier to suppress random
+numbers in both the project to be compared and the project to be
+compared with, and use some sort of reasonable reproducible
+substitute.
+
+The following places in both the Java code and its ported counterpart
+represent where random numbers are used, and what represent reasonable
+equivalents for testing purposes.
+
+
+Java: haplotype/ConsensusPhaser.java  ==========================================================
+
+  Object constructed at line 66, as
+        Random random = new Random(copy.size());
+
+  Passed down (through consensus and hapPairWithConsensusGT) to consensusGT, where it is used on line 178 as
+        int start = random.nextInt(gtCounts.length);
+
+  Also passed down (through consensus) to relPhase, where it is used as a "tiebreaker" on line 246 as
+            return rand.nextBoolean() ? Phase.IDENTICAL : Phase.OPPOSITE;
+
+C++: consensusphaser.cpp
+
+  Comment constructs at line 232 and passes in comment form through
+  consensus and hapPairWithConsensusGT to consensusGT and through
+  consensus to relPhase.
+
+  At consensusGT, the code (lines 135-136) is
+    /// int start = random.nextInt(gtclen);
+    int start = gtclen / 2;
+
+  At relPhase, the code (lines 92-93) is
+    /// return rand.nextBoolean() ? ConsensusPhaser::IDENTICAL : ConsensusPhaser::OPPOSITE;
+    return ConsensusPhaser::IDENTICAL;
+
+
+Java: haplotype/GenotypeCorrection.java  ==========================================================
+
+  Object constructed at line 69 (and also in the debug method on line 111) as
+        Random random = new Random(seed);  (NOTE: This is one place where the par.seed() parameter is actually used.)
+
+  Passed down to getEdits, where it is used on line 151 as
+        if (gl.isPhased(marker, sample)==false && random.nextBoolean()) { ....
+
+C++: (Will be part of the 4.1 port.)
+
+
+Java: main/HapPairSampler.java and  ==========================================================
+      sample/SingleBaum.java
+
+  In lines 179 and 209 of HapPairSampler, a random-number object is constructed as
+        Random rand = new Random(par.seed());  (NOTE: These are also places where the par.seed() parameter is used.)
+
+  The constructor of SingleBaum is then called (for each thread) using
+        rand.nextLong()
+  as one of the parameters.
+
+  In SingleBaum, the above parameter is
+        long seed
+  (and is copied into the class variable
+        this.seed) .
+
+  Also in SingleBaum, the constructor has
+        this.random = new Random(seed);
+
+  In the first line of SingleBaum.initialRandomState (line 197), we have
+        double d = random.nextDouble();
+
+  Similarly, in the first line of SingleBaum.randomPreviousState (line 236), we have
+        double d = random.nextDouble() * nodeValue;
+
+C++: baumhmm.cpp
+
+  (NOTE: The current C++ simply passes par.seed() to instances of SingleBaum.)
+
+  In the first lines of SingleBaum::initialRandomState (lines 259-261), we have
+    //////////////////  double d = random.nextDouble();
+    //////////////////  double d = 0.5;
+    double d = (double) copy / (double)(_nSamplingsPerIndividual + 1);
+
+  Similarly, in the first lines of SingleBaum::randomPreviousState (lines 304-306), we have
+    //////////////////  double d = random.nextDouble() * nodeValue;
+    //////////////////  double d = 0.5 * nodeValue;
+    double d = (double) copy / (double)(_nSamplingsPerIndividual + 1);
+
+  NOTE: _nSamplingsPerIndividual is called (this.)nSamplesPerIndividual in Java, and thus should
+        readily be available for matching the above code.
+
+
+Java: main/RecombHapPairSampler.java and  ==========================================================
+      sample/RecombSingleBaum.java
+
+  In lines 124 and 154 of RecombHapPairSampler, a random-number object is constructed as
+        Random rand = new Random(par.seed());  (NOTE: These are thirdly places where the par.seed() parameter is used.)
+
+  The constructor of RecombSingleBaum is then called (for each thread) using
+        rand.nextLong()
+  as one of the parameters.
+
+  In RecombSingleBaum, the above parameter is
+        long seed
+  (and is copied into the class variable
+        this.seed) .
+
+  Also in RecombSingleBaum, the constructor has
+        this.random = new Random(seed);
+
+  In RecombSingleBaum.estMeanSize, we have a usage (within a loop) as
+            sizeSum += levels[random.nextInt(levels.length)].size();
+
+  In the first line of RecombSingleBaum.initialRandomState (line 219), we have
+        float d = random.nextFloat();
+
+  Similarly, near the beginning of RecombSingleBaum.randomPreviousState (line 260), we have
+        float d = random.nextFloat() * maxSum[copy];
+
+C++: (Will be part of the 4.1 port.)
+

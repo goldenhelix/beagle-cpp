@@ -144,26 +144,8 @@ QList<HapPair> ImputeDriver::sample(const CurrentData &cd, const Par &par, QList
   int nSampledHaps = par.nSamplingsPerIndividual() * cd.nTargetSamples();
   SplicedGL gl(cd.targetGL(), useRevDag);
 
-  //// Dag dag = getDagsAndUpdatePos(cd, hapPairs, useRevDag);
-  //// Dag dag(cd, par.modelscale(), hapPairs, useRevDag));
-  ////   private Dag ImputeDriver::getDagsAndUpdatePos(CurrentData cd, List<HapPair> hapPairs,
-  ////           boolean useRevDag) {
-
   cd.addRestrictedRefHapPairs(hapPairs);
   HapPairs dagHaps(hapPairs, useRevDag);
-
-  //// float[] wts = cd.weights().get(dagHaps, cd);
-  //// Dag dag = makeDag(dagHaps, wts, par.modelscale());
-  //// private Dag ImputeDriver::makeDag(HapPairs hapPairs, float[] weights, float scale) {
-  ////   long t0 = System.nanoTime();
-  ////   int nInitLevels = 500;
-  ////   Dag dag = MergeableDag.dag(hapPairs, weights, scale, nInitLevels);
-  ////   runStats.buildNanos(System.nanoTime() - t0);
-  ////   return dag;
-  //// }
-  ////       // runStats.setDagStats(dag);
-  ////       return dag;
-  ////   }
 
   ImmutableDag dag(dagHaps, ImputeDriver::getHapWeights(dagHaps, cd), par.modelScale(),
                    par.dagInitLevels());
