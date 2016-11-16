@@ -11,66 +11,6 @@
 #include <QMapIterator>
 
 
-class SingleBaumInterface
-{
-public:
-
-    /**
-     * Returns the directed acyclic graph that determines the transition
-     * probabilities.
-     */
-    virtual Dag &dag() const = 0;
-
-    /**
-     * Returns the emission probabilities.
-     */
-    virtual SplicedGL &gl() const = 0;
-
-    /**
-     * Returns the number of haplotype pairs that are sampled for each
-     * individual.
-     */
-    virtual int nSamplingsPerIndividual() const = 0;
-
-    /**
-     * Returns the initial random seed.
-     */
-    virtual int seed() const = 0;
-
-    /**
-     * <p>Returns a list of {@code this.nSamplingsPerIndividual()} sampled
-     * haplotype pairs for the specified individual. Haplotype pairs are
-     * sampled conditional on the HMM with transition probabilities
-     * determined by {@code this.dag()} and emission probabilities
-     * determined by {@code this.gl()}.
-     * </p>
-     * <p>The contract for this method is unspecified if no haplotype pair
-     * is consistent with the HMM.
-     * </p>
-     * @param sample a sample index
-     */
-    virtual QList<HapPair> randomSample(int sample) = 0;
-
-    /**
-     * <p>Returns a list of {@code this.nSamplingsPerIndividual()} sampled
-     * haplotype pairs for the specified individual. Haplotype pairs are
-     * sampled conditional on the HMM with transition probabilities determined
-     * by {@code this.dag()} and emission probabilities determined by
-     * {@code this.gl()}. Posterior genotype probabilities are written to
-     * the specified array. The posterior probability of the {@code j}-th
-     * genotype for the {@code k}-th marker is stored at index
-     * {@code gl.markers().sumGenotypes(k) + j} in the {@code gtProbs} array.
-     * </p>
-     * <p>The contract for this method is unspecified if no haplotype pair
-     * is consistent with the HMM.
-     * </p>
-     * @param sample the sample index
-     * @param gtProbs a array to which posterior genotype probabilities
-     * for the sample will be written
-     */
-    // virtual List<HapPair> randomSample(int sample, double[] gtProbs) const = 0;
-};
-
 class IntPair
 {
 public:
@@ -369,7 +309,7 @@ private:
  * </p>
  * "Instances of class {@code SingleBaum} are not thread-safe."
  */
-class SingleBaum : public SingleBaumInterface
+class SingleBaum
 {
 public:
 

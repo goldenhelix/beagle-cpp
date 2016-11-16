@@ -11,11 +11,37 @@
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
 
+
+//// Fake Classes and Namespaces standing in for Version 4.1 phasing:
+class SamplerData
+{
+public:
+  SamplerData(const Par &par, const CurrentData &cd, const QList<HapPair> &hapPairs, bool useRevDag){}
+  bool markersAreReversed() const { return false; }
+  int nSamples() const { return 5; }
+};
+class RecombSingleBaum
+{
+public:
+  RecombSingleBaum(const SamplerData &samplerData, int nCopies, bool lowMem){}
+  QList<HapPair> randomSample(int sampNum){QList<HapPair> qlhp; return qlhp;}
+};
+class MaskedEndsGL
+{
+public:
+  MaskedEndsGL(const SplicedGL &splicedGL, int start, int end){}
+};
+namespace GenotypeCorrection
+{
+  QList<HapPair> correct(QList<HapPair> hapPairs, const MaskedEndsGL &gl, int seed);
+};
+//// End Fake Classes and Namespaces
+
+
 namespace ImputeDriver
 {
-  SampleHapPairs overlapHaps(const CurrentData &cd, const SampleHapPairs &targetHapPairs);
-
-  QList<HapPair> phase(CurrentData &cd, const Par &par);
+  void phaseAndImpute(InputData &data, TargDataReader &targReader, RefDataReader &refReader,
+                      ImputeDataWriter &impWriter, int windowSize, const Par &par);
 
   int finishWindow(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par,
                    ImputeDataWriter &impWriter, const GLSampleHapPairs &targetHapPairs);
@@ -23,22 +49,15 @@ namespace ImputeDriver
   int finishWindow(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par,
                    ImputeDataWriter &impWriter, const SampleHapPairs &targetHapPairs);
 
-  void phaseAndImpute(InputData &data, TargDataReader &targReader, RefDataReader &refReader,
-                      ImputeDataWriter &impWriter, int windowSize, const Par &par);
-
   /**
    * Phases the current window of genotype data. Returns the phased
    * genotype data.
    * @param cd the current window of data
    * @param par the current running parameters
    */
-  //// QList<HapPair> ImputeDriver::phase(const CurrentData &cd, const Par &par);
+  QList<HapPair> phase(CurrentData &cd, const Par &par);
 
-  /**
-   * "Lower-level utilities" for phasing.
-   */
-  QList<HapPair> runBurnin1(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs);
-  QList<HapPair> runBurnin2(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs);
+  SampleHapPairs overlapHaps(const CurrentData &cd, const SampleHapPairs &targetHapPairs);
 
   /**
    * Returns a list of sampled haplotype pairs.  Haplotype pairs are
@@ -49,6 +68,13 @@ namespace ImputeDriver
    * @param par the current running parameters
    */
   QList<HapPair> initialHaps(CurrentData &cd, const Par &par);
+
+  /**
+   * "Lower-level" utilities for phasing.
+   */
+  QList<HapPair> runBurnin1(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs);
+  QList<HapPair> runBurnin2(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs);
+  QList<HapPair> runRecomb(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs);
 
   /**
    * Returns a list of sampled haplotype pairs. Haplotype pairs are
@@ -102,6 +128,29 @@ namespace ImputeDriver
    */
   void sample(Dag &dag, SplicedGL &gl, int seed, bool markersAreReversed,
               int nSamplingsPerIndividual, QList<HapPair> &sampledHaps, int nThreads, bool lowmem);
+
+  /**
+   * Returns a list of sampled haplotype pairs. Haplotype pairs are
+   * sampled conditional on the observed genotype and a haplotype
+   * frequency model constructed from the specified {@code hapPairs}.
+   * The contract for this method is undefined if the specified
+   * {@code hapPairs} and {@code gv} are inconsistent with the input data
+   * contained in the {@code cd} parameter.
+   *
+   * @param cd the input data for the current marker window
+   * @param par the current parameters
+   * @param hapPairs the target haplotype pairs used to build the haplotype
+   * frequency model
+   * @param useRevDag {@code true} if the order of markers should
+   * be reversed when building the haplotype frequency model, and
+   * {@code false} otherwise
+   */
+  QList<HapPair> recombSample(const CurrentData &cd, const Par &par,
+                              const QList<HapPair> &hapPairs,
+                              bool useRevDag);
+
+  void recombSample(const SamplerData &samplerData, const Par &par,  QList<HapPair> &sampledHaps);
+  QList<HapPair> correctGenotypes(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs);
 
   ConstrainedAlleleProbs LSImpute(const CurrentData &cd, const Par &par,
                                   const SampleHapPairs &targetHapPairs);

@@ -5,47 +5,30 @@
 #include <QVector>
 
 #define NON_REFERENCE_WEIGHT 1.0
+#define N_COPIES               4
 
-SampleHapPairs ImputeDriver::overlapHaps(const CurrentData &cd,
-                                         const SampleHapPairs &targetHapPairs)
+void ImputeDriver::phaseAndImpute(InputData &data, TargDataReader &targReader,
+                                  RefDataReader &refReader, ImputeDataWriter &impWriter,
+                                  int windowSize, const Par &par)
 {
-  int nextOverlap = cd.nextTargetOverlapStart();
-  int nextSplice = cd.nextTargetSpliceStart();
-  if (cd.nextOverlapStart() == cd.nextSpliceStart()) {
-    return SampleHapPairs();  // Default constructor creates an empty result.
+  CurrentData cd;
+  SampleHapPairs overlapHaps;
+  int overlap = 0;
+  impWriter.writeHeader();
+  while (data.canAdvanceWindow(targReader, refReader)) {
+    data.advanceWindow(overlap, par.window(), targReader, refReader);
+    data.setCdData(cd, par, overlapHaps, targReader, refReader);
+
+    if (cd.targetGL().isRefData())
+      overlap = ImputeDriver::finishWindow(overlapHaps, cd, par, impWriter,
+                                           GLSampleHapPairs(cd.targetGL(), true));
+    else {
+      QList<HapPair> hapPairs = ImputeDriver::phase(cd, par);
+      overlap = ImputeDriver::finishWindow(overlapHaps, cd, par, impWriter,
+                                           SampleHapPairs(cd.targetSamples(), hapPairs, false));
+    }
   }
-
-  Markers markers = targetHapPairs.markers().restrict(nextOverlap, nextSplice);
-  Samples samples = targetHapPairs.samples();
-
-  QList<int> mapping;
-  for (int i = nextOverlap; i < nextSplice; i++)
-    mapping.append(i);
-  QList<HapPair> list = HapUtility::createHapPairList(markers, targetHapPairs, mapping);
-
-  return SampleHapPairs(targetHapPairs.samples(), list, false);
-}
-
-QList<HapPair> ImputeDriver::phase(CurrentData &cd, const Par &par)
-{
-  QList<HapPair> hapPairs = ImputeDriver::initialHaps(cd, par);
-
-  if (par.burnin_its() > 0) {
-    /// runStats.println(Const.nl + "Starting burn-in iterations");
-    hapPairs = ImputeDriver::runBurnin1(cd, par, hapPairs);
-  }
-
-  if (par.phase40_its() > 0) {
-    hapPairs = ImputeDriver::runBurnin2(cd, par, hapPairs);
-  }
-
-  if (par.niterations() > 0) {
-    /// runStats.println(Const.nl + "Starting phasing iterations");
-    /// hapPairs = ImputeDriver::runRecomb(cd, par, hapPairs, gv);
-  } else
-    hapPairs = ConsensusPhaser::consensusPhase(hapPairs);
-
-  return hapPairs;
+  impWriter.writeEOF();
 }
 
 int ImputeDriver::finishWindow(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par,
@@ -73,28 +56,49 @@ int ImputeDriver::finishWindow(SampleHapPairs &overlapHaps, const CurrentData &c
   return cd.nMarkers() - cd.nextOverlapStart();
 }
 
-void ImputeDriver::phaseAndImpute(InputData &data, TargDataReader &targReader,
-                                  RefDataReader &refReader, ImputeDataWriter &impWriter,
-                                  int windowSize, const Par &par)
+QList<HapPair> ImputeDriver::phase(CurrentData &cd, const Par &par)
 {
-  CurrentData cd;
-  SampleHapPairs overlapHaps;
-  int overlap = 0;
-  impWriter.writeHeader();
-  while (data.canAdvanceWindow(targReader, refReader)) {
-    data.advanceWindow(overlap, par.window(), targReader, refReader);
-    data.setCdData(cd, par, overlapHaps, targReader, refReader);
+  QList<HapPair> hapPairs = ImputeDriver::initialHaps(cd, par);
 
-    if (cd.targetGL().isRefData())
-      overlap = ImputeDriver::finishWindow(overlapHaps, cd, par, impWriter,
-                                           GLSampleHapPairs(cd.targetGL(), true));
-    else {
-      QList<HapPair> hapPairs = ImputeDriver::phase(cd, par);
-      overlap = ImputeDriver::finishWindow(overlapHaps, cd, par, impWriter,
-                                           SampleHapPairs(cd.targetSamples(), hapPairs, false));
-    }
+  if (par.burnin_its() > 0)
+  {
+    /// runStats.println(Const.nl + "Starting burn-in iterations");
+    hapPairs = ImputeDriver::runBurnin1(cd, par, hapPairs);
   }
-  impWriter.writeEOF();
+
+  if (par.phase40_its() > 0)
+  {
+    hapPairs = ImputeDriver::runBurnin2(cd, par, hapPairs);
+  }
+
+  //// if (par.niterations() > 0)
+  //// {
+  ////   /// runStats.println(Const.nl + "Starting phasing iterations");
+  ////   hapPairs = ImputeDriver::runRecomb(cd, par, hapPairs);
+  //// } else
+    hapPairs = ConsensusPhaser::consensusPhase(hapPairs);
+
+  return hapPairs;
+}
+
+SampleHapPairs ImputeDriver::overlapHaps(const CurrentData &cd,
+                                         const SampleHapPairs &targetHapPairs)
+{
+  int nextOverlap = cd.nextTargetOverlapStart();
+  int nextSplice = cd.nextTargetSpliceStart();
+  if (cd.nextOverlapStart() == cd.nextSpliceStart()) {
+    return SampleHapPairs();  // Default constructor creates an empty result.
+  }
+
+  Markers markers = targetHapPairs.markers().restrict(nextOverlap, nextSplice);
+  Samples samples = targetHapPairs.samples();
+
+  QList<int> mapping;
+  for (int i = nextOverlap; i < nextSplice; i++)
+    mapping.append(i);
+  QList<HapPair> list = HapUtility::createHapPairList(markers, targetHapPairs, mapping);
+
+  return SampleHapPairs(targetHapPairs.samples(), list, false);
 }
 
 QList<HapPair> ImputeDriver::initialHaps(CurrentData &cd, const Par &par)
@@ -133,6 +137,24 @@ QList<HapPair> ImputeDriver::runBurnin2(const CurrentData &cd, const Par &par,
     cumHapPairs.append(hapPairs);
   }
   return cumHapPairs;
+}
+
+QList<HapPair> ImputeDriver::runRecomb(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs)
+{
+  hapPairs = ConsensusPhaser::consensusPhase(hapPairs);
+  QList<HapPair> cumHapPairs;
+  int start = par.burnin_its() + par.phase40_its();
+  int end = start + par.niterations();
+  for (int j=start; j<end; ++j)
+  {
+    bool useRevDag = (j & 1)==1;
+    hapPairs = ImputeDriver::recombSample(cd, par, hapPairs, useRevDag);
+    // runStats.printIterationUpdate(cd.window(), j+1);
+    cumHapPairs.append(hapPairs);
+  }
+  hapPairs = ConsensusPhaser::consensusPhase(cumHapPairs);
+  hapPairs = correctGenotypes(cd, par, hapPairs);
+  return hapPairs;
 }
 
 QList<HapPair> ImputeDriver::sample(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs,
@@ -215,15 +237,70 @@ void ImputeDriver::sample(Dag &dag, SplicedGL &gl, int seed, bool markersAreReve
   SingleBaum baum(dag, gl, seed, nSamplingsPerIndividual, lowmem);
 
   int nSamples = gl.nSamples();
-  for (int single = 0; single < nSamples; single++) {
+  for (int single = 0; single < nSamples; single++)
+  {
     QList<HapPair> newHaps = baum.randomSample(single);
 
-    if (markersAreReversed) {
+    if (markersAreReversed)
+    {
       for (int h = 0; h < newHaps.length(); h++)
         sampledHaps.append(HapPair(newHaps[h], true));
     } else
       sampledHaps.append(newHaps);
   }
+
+  // runStats.sampleNanos(System.nanoTime() - t0);
+}
+
+QList<HapPair> ImputeDriver::recombSample(const CurrentData &cd, const Par &par,
+                                          const QList<HapPair> &hapPairs,
+                                          bool useRevDag)
+{
+  SamplerData samplerData(par, cd, hapPairs, useRevDag /* , runStats */ );
+  int nSampledHaps = N_COPIES * cd.nTargetSamples();
+  QList<HapPair> sampledHaps;
+  ImputeDriver::recombSample(samplerData, par, sampledHaps);
+  return sampledHaps;
+}
+
+void ImputeDriver::recombSample(const SamplerData &samplerData, const Par &par, QList<HapPair> &sampledHaps)
+{
+  // long t0 = System.nanoTime();
+  // int nThreads = samplerData.par().nthreads();
+  bool markersAreReversed = samplerData.markersAreReversed();
+  // Random rand = new Random(par.seed());
+
+  RecombSingleBaum baum(samplerData, /* rand.nextLong(), */ N_COPIES, true /* par.lowmem() */);
+
+  int nSamples = samplerData.nSamples();
+  for (int single = 0; single < nSamples; single++)
+  {
+    QList<HapPair> newHaps = baum.randomSample(single);
+
+    if (markersAreReversed)
+    {
+      for (int h = 0; h < newHaps.length(); h++)
+        sampledHaps.append(HapPair(newHaps[h], true));
+    } else
+      sampledHaps.append(newHaps);
+  }
+
+  // runStats.sampleNanos(System.nanoTime() - t0);
+}
+
+//// Fake definition standing in for Version 4.1 phasing:
+QList<HapPair> GenotypeCorrection::correct(QList<HapPair> hapPairs, const MaskedEndsGL &gl, int seed)
+{
+  QList<HapPair> qlhp; return qlhp;
+}
+
+QList<HapPair> ImputeDriver::correctGenotypes(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs)
+{
+  int start = cd.prevTargetSpliceStart();
+  int end = cd.nextTargetSpliceStart();
+  MaskedEndsGL modGL(cd.targetGL(), start, end);
+  GenotypeCorrection::correct(hapPairs, modGL, par.seed());
+  return hapPairs;
 }
 
 ConstrainedAlleleProbs ImputeDriver::LSImpute(const CurrentData &cd, const Par &par,
