@@ -75,4 +75,5 @@ endif(APPLE)
 source_group("Headers" FILES ${IMPUTE_HEADERS})
 source_group("Sources" FILES ${IMPUTE_SOURCES})
 
+add_subdirectory(cmdtools)
 add_subdirectory(tests)
