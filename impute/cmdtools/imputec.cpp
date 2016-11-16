@@ -45,9 +45,16 @@ void printUsage(FILE* fh=stdout)
   //fieldList=all is default fieldList=segment means get chr/start/stop only
   QTextStream out(fh);
 
-  out << "Usage: " << qApp->arguments().at(0) << " [params] refpanel.txt targetpanel.txt\n\n";
+  out << "Usage: " << qApp->arguments().at(0) << " [params] refpanel.vcf targetpanel.vcf\n\n";
   out << "Params:\n";
   out << "  --out=file_name       Sends output to file (default: stdout)\n";
+  out << "  --window=4\n";
+  out << "  --overlap=2\n";
+  out << "  --nThreads=1\n";
+  out << "  --nSamplingsPerIndividual=4\n";
+  out << "  --burnin_its=4\n";
+  out << "  --phase40_its=4\n";
+  out << "  --niterations=0\n";
   out<< "\n";
 }
 
@@ -180,6 +187,8 @@ bool SimpleVcfParser::readNextRec()
   if(_file.isOpen() || _file.atEnd())
     return false;
 
+  curChr.clear();
+
   // Clear curChr when it is "consumed", forcing us to scan for next
   while(curChr.isEmpty()){
     if(_file.atEnd())
@@ -213,7 +222,7 @@ bool SimpleVcfParser::readNextRec()
 class TextRefDataReader : public RefDataReader
 {
 public:
-  TextRefDataReader(QString path) : _parser(path) {}
+  TextRefDataReader(QString path);
 
   bool canAdvanceWindow() const { return _parser.hasNextRec(); }
   bool hasNextRec() const { return _parser.hasNextRec(); }
@@ -228,11 +237,16 @@ private:
   SimpleVcfParser _parser;
 };
 
+TextRefDataReader::TextRefDataReader(QString path)
+  : _parser(path)
+{
+  _parser.readNextRec();
+}
+
 
 BitSetRefGT TextRefDataReader::nextRec() const
 {
   return BitSetRefGT();
-
 }
 
 
@@ -248,7 +262,7 @@ void TextRefDataReader::advanceRec()
 class TextTargetDataReader : public TargDataReader
 {
 public:
-  TextTargetDataReader(QString path) : _parser(path) {}
+  TextTargetDataReader(QString path);
 
   bool canAdvanceWindow() const { return _parser.hasNextRec(); }
   bool hasNextRec() const { return _parser.hasNextRec(); }
@@ -260,6 +274,13 @@ public:
 private:
   SimpleVcfParser _parser;
 };
+
+TextTargetDataReader::TextTargetDataReader(QString path)
+  : _parser(path)
+{
+  _parser.readNextRec();
+}
+
 
 BitSetGT TextTargetDataReader::nextRec() const
 {
