@@ -487,15 +487,18 @@ static RefHapSegs findRefHapSegs(RefHapPairs refHapPairs,
   refClusterEnd[0] = targToRef[targClustEnd[0] - 1] + 1;
 
   refClusterStart[1] = targToRef[0];
-  refClusterEnd[1] = targToRef[targClustEnd[1] - 1] + 1;
 
-  for (int j=2; j<n; ++j)
-  {
-    refClusterStart[j] = targToRef[targClustEnd[j-2]];
-    refClusterEnd[j] = targToRef[targClustEnd[j] - 1] + 1;
+  if (n > 1) {
+    refClusterEnd[1] = targToRef[targClustEnd[1] - 1] + 1;
+
+    for (int j = 2; j < n; ++j) {
+      refClusterStart[j] = targToRef[targClustEnd[j - 2]];
+      refClusterEnd[j] = targToRef[targClustEnd[j] - 1] + 1;
+    }
+
+    refClusterStart[n] = targToRef[targClustEnd[n - 2]];
   }
 
-  refClusterStart[n] = targToRef[targClustEnd[n-2]];
   refClusterEnd[n] = refHapPairs.nMarkers();
 
   return RefHapSegs(refHapPairs, refClusterStart, refClusterEnd);

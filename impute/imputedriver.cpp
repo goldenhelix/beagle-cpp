@@ -15,7 +15,8 @@ void ImputeDriver::phaseAndImpute(InputData &data, TargDataReader &targReader,
   SampleHapPairs overlapHaps;
   int overlap = 0;
   impWriter.writeHeader();
-  while (data.canAdvanceWindow(targReader, refReader)) {
+  while (data.canAdvanceWindow(targReader, refReader))
+  {
     data.advanceWindow(overlap, par.window(), targReader, refReader);
     data.setCdData(cd, par, overlapHaps, targReader, refReader);
 
@@ -32,24 +33,17 @@ void ImputeDriver::phaseAndImpute(InputData &data, TargDataReader &targReader,
 }
 
 int ImputeDriver::finishWindow(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par,
-                               ImputeDataWriter &impWriter, const GLSampleHapPairs &targetHapPairs)
-{
-  impWriter.printWindowOutput(cd, targetHapPairs, ConstrainedGLAlleleProbs(targetHapPairs), par);
-
-  overlapHaps = ImputeDriver::overlapHaps(cd, targetHapPairs);
-  return cd.nMarkers() - cd.nextOverlapStart();
-}
-
-int ImputeDriver::finishWindow(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par,
                                ImputeDataWriter &impWriter, const SampleHapPairs &targetHapPairs)
 {
   // Neither a "printGV" method nor a "refinedIbd" method is invoked here at this time.
 
-  if (cd.nMarkers() == cd.nTargetMarkers() || par.impute() == false)
-    impWriter.printWindowOutput(cd, targetHapPairs, ConstrainedAlleleProbs(targetHapPairs), par);
-  else {
-    impWriter.printWindowOutput(cd, targetHapPairs, ImputeDriver::LSImpute(cd, par, targetHapPairs),
-                                par);
+  if(cd.nTargetMarkers())
+  {
+    if (cd.nMarkers() == cd.nTargetMarkers() || par.impute() == false)
+      impWriter.printWindowOutput(cd, targetHapPairs, ConstrainedAlleleProbs(targetHapPairs), par);
+    else
+      impWriter.printWindowOutput(cd, targetHapPairs, ImputeDriver::LSImpute(cd, par, targetHapPairs),
+                                  par);
   }
 
   overlapHaps = ImputeDriver::overlapHaps(cd, targetHapPairs);

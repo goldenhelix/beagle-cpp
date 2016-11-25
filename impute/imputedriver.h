@@ -44,9 +44,6 @@ namespace ImputeDriver
                       ImputeDataWriter &impWriter, int windowSize, const Par &par);
 
   int finishWindow(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par,
-                   ImputeDataWriter &impWriter, const GLSampleHapPairs &targetHapPairs);
-
-  int finishWindow(SampleHapPairs &overlapHaps, const CurrentData &cd, const Par &par,
                    ImputeDataWriter &impWriter, const SampleHapPairs &targetHapPairs);
 
   /**

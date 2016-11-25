@@ -14,23 +14,31 @@ void SingleNodes::sumUpdate(int node1, int node2, double value)
   Q_ASSERT_X(value > 0.0, "SingleNodes::sumUpdate", "value <= 0.0");
 
   IntPair p(node1, node2);
+
+#ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
+  if(!_nodes.contains(p))
+    _orderedPairs.append(p);
+#endif
+
   _nodes.insert(p, _nodes.value(p, 0.0) + value);
 }
 
+#ifndef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
 QMapIterator<IntPair, double> SingleNodes::nodeIterator()
 {
   QMapIterator<IntPair, double> i(_nodes);
   return i;
 }
+#endif
 
 double SingleNodes::value(int node1, int node2) const
 {
   Q_ASSERT_X(node1 >= 0,
-	     "SingleNodes::value",
-	     "node1 < 0");
+             "SingleNodes::value",
+             "node1 < 0");
   Q_ASSERT_X(node2 >= 0,
-	     "SingleNodes::value",
-	     "node2 < 0");
+             "SingleNodes::value",
+             "node2 < 0");
 
   IntPair p(node1, node2);
   return _nodes[p];
@@ -39,6 +47,10 @@ double SingleNodes::value(int node1, int node2) const
 void SingleNodes::clear()
 {
   _nodes.clear();
+
+#ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
+  _orderedPairs.clear();
+#endif
 }
 
 
@@ -64,12 +76,18 @@ void SingleBaumLevel::setForwardValues(SingleNodes &nodes, int marker, int sampl
   setChildNodes(nodes);
 }
 
-void SingleBaumLevel::setStates(SingleNodes &nodes)
+void SingleBaumLevel::setStates(const SingleNodes &nodes)
 {
   double valueSum = 0.0;
   _edges1.clear();
   _edges2.clear();
   _fwdValues.clear();
+#ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
+  for (int j=0, n=nodes.size(); j<n; ++j) {
+    int node1 = nodes.node1(j);
+    int node2 = nodes.node2(j);
+    double nodeValue = nodes.value(j);
+#else
   QMapIterator<IntPair, double> nit = nodes.nodeIterator();
   while (nit.hasNext())
   {
@@ -78,6 +96,7 @@ void SingleBaumLevel::setStates(SingleNodes &nodes)
     int node1 = ip.firstInt();
     int node2 = ip.secondInt();
     double nodeValue = nit.value();
+#endif
     for (int i1=0, nI1=_dag->nOutEdges(_marker, node1); i1<nI1; ++i1)
     {
       int edge1 = _dag->outEdge(_marker, node1, i1);
@@ -123,6 +142,7 @@ void SingleBaumLevel::setChildNodes(SingleNodes &nodes)
   }
 }
 
+/*
 void SingleBaumLevel::setBackwardValues(SingleNodes &nodes)
 {
   _bwdValues.clear();
@@ -171,6 +191,7 @@ void SingleBaumLevel::setBackwardValues(SingleNodes &nodes)
   //     gtProbs[j] /= gtProbsSum;
   // }
 }
+*/
 
 void SingleBaumLevel::checkIndex(int state) const
 {
@@ -182,7 +203,7 @@ SingleBaum::SingleBaum(Dag &dag, SplicedGL &gl, int seed, int nSamplingsPerIndiv
                        bool lowMem) : _windowIndex(-9999), _arrayIndex(-9999)
 {
   Q_ASSERT_X(dag.markers() == gl.markers(),
-	     "SingleBaum::SingleBaum",
+             "SingleBaum::SingleBaum",
              "inconsistent markers");
   Q_ASSERT_X(nSamplingsPerIndividual >= 1,
              "SingleBaum::SingleBaum",
@@ -303,14 +324,14 @@ int SingleBaum::randomPreviousState(const SingleBaumLevel &level, int node1,
 {
   //////////////////  double d = random.nextDouble() * nodeValue;
   //////////////////  double d = 0.5 * nodeValue;
-  double d = (double) copy / (double)(_nSamplingsPerIndividual + 1);
+  double d = (double) copy / (double)(_nSamplingsPerIndividual + 1);          /// %%%  %%%%%%% RIGHT NOW, BUGGY...............
   double sum = 0.0;
   for (int j=0, n=level.size(); j<n; ++j) {
     if ( node1==level.childNode1(j)
-	 && node2==level.childNode2(j) ) {
+         && node2==level.childNode2(j) ) {
       sum += level.forwardValue(j);
       if (d <= sum) {
-	return j;
+        return j;
       }
     }
   }

@@ -75,6 +75,8 @@ protected:
 class TargDataReader : public GenericDataReader
 {
 public:
+  TargDataReader();
+
   void makeNewWindow(int overlap);
 
   QList<int> restrictedMakeNewWindow(const QList<int> &oldRefIndices, int overlap);
@@ -89,6 +91,9 @@ public:
   virtual void addNewDataToNewWindow(int windowSize);      // Re-implementation of this method is optional.
   virtual bool lastWindowOnChrom() const;                  // Re-implementation of this method is optional.
 
+  int restrictedSingleMarkerCnt() { return _restrictedSingleMarkerCnt; }
+  int restrictedZeroMarkerCnt() { return _restrictedZeroMarkerCnt; }
+
 protected:
   virtual bool hasNextRec() const = 0;
   virtual BitSetGT nextRec() const = 0;
@@ -100,7 +105,10 @@ protected:
 
   QList<BitSetGT> _oldVcfEmissions;
   QList<BitSetGT> _vcfEmissions;
+
   int _restrictedCumMarkerCnt;
+  int _restrictedSingleMarkerCnt;
+  int _restrictedZeroMarkerCnt;
 };
 
 class VcfWindow
@@ -331,7 +339,7 @@ public:
    * to the target data markers to the specified list.
    * @param list a list of haplotype pairs for target data markers
    */
-  void addRestrictedRefHapPairs(QList<HapPair> list) const { list.append(_restRefHapPairs); }
+  void addRestrictedRefHapPairs(QList<HapPair> &list) const { list.append(_restRefHapPairs); }
   /**
    * Returns a list of reference haplotype pairs that are restricted
    * to the target data markers, or returns {@code null}
@@ -442,11 +450,6 @@ public:
                          const ConstrainedAlleleProbs &alProbs,
                          const Par &par);
 
-  void printWindowOutput(const CurrentData &cd,
-                         const SampleHapPairs &targetHapPairs,
-                         const ConstrainedGLAlleleProbs &alProbs,
-                         const Par &par);
-
   Samples samples() const { return _samples; }
   // Markers markers() const { return _markers; }
 
@@ -487,7 +490,6 @@ protected:
 private:
   void setIsImputed(const CurrentData &cd);
   void printWindowData(const ConstrainedAlleleProbs &alProbs);
-  void printWindowData(const ConstrainedGLAlleleProbs &alProbs);
   void initializeForWindow(const int initSize);
   void resetRec(const Marker &marker);
   void constructSampleDataForMarker();

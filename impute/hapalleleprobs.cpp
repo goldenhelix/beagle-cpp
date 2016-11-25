@@ -125,8 +125,10 @@ static bool hapAPComparator(const HapAlleleProbs &p1, const HapAlleleProbs &p2)
 }
 
 // "Normal" constructor:
-ConstrainedAlleleProbs::ConstrainedAlleleProbs(const SampleHapPairs &shp, const QList<HapAlleleProbs> &alProbs,
+ConstrainedAlleleProbs::ConstrainedAlleleProbs(const SampleHapPairs &shp,
+                                               const QList<HapAlleleProbs> &alProbs,
                                                const QList<int> &markerIndices)
+  : _shp(shp)
 {
   Q_ASSERT_X(alProbs.length() > 0,
              "ConstrainedAlleleProbs::ConstrainedAlleleProbs",
@@ -166,14 +168,12 @@ ConstrainedAlleleProbs::ConstrainedAlleleProbs(const SampleHapPairs &shp, const 
 
     _indexMap[markerIndices[j]] = j;
   }
-
-  _shp = shp;
 }
 
 // SampleHapPairs-based constructor:
 ConstrainedAlleleProbs::ConstrainedAlleleProbs(const SampleHapPairs &shp)
+  : _shp(shp)
 {
-  _shp = shp;
   _markers = shp.markers();
   _samples = shp.samples();
 
@@ -229,34 +229,6 @@ int ConstrainedAlleleProbs::allele2(int marker, int sample) const
     return _alleleProbs[2*sample + 1].alleleWithMaxProb(marker);
   }
   else
-    return _shp.allele2(targetMarker, sample);
-}
-
-
-ConstrainedGLAlleleProbs::ConstrainedGLAlleleProbs(const GLSampleHapPairs &shp)
-{
-  _shp = shp;
-  _markers = shp.markers();
-  _samples = shp.samples();
-}
-
-float ConstrainedGLAlleleProbs::alProb1(int targetMarker, int sample, int allele) const
-{
-    return (_shp.allele1(targetMarker, sample) == allele) ? 1.0 : 0.0;
-}
-
-float ConstrainedGLAlleleProbs::alProb2(int targetMarker, int sample, int allele) const
-{
-    return (_shp.allele2(targetMarker, sample) == allele) ? 1.0 : 0.0;
-}
-
-int ConstrainedGLAlleleProbs::allele1(int targetMarker, int sample) const
-{
-    return _shp.allele1(targetMarker, sample);
-}
-
-int ConstrainedGLAlleleProbs::allele2(int targetMarker, int sample) const
-{
     return _shp.allele2(targetMarker, sample);
 }
 

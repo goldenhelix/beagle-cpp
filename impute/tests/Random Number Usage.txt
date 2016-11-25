@@ -75,15 +75,21 @@ C++: baumhmm.cpp
 
   (NOTE: The current C++ simply passes par.seed() to instances of SingleBaum.)
 
+  SingleBaum::initialRandomState (line 257) has the extra parameter "copy",
+  invoked by SingleBaum::initSampleAlleles at line 248.
+
   In the first lines of SingleBaum::initialRandomState (lines 259-261), we have
     //////////////////  double d = random.nextDouble();
     //////////////////  double d = 0.5;
     double d = (double) copy / (double)(_nSamplingsPerIndividual + 1);
 
+  Similarly, SingleBaum::randomPreviousState (line 302) has the extra parameter "copy",
+  invoked by SingleBaum::sampleAlleles at line 292.
+
   Similarly, in the first lines of SingleBaum::randomPreviousState (lines 304-306), we have
     //////////////////  double d = random.nextDouble() * nodeValue;
     //////////////////  double d = 0.5 * nodeValue;
-    double d = (double) copy / (double)(_nSamplingsPerIndividual + 1);
+    double d = (double) copy / (double)(_nSamplingsPerIndividual + 1);  %%%%%%%%%%%%% WHICH IS A BUG, RIGHT NOW.................
 
   NOTE: _nSamplingsPerIndividual is called (this.)nSamplesPerIndividual in Java, and thus should
         readily be available for matching the above code.

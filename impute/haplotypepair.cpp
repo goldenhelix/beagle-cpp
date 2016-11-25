@@ -303,10 +303,6 @@ GLSampleHapPairs::GLSampleHapPairs(const SampleHapPairs &haps, const GLSampleHap
   // Make sure everything that is supposed to match between the two
   // parts of this class' data matches.
 
-  Q_ASSERT_X(SampleHapPairs::nMarkers() < nMarkers(),
-             "SplicedGL::SplicedGL(haps, otherGL)",
-             "The hap pairs overlap the VCF information completely.");
-
   for (int j = 0, n = SampleHapPairs::nMarkers(); j < n; ++j)
     Q_ASSERT_X(SampleHapPairs::marker(j) == marker(j),
                "SplicedGL::SplicedGL(haps, otherGL)",
@@ -321,7 +317,7 @@ GLSampleHapPairs::GLSampleHapPairs(const SampleHapPairs &haps, const GLSampleHap
     // Else use otherGL's Samples object.
     _samples = otherGL._samples;
 
-  _overlap = SampleHapPairs::nMarkers();  // Overlap is now different.
+  _overlap = SampleHapPairs::nMarkers();
 }
 
 int GLSampleHapPairs::allele1(int marker, int sampNum) const

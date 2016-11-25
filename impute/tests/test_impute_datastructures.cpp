@@ -26,6 +26,7 @@ private slots:
   void testRefTargetData3x3Sample();
   void testTargetData3x3Sample();
   void testTargetData4x3Sample();
+  void testTargetData4x3BSample();
   void testAllData4x4and3x2Sample();
   void testAllData4x4and3x2CSample();
   void testAllData6x4and4x3Sample();
@@ -1493,8 +1494,28 @@ void TestImputeDataStructures::testTargetData4x3Sample()
   ImputeDriver::phaseAndImpute(td, tr, rr, dw, parw.window(), parw);
 }
 
+void TestImputeDataStructures::testTargetData4x3BSample()
+{
+  outputDumps = true;
+
+  RefDataReader rr;
+  TargDataReaderTest3x3 tr(false, false, true);  // Use 4 x 3 alternative unphased data.
+
+  tr.tdrDump();
+
+  TargetData td;
+
+  TestParW parw;
+
+  TestDataWriter dw(tr.samples());
+
+  ImputeDriver::phaseAndImpute(td, tr, rr, dw, parw.window(), parw);
+}
+
 void TestImputeDataStructures::testAllData4x4and3x2Sample()
 {
+  outputDumps = false;
+
   RefDataReaderTest4x4 rr;
 
   // Actually use 4x2 configuration for unphased data.

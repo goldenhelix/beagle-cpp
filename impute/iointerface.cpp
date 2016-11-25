@@ -61,6 +61,12 @@ int RefDataReader::currentChromIndex() const
     return -1;
 }
 
+TargDataReader::TargDataReader() : _restrictedCumMarkerCnt(0),
+				   _restrictedSingleMarkerCnt(0),
+				   _restrictedZeroMarkerCnt(0)
+{
+}
+
 void TargDataReader::makeNewWindow(int overlap)
 {
   _oldVcfEmissions = _vcfEmissions.mid(_vcfEmissions.length() - overlap);
@@ -109,15 +115,19 @@ void TargDataReader::restrictedAdvanceWindow(QList<int> &refIndices, int refOver
     }
   }
 
-  Q_ASSERT_X(_vcfEmissions.length(),
-             "TargDataReader::restrictedAdvanceWindow",
-             "No target markers found that overlap the reference markers.");
+  if(!_vcfEmissions.length())
+    _restrictedZeroMarkerCnt++;
+
+  if(_vcfEmissions.length() == 1)
+    _restrictedSingleMarkerCnt++;
 
   QList<Marker> markerlist;
   for (int i = 0; i < _vcfEmissions.length(); i++)
     markerlist.append(_vcfEmissions[i].marker());
 
   _markers = Markers(markerlist);
+
+  _restrictedCumMarkerCnt += _markers.nMarkers();
 }
 
 // Re-implementation of this method is optional.
@@ -285,7 +295,7 @@ void AllData::advanceWindow(int overlap,
     oneToOneMapping.append(i);
   _refHapPairs = HapUtility::createHapPairList(rr.markers(), _refSampleHapPairs, oneToOneMapping);
   _targetRefHapPairs =
-      HapUtility::createHapPairList(tr.markers(), _refSampleHapPairs, _refIndices);
+    HapUtility::createHapPairList(tr.markers(), _refSampleHapPairs, _refIndices);
 
   _gl = SplicedGL(tr.samples(), tr.vcfRecs());
   _window++;
@@ -462,11 +472,22 @@ void ImputeDataWriter::printWindowOutput(const CurrentData &cd,
                                          const ConstrainedAlleleProbs &alProbs,
                                          const Par &par)
 {
-  bool markersAreImputed = cd.nTargetMarkers() < cd.nMarkers();
-  setIsImputed(cd);
+  bool markersAreImputed = cd.nTargetMarkers() < cd.nMarkers()  &&  par.impute();
 
-  _start = cd.prevSpliceStart();
-  _end = cd.nextSpliceStart();
+  if(markersAreImputed)
+  {
+    setIsImputed(cd);
+
+    _start = cd.prevSpliceStart();
+    _end = cd.nextSpliceStart();
+  }
+  else
+  {
+    _isImputed.fill(false, cd.nTargetMarkers());
+
+    _start = cd.prevTargetSpliceStart();
+    _end = cd.nextTargetSpliceStart();
+  }
 
   Q_ASSERT_X(_start <= _end,
              "ImputeDataWriter::printWindowOutput",
@@ -495,50 +516,6 @@ void ImputeDataWriter::printWindowData(const ConstrainedAlleleProbs &alProbs)
              "ImputeDataWriter::printWindowData",
              "inconsistent data");
 
-  initializeForWindow(4*alProbs.nSamples());
-
-  for (_mNum=_start; _mNum < _end; ++_mNum)
-  {
-    const Marker &marker = alProbs.marker(_mNum);
-    resetRec(marker);
-    _alProbs1.fill(0.0, marker.nAlleles());
-    _alProbs2.fill(0.0, marker.nAlleles());
-    for (int sample=0, n=alProbs.nSamples(); sample<n; ++sample)
-    {
-      for (int j=0; j < _alProbs1.length(); ++j)
-      {
-        _alProbs1[j] = alProbs.alProb1(_mNum, sample, j);
-        _alProbs2[j] = alProbs.alProb2(_mNum, sample, j);
-      }
-      constructSampleDataForMarker();
-    }
-    finishAndWriteRec();
-  }
-}
-
-void ImputeDataWriter::printWindowOutput(const CurrentData &cd,
-                                         const SampleHapPairs &targetHapPairs,
-                                         const ConstrainedGLAlleleProbs &alProbs,
-                                         const Par &par)
-{
-  _start = cd.prevSpliceStart();
-  _end = cd.nextSpliceStart();
-
-  Q_ASSERT_X(_start <= _end,
-             "ImputeDataWriter::printWindowOutput",
-             "start > end");
-
-  _printDS = false;     // Dosage
-  _printGP = false;     // Genotype probs
-
-  printWindowData(alProbs);
-
-  /// if (par.ibd())
-  ///   printIbd(cd, ibd);
-}
-
-void ImputeDataWriter::printWindowData(const ConstrainedGLAlleleProbs &alProbs)
-{
   initializeForWindow(4*alProbs.nSamples());
 
   for (_mNum=_start; _mNum < _end; ++_mNum)

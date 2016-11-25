@@ -10,6 +10,7 @@
 #include <QMap>
 #include <QMapIterator>
 
+#define KEEP_TRACK_OF_ORDER_IN_SINGLENODES
 
 class IntPair
 {
@@ -18,7 +19,7 @@ public:
   IntPair(const IntPair &other) { _a=other._a; _b=other._b; }
 
   bool operator<(const IntPair &other) const
-  { if (_a == other._a) return (_b < other._b); else return (_a < other._a); }
+  { return (_a == other._a) ? (_b < other._b) : (_a < other._a); }
 
   int firstInt() const { return _a; }
   int secondInt() const { return _b; }
@@ -52,11 +53,18 @@ public:
    */
   void sumUpdate(int node1, int node2, double value);
 
+#ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
+  int node1(int order) const { return _orderedPairs[order].firstInt(); }
+  int node2(int order) const { return _orderedPairs[order].secondInt(); }
+  double value(int order) const { return _nodes[_orderedPairs[order]]; }
+  int size() const { return _orderedPairs.length(); }
+#else
   /**
    * Returns a Java-style iterator for the underlying QMap inside of
    * this ({@code SingleNodes}) object.
    */
-  QMapIterator<IntPair, double> nodeIterator();
+  QMapIterator<IntPair, double> nodeIterator() const;
+#endif
 
   /**
    * Returns the value of the specified node pair.
@@ -75,6 +83,10 @@ private:
   // NOTE: Only nodes with non-zero values are actually kept in this
   // map.
   QMap<IntPair, double> _nodes;
+
+#ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
+  QList<IntPair> _orderedPairs;
+#endif
 };
 
 /**
@@ -128,7 +140,7 @@ public:
    *
    * @param nodes parent node pair values at the next level of HMM
    */
-  void setBackwardValues(SingleNodes &nodes);
+  // void setBackwardValues(SingleNodes &nodes);
 
   /**
    * Returns the directed acyclic graph that determines the transition
@@ -284,7 +296,7 @@ public:
   }
 
 private:
-  void setStates(SingleNodes &nodes);
+  void setStates(const SingleNodes &nodes);
   void checkIndex(int state) const;
 
   Dag *_dag;
