@@ -18,3 +18,7 @@ set(TOOLS_GENERATED )
 GHI_ADD_CMD(imputec.cpp
             GENERATED ${TOOLS_GENERATED}
             LIBS ${TOOLS_LIBS})
+
+GHI_ADD_CMD(svs_impute_client.cpp
+            GENERATED ${TOOLS_GENERATED}
+            LIBS ${TOOLS_LIBS})
