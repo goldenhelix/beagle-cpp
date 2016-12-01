@@ -17,15 +17,19 @@
 class ControlStream
 {
 public:
-  ControlStream(QDataStream& control) : _control(control) {}
+  ControlStream(QFileDevice* control) : _control(control) {}
   void sendMessage(QString msg, QStringList args)
   {
-    _control << msg;
-    _control << args;
+    _control->write(toC(msg));
+    foreach(QString arg, args){
+      _control->write("\t");
+      _control->write(toC(arg));
+    }
+    _control->write("\n");
     // Important, all IO is buffered by default. Flush actually pushes
     // buffered data down through OS channels and across process
     // boundaries!
-    static_cast<QFileDevice*>(_control.device())->flush();
+    _control->flush();
   }
 
   // Convenience methods
@@ -36,9 +40,12 @@ public:
   void sendError(QString errMsg){
     sendMessage("ERROR", errMsg);
   }
+  void sendDebug(QString errMsg){
+    sendMessage("DEBUG_OUTPUT", errMsg);
+  }
 
 private:
-  QDataStream& _control;
+  QFileDevice* _control;
 };
 
 // ---------------
@@ -91,6 +98,7 @@ bool StreamDataParser::readSampleNames()
     _input >> sample;
     _sampleNames << sample;
   }
+  _control.sendDebug(QString("Received %1 samples").arg(_nSamples));
   return true;
 }
 
@@ -364,8 +372,9 @@ int main(int argc, char* argv[])
   // There is no reason why these would fail, but if we can't open up
   // our communication channels, we need to bail and let the parent
   // process consider this a non-starter.
+
   QFile stderrFile;
-  if(!stderrFile.open(stderr, QFile::ReadOnly)){
+  if(!stderrFile.open(stderr, QFile::WriteOnly)){
     return 1;
   }
 
@@ -380,17 +389,16 @@ int main(int argc, char* argv[])
 
   QDataStream input(&stdinFile);
   QDataStream output(&stdoutFile);
-  QDataStream error(&stderrFile);
-  ControlStream control(error);
+  ControlStream control(&stderrFile);
+  control.sendDebug("startup");
 
   ImputeOpts opts;
   QString err;
   if (!opts.parseArgs(app.arguments(), err)) {
-    if(!err.isEmpty()){
-      control.sendError(err);
-      return 1;
-    }
+    control.sendError(err);
+    return 1;
   }
+  control.sendDebug("args parsed!");
   StreamTargetDataReader tr(input, control, opts.targetFilePath);
 
   StreamDataWriter dw(output, tr.samples());
