@@ -6,7 +6,140 @@
 
 #define MIN_VALUE_FOR_BAUM      1.4e-43
 
+#ifdef USE_ORIGINAL_VERSION_OF_SINGLENODES
 
+#define LOAD_FACTOR             0.75
+
+static qint64 hash1(int node1, int node2)
+{
+  qint64 hash = 5;
+  hash = 71 * hash + node1;
+  hash = 71 * hash + node2;
+  return hash;
+}
+
+static qint64 hash2(int node1, int node2)
+{
+  qint64 hash = 7;
+  hash = 97 * hash + node1;
+  hash = 97 * hash + node2;
+  return hash;
+}
+
+SingleNodes::SingleNodes()
+{
+  _size = 0;
+  _capacity = (1<<10);
+  _rehashThreshold = (int) (LOAD_FACTOR * _capacity);
+  _index.fill(0, _capacity);
+  _node1.fill(0, _capacity);
+  _node2.fill(0, _capacity);
+  _value.fill(0, _capacity);
+}
+
+int SingleNodes::index(int node1, int node2) const
+{
+  qint64 h1 = hash1(node1, node2);
+  qint64 h2 = hash2(node1, node2);
+  if ((h2 & 1)==0) {
+    // h2 must be relatively prime to maxSize, which is a power of 2
+    ++h2;
+  }
+  qint64 l = h1;
+  for (int k=0; k<_capacity; ++k) {
+    int i = (int) (l % _capacity);
+
+    if (_value[i]==0.0 || (_node1[i]==node1 && _node2[i]==node2))
+      return i;
+
+    l += h2;
+  }
+  Q_ASSERT_X(false,
+             "SingleNodes::index",
+             "Can't find hash index!");
+  return -1;
+}
+
+void SingleNodes::rehash()
+{
+  Q_ASSERT_X(_size>=_rehashThreshold,
+             "SingleNodes::rehash",
+             "_size < _rehashThreshold");
+
+  int newMaxSize = 2*_capacity;
+
+  Q_ASSERT_X(newMaxSize >= 0,
+             "SingleNodes::rehash",
+             "newMaxSize < 0--hash table overflow");
+
+  QVector<int> oldIndex = _index;
+  QVector<int> oldNode1 = _node1;
+  QVector<int> oldNode2 = _node2;
+  QVector<float> oldValue = _value;
+
+  _capacity = newMaxSize;
+  _index.fill(0, newMaxSize);
+  _node1.fill(0, newMaxSize);
+  _node2.fill(0, newMaxSize);
+  _value.fill(0, newMaxSize);
+
+  for (int j=0; j<_size; ++j) {
+    int oldInd = oldIndex[j];
+    int newIndex = index(oldNode1[oldInd], oldNode2[oldInd]);
+    _index[j] = newIndex;
+    _node1[newIndex] = oldNode1[oldInd];
+    _node2[newIndex] = oldNode2[oldInd];
+    _value[newIndex] = oldValue[oldInd];
+  }
+  _rehashThreshold = (int) (LOAD_FACTOR * _capacity);
+}
+
+void SingleNodes::sumUpdate(int node1, int node2, float value)
+{
+  Q_ASSERT_X(node1 >= 0, "SingleNodes::sumUpdate", "node1 < 0");
+  Q_ASSERT_X(node2 >= 0, "SingleNodes::sumUpdate", "node2 < 0");
+  Q_ASSERT_X(value > 0.0, "SingleNodes::sumUpdate", "value <= 0.0");
+
+  int i = index(node1, node2);
+  bool addNode = (_value[i]==0.0);
+  _value[i] += value;
+  if (addNode) {
+    _index[_size++] = i;
+    _node1[i] = node1;
+    _node2[i] = node2;
+    if (_size>=_rehashThreshold) {
+      rehash();
+    }
+  }
+}
+
+void SingleNodes::checkSize(int index) const
+{
+  Q_ASSERT_X(index < _size,
+             "SingleNodes::checkSize",
+             "index>=_size");
+}
+
+float SingleNodes::value(int node1, int node2) const
+{
+  Q_ASSERT_X(node1 >= 0,
+             "SingleNodes::value",
+             "node1 < 0");
+  Q_ASSERT_X(node2 >= 0,
+             "SingleNodes::value",
+             "node2 < 0");
+
+  return _value[index(node1, node2)];
+}
+
+void SingleNodes::clear()
+{
+  for (int j=0; j<_size; ++j) {
+    _value[_index[j]] = 0.0;
+  }
+  _size = 0;
+}
+#else
 void SingleNodes::sumUpdate(int node1, int node2, double value)
 {
   Q_ASSERT_X(node1 >= 0, "SingleNodes::sumUpdate", "node1 < 0");
@@ -52,7 +185,7 @@ void SingleNodes::clear()
   _orderedPairs.clear();
 #endif
 }
-
+#endif
 
 SingleBaumLevel::SingleBaumLevel(Dag *dag, SplicedGL *gl)
   : _marker(-1), _sample(-1), _size(0), _dag(dag), _gl(gl),
@@ -82,11 +215,15 @@ void SingleBaumLevel::setStates(const SingleNodes &nodes)
   _edges1.clear();
   _edges2.clear();
   _fwdValues.clear();
+#ifdef USE_ORIGINAL_VERSION_OF_SINGLENODES
+  for (int j=0, n=nodes.size(); j<n; ++j) {
+    int node1 = nodes.enumNode1(j);
+    int node2 = nodes.enumNode2(j);
+#else
 #ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
   for (int j=0, n=nodes.size(); j<n; ++j) {
     int node1 = nodes.node1(j);
     int node2 = nodes.node2(j);
-    double nodeValue = nodes.value(j);
 #else
   QMapIterator<IntPair, double> nit = nodes.nodeIterator();
   while (nit.hasNext())
@@ -95,7 +232,7 @@ void SingleBaumLevel::setStates(const SingleNodes &nodes)
     IntPair ip = nit.key();
     int node1 = ip.firstInt();
     int node2 = ip.secondInt();
-    double nodeValue = nit.value();
+#endif
 #endif
     for (int i1=0, nI1=_dag->nOutEdges(_marker, node1); i1<nI1; ++i1)
     {
@@ -106,18 +243,35 @@ void SingleBaumLevel::setStates(const SingleNodes &nodes)
         int edge2 = _dag->outEdge(_marker, node2, i2);
         int symbol2 = _dag->symbol(_marker, edge2);
         double ep = _gl->gl(_marker, _sample, symbol1, symbol2);
+	if((_marker == 15  ||  _marker == 121)  &&  _sample == 2) {
+	  double zxyw = ep;
+	}
         if (ep > 0.0)
         {
           _edges1.append(edge1);
           _edges2.append(edge2);
           double tp1 = _dag->condEdgeProb(_marker, edge1);
           double tp2 = _dag->condEdgeProb(_marker, edge2);
+#ifdef USE_ORIGINAL_VERSION_OF_SINGLENODES
+	  double nodeValue = nodes.enumValue(j);
+#else
+#ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
+	  double nodeValue = nodes.value(j);
+#else
+	  double nodeValue = nit.value();
+#endif
+#endif
           double fwdValue = ep * nodeValue * (tp1 * tp2);
-          if (fwdValue < MIN_VALUE_FOR_BAUM  &&  nodeValue > 0.0)
-            fwdValue = MIN_VALUE_FOR_BAUM;
+		  if (fwdValue < MIN_VALUE_FOR_BAUM  &&  nodeValue > 0.0) {
+			  fwdValue = MIN_VALUE_FOR_BAUM;
+		  }
 
           _fwdValues.append(fwdValue);
           valueSum += fwdValue;
+	  if((_marker == 15  ||  _marker == 121)  &&  _sample == 2) {
+	    double zxyw = fwdValue;
+	    double zyxw = valueSum;
+	  }
         }
       }
     }
@@ -371,7 +525,11 @@ void SingleBaum::forwardAlgorithm(int sample)
   _fwdNodes.sumUpdate(0, 0, 1.0);
   _windowIndex = -1;
   _arrayIndex = _levels.length() - 1;
-  for (int marker=0; marker < _nMarkers; marker++)
-    nextLevel().setForwardValues(_fwdNodes, marker, sample);
+  for (int marker = 0; marker < _nMarkers; marker++){
+	  if (sample == 2 && marker == 15){
+		  int abc = 215;
+	  }
+	  nextLevel().setForwardValues(_fwdNodes, marker, sample);
+  }
 }
 

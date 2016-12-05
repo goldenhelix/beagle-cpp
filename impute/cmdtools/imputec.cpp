@@ -336,7 +336,7 @@ static QByteArray asTrimString2(double value)
 
   int finalPlace = valueString.length() - 1;
 
-  while(finalPlace > 0  &&  valueString[finalPlace] == '0'  &&  valueString[finalPlace] != '.')
+  while(finalPlace > 0  &&  valueString[finalPlace] == '0')
   {
     valueString.chop(1);
     finalPlace--;

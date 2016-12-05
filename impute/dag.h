@@ -4,6 +4,8 @@
 
 #include <QVector>
 
+#include <QFile>
+
 #include "impute/haplotypepair.h"
 #include "impute/markers.h"
 #include "impute/samples.h"
@@ -579,6 +581,33 @@ private:
 
   QList<DagLevel> _dagLevels;
   QList<double> _posArray;
+};
+
+class Score;
+
+class MergeDump
+{
+public:
+  MergeDump() : _okToDump(false), _levelNum(0) {}
+  void setOkToDump(bool otd);
+  void setNewLevel();
+  void dumpOneScore(const Score &score, const Score &minScore);
+  void dumpScores(QByteArray leadingPrompt, const Score &minScore, const QLinkedList<Score> &scores);
+  void dumpOneOpinion(bool nodeAHasSibling, bool nodeBHasSibling,
+                      double nodeCountNodeA, double nodeCountNodeB,
+                      int retainedNode, int removedNode);
+  void dumpMerge(int retainedNode, int removedNode);
+private:
+  QFile _out;
+  bool _okToDump;
+  int _levelNum;  // Merging also involves the previous level (in addition to later levels).
+};
+
+extern MergeDump globalMgd;
+
+namespace DagDump
+{
+  void dagDump(const Dag &dag);
 };
 
 #endif

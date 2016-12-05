@@ -64,13 +64,16 @@ namespace ConsensusPhaser
    * OPPOSITE for at least one marker.
    *
    * @author Brian L. Browning
+   *
+   * 5) UNINITIALIZED to be the equivalent of a null value in Java.
    */
   enum Phase
   {
     IDENTICAL,
     OPPOSITE,
     UNKNOWN,
-    INCONSISTENT
+    INCONSISTENT,
+    UNINITIALIZED
   };
 };
 

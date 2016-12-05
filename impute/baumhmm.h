@@ -10,8 +10,137 @@
 #include <QMap>
 #include <QMapIterator>
 
-#define KEEP_TRACK_OF_ORDER_IN_SINGLENODES
+#define USE_ORIGINAL_VERSION_OF_SINGLENODES
+// define KEEP_TRACK_OF_ORDER_IN_SINGLENODES
 
+#ifdef USE_ORIGINAL_VERSION_OF_SINGLENODES
+/**
+ * Class {@code SingleNodes} stores ordered node pairs and associated values.
+ *
+ * "Instances of class {@code SingleNodes} are not thread safe."
+ */
+class SingleNodes
+{
+public:
+
+  /**
+   * Creates a new instance of {@code SingleNodes} that has an
+   * initial value of 0 for each ordered node pair. The first node
+   * has index 0.
+   */
+  SingleNodes();
+
+  /**
+   * Adds the specified positive value to the stored value of the specified
+   * node pair.
+   *
+   * @param node1 the first node
+   * @param node2 the second node
+   * @param value the value
+   */
+  void sumUpdate(int node1, int node2, float value);
+
+  /**
+   * Returns the number of node pairs with non-zero value.
+   */
+  int size() const { return _size; }
+
+  /**
+   * Returns the first node of the specified node pair in the list of
+   * node pairs with non-zero value.  Repeated invocations of this
+   * method with the same parameter will return the same value if
+   * node values are not modified between invocations. If
+   * {@code (index >= 0 && index < this.size())}, then the following
+   * expression will always evaluate to {@code true}:<br>
+   * {@code (this.value(this.enumNode1(index),
+   * this.enumNode2(index)) == this.enumValue(index))}.
+   *
+   * @param index an index in a list of node pairs with non-zero
+   * value
+   * @return the first node of the specified node pair in a list of
+   * node pairs with non-zero value
+   */
+  int enumNode1(int index) const {
+    checkSize(index);
+    return _node1[_index[index]];
+  }
+
+  /**
+   * Returns the second node of the specified node pair in a list of
+   * node pairs with non-zero value.  Repeated invocations of this
+   * method with the same parameter will return the same value if
+   * node values are not modified between invocations. If
+   * {@code (index >= 0 && index < this.size())}, then the following
+   * expression will always evaluate to {@code true}:<br>
+   * {@code (this.value(this.enumNode1(index),
+   * this.enumNode2(index)) == this.enumValue(index))}.
+   *
+   * @param index an index in a list of node pairs with non-zero value
+   * @return the second node of the specified node pair in a list of
+   * node pairs with non-zero value
+   */
+  int enumNode2(int index) const {
+    checkSize(index);
+    return _node2[_index[index]];
+  }
+
+  /**
+   * Returns the value of the specified node pair in a list of
+   * node pairs with non-zero value.  Repeated invocations of this
+   * method with the same parameter will return the same value if
+   * node values are not modified between invocations. If
+   * {@code (index >= 0 && index < this.size())}, then the following
+   * expression will always evaluate to {@code true}:<br>
+   * {@code (this.value(this.enumNode1(index),
+   * this.enumNode2(index)) == this.enumValue(index))}.
+   *
+   * @param index an index in a list of node pairs with non-zero value
+   * @return the value of the specified ordered node pair in a list of
+   * node pairs with non-zero value
+   */
+  float enumValue(int index) const {
+    checkSize(index);
+    return _value[_index[index]];
+  }
+
+  /**
+   * Returns the value of the specified node pair.
+   *
+   * @param node1 the first node
+   * @param node2 the second node
+   * @return the value of the specified node pair
+   */
+  float value(int node1, int node2) const;
+
+  /**
+   * Sets the value of each ordered node pair to 0.
+   */
+  void clear();
+
+private:
+  /*
+   * Return the storage index for specified node pair.  If the key is not
+   * currently stored in the hash table, the index at which the value
+   * should be stored is returned.
+   */
+  int index(int node1, int node2) const;
+
+  /*
+   * Increases the capacity of the internal hash table.
+   */
+  void rehash();
+  void checkSize(int index) const;
+
+  int _size;
+  int _capacity; // required to be a power of 2
+  int _rehashThreshold;
+
+  QVector<int> _index;
+  QVector<int> _node1;
+  QVector<int> _node2;
+  QVector<float> _value;
+};
+#else
 class IntPair
 {
 public:
@@ -88,6 +217,7 @@ private:
   QList<IntPair> _orderedPairs;
 #endif
 };
+#endif
 
 /**
  * Class {@code SingleBaumLevel} computes forward and backward Baum

@@ -172,9 +172,9 @@ static HapPair consensus(const QList<HapPair> &hapList /*, Random rand */)
   const Samples &samples = firstHP.samples();
   const Markers &markers = firstHP.markers();
   int nMarkers = markers.nMarkers();
-  ConsensusPhaser::Phase lastConsensus = ConsensusPhaser::UNKNOWN;
-  QVector<int> lastPhase(hapList.size());
-  QVector<int> currentPhase(hapList.size());
+  ConsensusPhaser::Phase lastConsensus = ConsensusPhaser::UNINITIALIZED;
+  QVector<int> lastPhase(hapList.size(), ConsensusPhaser::UNINITIALIZED);
+  QVector<int> currentPhase(hapList.size(), ConsensusPhaser::UNINITIALIZED);
   QList<int> alleles1;
   QList<int> alleles2;
 
@@ -185,7 +185,7 @@ static HapPair consensus(const QList<HapPair> &hapList /*, Random rand */)
     int a2 = hapList[hp].allele2(m);
     if (a1 != a2) {
       storePhase(hapList, m, a1, a2, currentPhase);
-      if (lastConsensus != ConsensusPhaser::UNKNOWN)
+      if (lastConsensus != ConsensusPhaser::UNINITIALIZED)
       {
         ConsensusPhaser::Phase thisConsensus;
 		if (relPhase(lastPhase, currentPhase /*, rand */) == ConsensusPhaser::IDENTICAL)
@@ -202,7 +202,9 @@ static HapPair consensus(const QList<HapPair> &hapList /*, Random rand */)
       }
 
       lastConsensus = a1 < a2 ? ConsensusPhaser::IDENTICAL : ConsensusPhaser::OPPOSITE;
-      lastPhase = currentPhase;
+      QVector<int> tmp = currentPhase;
+      currentPhase = lastPhase;
+      lastPhase = tmp;
     }
 
     alleles1.append(a1);

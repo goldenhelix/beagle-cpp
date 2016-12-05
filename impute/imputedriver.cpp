@@ -117,17 +117,17 @@ QList<HapPair> ImputeDriver::runBurnin1(const CurrentData &cd, const Par &par,
   }
   return hapPairs;
 }
-
+static int b2j;
 QList<HapPair> ImputeDriver::runBurnin2(const CurrentData &cd, const Par &par,
                                         QList<HapPair> hapPairs)
 {
   QList<HapPair> cumHapPairs;
   int start = par.burnin_its();
   int end = start + par.phase40_its();
-  for (int j = start; j < end; ++j) {
-    bool useRevDag = (j & 1) == 1;
+  for (b2j = start; b2j < end; ++b2j) {
+    bool useRevDag = (b2j & 1) == 1;
     hapPairs = ImputeDriver::sample(cd, par, hapPairs, useRevDag);
-    // runStats.printIterationUpdate(cd.window(), j+1);
+    // runStats.printIterationUpdate(cd.window(), b2j+1);
     cumHapPairs.append(hapPairs);
   }
   return cumHapPairs;
@@ -160,11 +160,24 @@ QList<HapPair> ImputeDriver::sample(const CurrentData &cd, const Par &par, QList
   int nSampledHaps = par.nSamplingsPerIndividual() * cd.nTargetSamples();
   SplicedGL gl(cd.targetGL(), useRevDag);
 
+  // if(b2j == 6)
+  //   HapUtility::dumpGl(gl);
+
+  // if(b2j == 7)
+  //   HapUtility::dumpHp(hapPairs);
+
   cd.addRestrictedRefHapPairs(hapPairs);
   HapPairs dagHaps(hapPairs, useRevDag);
 
+  if(b2j == 7)
+    globalMgd.setOkToDump(true);
+  else if(b2j == 8)
+    globalMgd.setOkToDump(false);
   ImmutableDag dag(dagHaps, ImputeDriver::getHapWeights(dagHaps, cd), par.modelScale(),
                    par.dagInitLevels());
+
+  // if(b2j == 7)
+  //   DagDump::dagDump(dag);
 
   QList<HapPair> sampledHaps;
 
