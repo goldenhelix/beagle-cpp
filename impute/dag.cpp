@@ -15,7 +15,7 @@
 #define MIN_DEPTH 10
 #define MAX_THRESHOLD_RATIO 1.4
 
-LinkageEquilibriumDag::LinkageEquilibriumDag(const SplicedGL &gl, double minFreq)
+LinkageEquilibriumDag::LinkageEquilibriumDag(const SplicedGL &gl, float minFreq)
 {
   Q_ASSERT_X(minFreq > 0.0 || minFreq < 0.5,
              "LinkageEquilibriumDag::LinkageEquilibriumDag",
@@ -35,14 +35,14 @@ LinkageEquilibriumDag::LinkageEquilibriumDag(const SplicedGL &gl, double minFreq
   _sumAlleles = gl.markers().sumAlleles();
 }
 
-QList<double> LinkageEquilibriumDag::alleleFrequencies(const SplicedGL &gl,
+QList<float> LinkageEquilibriumDag::alleleFrequencies(const SplicedGL &gl,
                                                        int marker,
-                                                       double minFreq)
+                                                       float minFreq)
 {
   int nSamples = gl.nSamples();
   int nAlleles = gl.marker(marker).nAlleles();
-  QList<double> alleleFreq;
-  QList<double> scaledFreq;
+  QList<float> alleleFreq;
+  QList<float> scaledFreq;
   for (int a1 = 0; a1 < nAlleles; a1++) {
     alleleFreq.append(0.0);
     scaledFreq.append(0.0);
@@ -50,7 +50,7 @@ QList<double> LinkageEquilibriumDag::alleleFrequencies(const SplicedGL &gl,
   for (int sample = 0; sample < nSamples; ++sample) {
     for (int a1 = 0; a1 < nAlleles; ++a1) {
       for (int a2 = 0; a2 < nAlleles; ++a2) {
-        double likelihood = gl.gl(marker, sample, a1, a2);
+        float likelihood = gl.gl(marker, sample, a1, a2);
         scaledFreq[a1] += likelihood;
         scaledFreq[a2] += likelihood;
       }
@@ -66,9 +66,9 @@ QList<double> LinkageEquilibriumDag::alleleFrequencies(const SplicedGL &gl,
   return alleleFreq;
 }
 
-void LinkageEquilibriumDag::divideEntriesBySum(QList<double> &fa)
+void LinkageEquilibriumDag::divideEntriesBySum(QList<float> &fa)
 {
-  double sum = 0.0f;
+  float sum = 0.0f;
   for (int j = 0; j < fa.length(); ++j)
     sum += fa[j];
 
@@ -76,7 +76,7 @@ void LinkageEquilibriumDag::divideEntriesBySum(QList<double> &fa)
     fa[j] /= sum;
 }
 
-void LinkageEquilibriumDag::enforceMinFrequency(QList<double> &alleleFreq, double minFreq)
+void LinkageEquilibriumDag::enforceMinFrequency(QList<float> &alleleFreq, float minFreq)
 {
   bool changedFreq = false;
   for (int j = 0; j < alleleFreq.length(); ++j) {
@@ -189,7 +189,7 @@ public:
    * @param weights an array mapping haplotype indices to non-negative
    * weights
    */
-  MergeableDagLevel(const HapsMarkerIterator &data, QVector<double> weights);
+  MergeableDagLevel(const HapsMarkerIterator &data, QVector<float> weights);
 
   /**
    * Constructs a new {@code MergeableDagLevel} instance with the
@@ -269,7 +269,7 @@ public:
    *
    * @param edge index of the edge
    */
-  double edgeCount(int edge) const { return _counts[edge]; }
+  float edgeCount(int edge) const { return _counts[edge]; }
   /**
    * Returns the sum of weights for the sequences that pass
    * through the specified parent node or 0 if the parent node
@@ -277,7 +277,7 @@ public:
    *
    * @param parentNode index of the parent node
    */
-  double nodeCount(int parentNode) const;
+  float nodeCount(int parentNode) const;
 
   /**
    * Returns an array of parent node indices.
@@ -308,12 +308,12 @@ public:
    */
   int outEdge(int parentNode, int symbol) const { return _outEdges[symbol][parentNode]; }
 private:
-  void checkParameters(const HapsMarkerIterator &data, const QVector<double> weights) const;
+  void checkParameters(const HapsMarkerIterator &data, const QVector<float> weights) const;
   void checkParameters(MergeableDagLevel *parent, const HapsMarkerIterator &data) const;
   void initializeArrays();
   void fillArraysForFirst(const HapsMarkerIterator &data);
   void fillArraysWithPrev(const HapsMarkerIterator &data);
-  void addEdge(int parentNode, int symbol, double weight, int edge, int haplotype);
+  void addEdge(int parentNode, int symbol, float weight, int edge, int haplotype);
   void reduceEdgeArrayLengths(int newLength);
   void removeHaplotypeIndices();  // Removes the haplotype index data from this object.
   bool hasSiblingInMe(int parentNodeOfNextLevel) const;
@@ -342,7 +342,7 @@ private:
   int _levelIndex;
   int _nAlleles;
   int _nHaps;
-  QVector<double> _weights;
+  QVector<float> _weights;
 
   QList<QVector<int> > _outEdges;  // [allele][parent node]
   QVector<int> _child2FirstInEdge;
@@ -351,7 +351,7 @@ private:
   QVector<int> _parentNodes;  // edge -> parent node
   QVector<int> _childNodes;   // edge -> child node
   QVector<int> _symbols;      // edge -> symbol
-  QVector<double> _counts;    // edge -> weight
+  QVector<float> _counts;     // edge -> weight
 
   QVector<int> _child2FirstHap;  // child node -> first hap index
   QVector<int> _hap2NextHap;     // current hap index -> next hap index
@@ -376,7 +376,7 @@ public:
    * @param isMergeable {@code true} if the two trees may be
    * merged, and {@code false} otherwise
    */
-  Score(int nodeA, int nodeB, double score, bool isMergeable);
+  Score(int nodeA, int nodeB, float score, bool isMergeable);
 
   /**
    * Default constructor for {@code Score} is used to create the
@@ -395,7 +395,7 @@ public:
   /**
    * Returns the similarity score for the two trees.
    */
-  double score() const { return (_score < 0) ? -_score : _score; }
+  float score() const { return (_score < 0) ? -_score : _score; }
   /**
    * Returns {@code true} if the two trees may be merged, and
    * returns {@code false} otherwise.
@@ -404,7 +404,7 @@ public:
 private:
   int _nodeA;
   int _nodeB;
-  double _score;
+  float _score;
 };
 
 /**
@@ -437,14 +437,14 @@ public:
    * similarity threshold
    * @param nInitLevels the number of initial levels to read
    */
-  MergeableDagFactory(const HapPairs &hapPairs, const QVector<double> &weights, double scale, int nInitLevels);
+  MergeableDagFactory(const HapPairs &hapPairs, const QVector<float> &weights, float scale, int nInitLevels);
 
   const QList<DagLevel> &levels() const { return _mergedLevels; }
 private:
-  void checkParameters(const HapPairs &hapPairs, const QVector<double> &weights, double scale, int nInitLevels) const;
-  MergeableDagLevel *readFirstLevel(HapsMarkerIterator &it, const QVector<double> &weights) const;
-  double maxUnmergedAtLeaf(const HapPairs &hapPairs, const QVector<double> &weights) const;
-  int nextReadDepth(double unmergedRatio, int depth, int lastDepth) const;
+  void checkParameters(const HapPairs &hapPairs, const QVector<float> &weights, float scale, int nInitLevels) const;
+  MergeableDagLevel *readFirstLevel(HapsMarkerIterator &it, const QVector<float> &weights) const;
+  float maxUnmergedAtLeaf(const HapPairs &hapPairs, const QVector<float> &weights) const;
+  int nextReadDepth(float unmergedRatio, int depth, int lastDepth) const;
   MergeableDagLevel *readLevels(HapsMarkerIterator &it, int nLevelsToRead,
                                 MergeableDagLevel *leafLevel) const;
   void mergeParentNodes(MergeableDagLevel *level);
@@ -468,12 +468,12 @@ private:
    * the counts of corresponding tree branches
    * @param threshold the maximum permitted node similarity
    */
-  double similar(MergeableDagLevel *level, int nodeA, int nodeB, double nodeCntA, double nodeCntB,
-                 int baseMarker, double nA, double nB, double maxDiff, double threshold);
+  float similar(MergeableDagLevel *level, int nodeA, int nodeB, float nodeCntA, float nodeCntB,
+                 int baseMarker, float nA, float nB, float maxDiff, float threshold);
 
   QList<DagLevel> _mergedLevels;
-  double _scale;
-  double _nUnmergedAtLeaf;
+  float _scale;
+  float _nUnmergedAtLeaf;
 };
 
 /**
@@ -528,7 +528,7 @@ static QVector<quint16> rankedQuint16Values(const QVector<int> &array)
   return transformedArray;
 }
 
-MergeableDagLevel::MergeableDagLevel(const HapsMarkerIterator &data, QVector<double> weights)
+MergeableDagLevel::MergeableDagLevel(const HapsMarkerIterator &data, QVector<float> weights)
 {
   checkParameters(data, weights);
   _prevLevel = 0;
@@ -554,7 +554,7 @@ MergeableDagLevel::MergeableDagLevel(MergeableDagLevel *prevLevel, const HapsMar
   fillArraysWithPrev(data);
 }
 
-void MergeableDagLevel::checkParameters(const HapsMarkerIterator &data, const QVector<double> weights) const
+void MergeableDagLevel::checkParameters(const HapsMarkerIterator &data, const QVector<float> weights) const
 {
   Q_ASSERT_X(weights.length() == data.nHaps(),
              "MergeableDagLevel::checkParameters(data, weights)",
@@ -596,7 +596,7 @@ void MergeableDagLevel::fillArraysForFirst(const HapsMarkerIterator &data)
   int nEdges = 0;
   for (int hap = 0, n = data.nHaps(); hap < n; ++hap) {
     int symbol = data.allele(hap);
-    double count = _weights[hap];
+    float count = _weights[hap];
     int edge = _outEdges[symbol][parentNode];
     if (edge == -1)
       addEdge(parentNode, symbol, count, nEdges++, hap);
@@ -622,10 +622,10 @@ void MergeableDagLevel::fillArraysWithPrev(const HapsMarkerIterator &data)
       int hap = _prevLevel->_child2FirstHap[node];
       while (hap != -1) {
         int symbol = data.allele(hap);
-		if (hap < 40){
-			int zzw = hap;
-		}
-		double count = _weights[hap];
+                if (hap < 40){
+                        int zzw = hap;
+                }
+                float count = _weights[hap];
         int edge = _outEdges[symbol][node];
         if (edge == -1)
           addEdge(node, symbol, count, nEdges++, hap);
@@ -634,11 +634,11 @@ void MergeableDagLevel::fillArraysWithPrev(const HapsMarkerIterator &data)
                      "MergeableDagLevel::fillArraysWithPrev",
                      "edge != _childNodes[edge]");
 
-          int child = _childNodes[edge];
-	  if(((double)(int)_counts[edge] != _counts[edge])  &&  ((double)(int)count != count)){
-	    double oldCount = _counts[edge];
-		double zyxc = count;
-	  }
+          int child = _childNodes[edge];  ///////////////
+          if(((float)(int)_counts[edge] != _counts[edge])  &&  ((float)(int)count != count)){
+            float oldCount = _counts[edge];
+                float zyxc = count;
+          }
           _counts[edge] += count;
           _hap2NextHap[hap] = _child2FirstHap[child];
           _child2FirstHap[child] = hap;
@@ -654,7 +654,7 @@ void MergeableDagLevel::fillArraysWithPrev(const HapsMarkerIterator &data)
   _prevLevel->removeHaplotypeIndices();
 }
 
-void MergeableDagLevel::addEdge(int parentNode, int symbol, double weight, int edge, int haplotype)
+void MergeableDagLevel::addEdge(int parentNode, int symbol, float weight, int edge, int haplotype)
 {
   int childNode = edge;
   _outEdges[symbol][parentNode] = edge;
@@ -849,9 +849,9 @@ void MergeableDagLevel::mergeHaplotypes(int retainedChild, int removedChild)
   _child2FirstHap[removedChild] = -1;
 }
 
-double MergeableDagLevel::nodeCount(int parentNode) const
+float MergeableDagLevel::nodeCount(int parentNode) const
 {
-  double sum = 0.0;
+  float sum = 0.0;
   for (int symbol = 0; symbol < _nAlleles; ++symbol) {
     if (_outEdges[symbol][parentNode] >= 0)
       sum += edgeCount(_outEdges[symbol][parentNode]);
@@ -895,15 +895,15 @@ bool MergeableDagLevel::isParentNode(int node) const
 /**
  * Utility for DagLevel and MergeableDagFactory
  */
-static double sumArray(QVector<double> fa)
+static float sumArray(QVector<float> fa)
 {
-  double sum = 0.0;
-  foreach (const double f, fa)
+  float sum = 0.0;
+  foreach (const float f, fa)
     sum += f;
   return sum;
 }
 
-Score::Score(int nodeA, int nodeB, double score, bool isMergeable) : _nodeA(nodeA), _nodeB(nodeB)
+Score::Score(int nodeA, int nodeB, float score, bool isMergeable) : _nodeA(nodeA), _nodeB(nodeB)
 {
   Q_ASSERT_X(score >= 0  &&  (score != 0  ||  isMergeable != false),
              "Score::Score",
@@ -916,13 +916,13 @@ Score::Score() : _nodeA(-1), _nodeB(-1), _score(-FLT_MAX)
 {
 }
 
-MergeableDagFactory::MergeableDagFactory(const HapPairs &hapPairs, const QVector<double> &weights, double scale,
+MergeableDagFactory::MergeableDagFactory(const HapPairs &hapPairs, const QVector<float> &weights, float scale,
                                          int nInitLevels)
 {
   checkParameters(hapPairs, weights, scale, nInitLevels);
   _scale = scale;
 
-  double maxUnmerged = maxUnmergedAtLeaf(hapPairs, weights);
+  float maxUnmerged = maxUnmergedAtLeaf(hapPairs, weights);
   int lastReadDepth = nInitLevels;
 
   // "current" and "leaf" point to a singly-linked list of
@@ -941,7 +941,7 @@ MergeableDagFactory::MergeableDagFactory(const HapPairs &hapPairs, const QVector
     delete previousLevel;
 
     if (it.hasNext()) {
-      double ratio = (_nUnmergedAtLeaf / maxUnmerged);
+      float ratio = (_nUnmergedAtLeaf / maxUnmerged);
       int depth = (leaf->index() - current->index());
       int readDepth = nextReadDepth(ratio, depth, lastReadDepth);
 
@@ -956,7 +956,7 @@ MergeableDagFactory::MergeableDagFactory(const HapPairs &hapPairs, const QVector
   delete current;
 }
 
-void MergeableDagFactory::checkParameters(const HapPairs &hapPairs, const QVector<double> &weights, double scale,
+void MergeableDagFactory::checkParameters(const HapPairs &hapPairs, const QVector<float> &weights, float scale,
                                           int nInitLevels) const
 {
   Q_ASSERT_X(nInitLevels >= 1, "MergeableDagFactory::checkParameters", "nInitLevels < 1");
@@ -972,25 +972,25 @@ void MergeableDagFactory::checkParameters(const HapPairs &hapPairs, const QVecto
 }
 
 MergeableDagLevel *MergeableDagFactory::readFirstLevel(
-    HapsMarkerIterator &it, const QVector<double> &weights) const
+    HapsMarkerIterator &it, const QVector<float> &weights) const
 {
   it.next();
   return new MergeableDagLevel(it, weights);
 }
 
-double MergeableDagFactory::maxUnmergedAtLeaf(const HapPairs &hapPairs, const QVector<double> &weights) const
+float MergeableDagFactory::maxUnmergedAtLeaf(const HapPairs &hapPairs, const QVector<float> &weights) const
 {
-  double sum = sumArray(weights);
+  float sum = sumArray(weights);
   return MAX_PROP_UNMERGED * sum;
 }
 
-int MergeableDagFactory::nextReadDepth(double unmergedRatio, int depth, int lastDepth) const
+int MergeableDagFactory::nextReadDepth(float unmergedRatio, int depth, int lastDepth) const
 {
   if (unmergedRatio <= 1) {
     return MIN_DEPTH;
-  } else if ((double)depth < (0.85 * lastDepth)) {
+  } else if ((float)depth < (0.85 * lastDepth)) {
     return 1 + (int)round(0.95 * lastDepth + 0.5);
-  } else if ((unmergedRatio > 2.0) && ((double)depth > (0.95 * lastDepth))) {
+  } else if ((unmergedRatio > 2.0) && ((float)depth > (0.95 * lastDepth))) {
     return (int)ceil((1 + unmergedRatio / 20) * lastDepth);
   } else {
     return lastDepth;
@@ -1041,8 +1041,8 @@ void MergeableDagFactory::mergeParentNodes(MergeableDagLevel *level)
       retainedNode = minScore.nodeA();
     }
     globalMgd.dumpOneOpinion(level->hasSibling(minScore.nodeA()), level->hasSibling(minScore.nodeB()),
-			     level->nodeCount(minScore.nodeA()), level->nodeCount(minScore.nodeB()),
-			     retainedNode, removedNode);
+                             level->nodeCount(minScore.nodeA()), level->nodeCount(minScore.nodeB()),
+                             retainedNode, removedNode);
     level->mergeParentNodes(retainedNode, removedNode);
     globalMgd.dumpMerge(retainedNode, removedNode);
     minScore = maxScore;
@@ -1123,10 +1123,10 @@ void MergeableDagFactory::findSortedParents(QList<int> &sortedParentNodes, int &
 
 bool MergeableDagFactory::score(Score &scoreObj, MergeableDagLevel *level, int nodeA, int nodeB)
 {
-  double maxDiff = 0.0;
-  double nodeCntA = level->nodeCount(nodeA);
-  double nodeCntB = level->nodeCount(nodeB);
-  double threshold = (double)(_scale * sqrt((1.0 / nodeCntA) + (1.0 / nodeCntB)));
+  float maxDiff = 0.0;
+  float nodeCntA = level->nodeCount(nodeA);
+  float nodeCntB = level->nodeCount(nodeB);
+  float threshold = (float)(_scale * sqrt((1.0 / nodeCntA) + (1.0 / nodeCntB)));
   maxDiff = similar(level, nodeA, nodeB, nodeCntA, nodeCntB, level->index(), nodeCntA, nodeCntB,
                     maxDiff, threshold);
   if (maxDiff > MAX_THRESHOLD_RATIO * threshold)
@@ -1139,13 +1139,13 @@ bool MergeableDagFactory::score(Score &scoreObj, MergeableDagLevel *level, int n
   }
 }
 
-double MergeableDagFactory::similar(MergeableDagLevel *level, int nodeA, int nodeB, double nodeCntA,
-                                    double nodeCntB, int baseMarker, double nA, double nB,
-                                    double maxDiff, double threshold)
+float MergeableDagFactory::similar(MergeableDagLevel *level, int nodeA, int nodeB, float nodeCntA,
+                                   float nodeCntB, int baseMarker, float nA, float nB,
+                                   float maxDiff, float threshold)
 {
-  double propA = nodeCntA / nA;
-  double propB = nodeCntB / nB;
-  double diff = abs(propA - propB);
+  float propA = nodeCntA / nA;
+  float propB = nodeCntB / nB;
+  float diff = abs(propA - propB);
 
   if (diff >= threshold)
     return diff;
@@ -1168,8 +1168,8 @@ double MergeableDagFactory::similar(MergeableDagLevel *level, int nodeA, int nod
     int childB = (edgeB != -1) ? level->childNode(edgeB) : -1;
     nodeCntA = (edgeA != -1) ? level->edgeCount(edgeA) : 0.0;
     nodeCntB = (edgeB != -1) ? level->edgeCount(edgeB) : 0.0;
-    double childMaxDiff = similar(level->next(), childA, childB, nodeCntA, nodeCntB, baseMarker, nA,
-                                  nB, maxDiff, threshold);
+    float childMaxDiff = similar(level->next(), childA, childB, nodeCntA, nodeCntB, baseMarker, nA,
+                                 nB, maxDiff, threshold);
 
     if (childMaxDiff > maxDiff) {
       if (childMaxDiff >= threshold)
@@ -1187,7 +1187,7 @@ double MergeableDagFactory::similar(MergeableDagLevel *level, int nodeA, int nod
  */
 
 static int checkLengths(QVector<quint16> parentNodes, QVector<quint16> childNodes,
-                        QVector<quint16> symbols, QVector<double> counts)
+                        QVector<quint16> symbols, QVector<float> counts)
 {
   Q_ASSERT_X(parentNodes.length() <= UINT16_MAX,
              "checkLengths (dag.cpp)",
@@ -1271,7 +1271,7 @@ static void getIndicesArray(QVector<quint16> &indicesArray, const QVector<quint1
 }
 
 DagLevel::DagLevel(QVector<quint16> parentNodes, QVector<quint16> childNodes,
-                   QVector<quint16> symbols, QVector<double> counts)
+                   QVector<quint16> symbols, QVector<float> counts)
 {
   int nEdges = checkLengths(parentNodes, childNodes, symbols, counts);
 
@@ -1300,7 +1300,7 @@ DagLevel::DagLevel(QVector<quint16> parentNodes, QVector<quint16> childNodes,
   checkForDuplicateOutEdges(_parentIndices, _parents, _symbols);
 }
 
-void DagLevel::obtainParentCounts(QVector<quint16> parentNodes, QVector<double> counts, int nNodes)
+void DagLevel::obtainParentCounts(QVector<quint16> parentNodes, QVector<float> counts, int nNodes)
 {
   _parentCounts.fill(0.0, nNodes);
 
@@ -1351,7 +1351,7 @@ static double minusLog10CondEdgeProb(const DagLevel &level)
   return (d < 0) ? 0.0 : d;
 }
 
-ImmutableDag::ImmutableDag(const HapPairs &hapPairs, const QVector<double> &weights, double scale,
+ImmutableDag::ImmutableDag(const HapPairs &hapPairs, const QVector<float> &weights, float scale,
                            int nInitLevels)
 {
   MergeableDagFactory mdf(hapPairs, weights, scale, nInitLevels);
@@ -1397,12 +1397,14 @@ void MergeDump::setOkToDump(bool otd)
   if(otd)
   {
     // if (!opts.outFilePath.isEmpty()) {
-    _out.setFileName("mergedump7e.txt");
+    _out.setFileName("mergedump7ei.txt");
     if (!_out.open(QIODevice::WriteOnly)) {
       printf("Unable to write to mergedump.txt.\n");
       return;
     }
   }
+  else
+    _out.close();
 }
 
 void MergeDump::setNewLevel()
@@ -1450,7 +1452,7 @@ void MergeDump::dumpScores(QByteArray leadingPrompt, const Score &minScore, cons
 }
 
 void MergeDump::dumpOneOpinion(bool nodeAHasSibling, bool nodeBHasSibling,
-                               double nodeCountNodeA, double nodeCountNodeB,
+                               float nodeCountNodeA, float nodeCountNodeB,
                                int retainedNode, int removedNode)
 {
   if(_okToDump)
@@ -1485,7 +1487,7 @@ void MergeDump::dumpMerge(int retainedNode, int removedNode)
 MergeDump globalMgd;
 
 /*
-static QByteArray asFpString9(double value)
+static QByteArray asFpString9(float value)
 {
   QByteArray valueString = QByteArray::number(value, 'f', 9);
 
@@ -1507,7 +1509,7 @@ void DagDump::dagDump(const Dag &dag)
   // if (!opts.outFilePath.isEmpty()) {
   out.setFileName("dagdump7.txt");
   if (!out.open(QIODevice::WriteOnly)) {
-	  printf("Unable to write to dagdump.txt.\n");
+          printf("Unable to write to dagdump.txt.\n");
     return;
   }
   // } else {
@@ -1575,10 +1577,10 @@ void DagDump::dagDump(const Dag &dag)
       int noe = dag.nOutEdges(lev, pn);
       out.write(":  ");
       for(int oen=0; oen<noe; oen++) {
-	out.write("  oe ");
-	out.write(QByteArray::number(oen));
-	out.write(": ");
-	out.write(QByteArray::number(dag.outEdge(lev, pn, oen)));
+        out.write("  oe ");
+        out.write(QByteArray::number(oen));
+        out.write(": ");
+        out.write(QByteArray::number(dag.outEdge(lev, pn, oen)));
       }
     }
     out.write("\n\n");

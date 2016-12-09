@@ -320,6 +320,7 @@ protected:
   void initializeWindowBuffering(const int initSize);
   void appendPhasedVariantData();
   void finishAndWriteRec();
+  /////////////////// void debugWrite();
 
 private:
   void outputMarker();
@@ -383,7 +384,23 @@ void VcfDataWriter::initializeWindowBuffering(const int initSize)
   _recs.setData(QByteArray());
   _recs.open(QBuffer::ReadWrite);
 }
-
+/*
+void VcfDataWriter::debugWrite() ////////////////
+{
+  for (int a2=0; a2 < _alProbs1.length(); ++a2)
+  {
+    _recs.write("  ap[");
+    _recs.write(QByteArray::number(a2));
+    _recs.write("]/ap[");
+    _recs.write(QByteArray::number(a2));
+    _recs.write("] == ");
+    _recs.write(QByteArray::number(_alProbs1[a2], 'f', 12));
+    _recs.write("/");
+    _recs.write(QByteArray::number(_alProbs2[a2], 'f', 12));
+  }
+  _recs.write(":");
+}
+*/
 void VcfDataWriter::appendPhasedVariantData()
 {
   _recs.write("\t");
@@ -394,6 +411,7 @@ void VcfDataWriter::appendPhasedVariantData()
   if (_printDS) {
     for (int j = 1; j < _nAlleles; ++j) {
       _recs.write((j == 1) ? ":" : ",");
+      ////////////_recs.write(QByteArray::number(_dose[j], 'f', 8)); ////////////////
       _recs.write(asTrimString2(_dose[j]));
     }
   }
@@ -401,6 +419,7 @@ void VcfDataWriter::appendPhasedVariantData()
   if (_printGP) {
     for (int j = 0; j < _gtProbs.length(); ++j) {
       _recs.write((j == 0) ? ":" : ",");
+      ////////////_recs.write(QByteArray::number(_gtProbs[j], 'f', 8)); ////////////////
       _recs.write(asTrimString2(_gtProbs[j]));
     }
   }
@@ -421,17 +440,20 @@ void VcfDataWriter::finishAndWriteRec()
 
   if (_printDS || _printGP) {
     _out.write("AR2=");
+    ////////////////_out.write(QByteArray::number(_r2Est.allelicR2(), 'f', 8)); ////////////////
     _out.write(QByteArray::number(_r2Est.allelicR2(), 'f', 2));
     _out.write(";DR2=");
+    ////////////////_out.write(QByteArray::number(_r2Est.doseR2(), 'f', 8)); ////////////////
     _out.write(QByteArray::number(_r2Est.doseR2(), 'f', 2));
 
     for (int j = 1; j < _nAlleles; ++j) {
       _out.write((j == 1) ? ";AF=" : ",");
       double af = _cumAlleleProbs[j] / (2 * _r2Est.nGenotypes());
-      if(af >= .01  ||  af < .0001)
-	_out.write(asTrimString2(af));
-      else
-	_out.write(QByteArray::number(af, 'f', 4));
+      _out.write(QByteArray::number(af, 'f', 12)); ////////////////
+      ////////////////if(af >= .01  ||  af < .0001)
+      ////////////////  _out.write(asTrimString2(af));
+      ////////////////else
+      ////////////////  _out.write(QByteArray::number(af, 'f', 4));
     }
 
     if (_isImputed[_mNum])
@@ -491,7 +513,7 @@ int main(int argc, char* argv[])
     AllData ad;
     ImputeDriver::phaseAndImpute(ad, tr, rr, dw, opts.window(), opts);
 
-	out.close();
+    out.close();
 
     if (tr.restrictedZeroMarkerCnt())
       printf(

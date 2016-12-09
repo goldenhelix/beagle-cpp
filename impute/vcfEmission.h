@@ -44,7 +44,7 @@ public:
   ~BitSetGTSharedData() {}
   int allele1(int sample) const;
   int allele2(int sample) const;
-  double gl(int sample, int a1, int a2) const;
+  float gl(int sample, int a1, int a2) const;
 
   bool isRefData;
   QBitArray isMissing1Data;
@@ -104,7 +104,7 @@ public:
    * @param allele1 the first allele index
    * @param allele2 the second allele index
    */
-  double gl(int sample, int allele1, int allele2) const;
+  float gl(int sample, int allele1, int allele2) const;
 
   Marker marker() const { return Marker((MarkerSharedData *)&(*_d)); }
   /**
@@ -183,7 +183,7 @@ public:
    * @param allele1 the first allele index
    * @param allele2 the second allele index
    */
-  double gl(int samp, int al1, int al2) const { return _d->gl(samp, al1, al2); }
+  float gl(int samp, int al1, int al2) const { return _d->gl(samp, al1, al2); }
   /**
    * Returns the Marker object associated with this record.
    */

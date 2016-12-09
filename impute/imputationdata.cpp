@@ -1,5 +1,7 @@
 #include "impute/imputationdata.h"
 
+#include <QFile>
+
 #include <math.h>
 
 #define MIN_CM_DIST     1e-7
@@ -48,12 +50,12 @@ public:
   /**
    * Returns the reference haplotype pairs used to construct this.
    */
-  SampleHapPairs refHapPairs() { return _refHapPairs; }
+  const SampleHapPairs &refHapPairs() { return _refHapPairs; }
 
   /**
    * Returns the target haplotype pairs used to construct this.
    */
-  SampleHapPairs targetHapPairs() { return _targetHapPairs; }
+  const SampleHapPairs &targetHapPairs() { return _targetHapPairs; }
 
   /**
    * Returns (sets) two lists--the first list maps each reference
@@ -81,8 +83,8 @@ private:
   int _nHaps;
   QVector<int> _alleles;
   QVector<int> _haps;
-  SampleHapPairs _refHapPairs;
-  SampleHapPairs _targetHapPairs;
+  const SampleHapPairs &_refHapPairs;
+  const SampleHapPairs &_targetHapPairs;
 };
 
 HapSegData::HapSegData(const RefHapPairs &refHapPairs, int start, int end)
@@ -171,13 +173,14 @@ void HapSegData::updateHap2Seq(int h, int seq)
 }
 
 RefHapSeg::RefHapSeg(const RefHapPairs &refHapPairs, int start, int end)
+  : _refHapPairs(refHapPairs)
 {
   Q_ASSERT_X(start >= 0  &&  start < end  &&  end <= refHapPairs.nMarkers(),
              "RefHapSeg::RefHapSeg",
              "invalid start and/or end values");
 
   HapSegData hapSegData(refHapPairs, start, end);
-  _refHapPairs = refHapPairs;
+
   _start = start;
   _end = end;
   _hapToSeq = hapSegData.hap2Seq();
@@ -194,13 +197,13 @@ int RefHapSeg::allele(int marker, int seq) const
   return _refHapPairs.allele(refIndex, _seqToHap[seq]);
 }
 
-RefHapSegs::RefHapSegs(const RefHapPairs &refHapPairs, const QVector<int> &segStart, const QVector<int> &segEnd)
+RefHapSegs::RefHapSegs(const RefHapPairs &refHapPairs, const QVector<int> &segStart,
+                       const QVector<int> &segEnd) : _refHapPairs(refHapPairs)
 {
   int nMarkers = refHapPairs.nMarkers();
   checkClusters(segStart, segEnd, nMarkers);
   _segStart = segStart;
   _segEnd = segEnd;
-  _refHapPairs = refHapPairs;
 
   for(int j=0, n=segStart.length(); j<n; j++)
   {
@@ -224,6 +227,8 @@ void RefHapSegs::checkClusters(const QVector<int> &starts, const QVector<int> &e
 }
 
 HaplotypeCoder::HaplotypeCoder(const SampleHapPairs &refHapPairs, const SampleHapPairs &targetHapPairs)
+  : _refHapPairs(refHapPairs), _targetHapPairs(targetHapPairs)
+
 {
   Q_ASSERT_X(refHapPairs.markers() == targetHapPairs.markers(),
              "HaplotypeCoder::HaplotypeCoder",
@@ -231,8 +236,6 @@ HaplotypeCoder::HaplotypeCoder(const SampleHapPairs &refHapPairs, const SampleHa
 
   _nRefHaps = refHapPairs.nHaps();
   _nHaps = _nRefHaps + targetHapPairs.nHaps();
-  _refHapPairs = refHapPairs;
-  _targetHapPairs = targetHapPairs;
 }
 
 void HaplotypeCoder::findHaplotypes(QList<quint16> &refMap, QList<quint16> &targMap,
@@ -359,7 +362,7 @@ static QList<int> findTargClustEnd(Markers targetMarkers, PositionMap genMap,
 }
 
 static void setCodedAlleles(const SampleHapPairs &refHapPairs,
-			    const SampleHapPairs &targetHapPairs, const QList<int> targEnd,
+                            const SampleHapPairs &targetHapPairs, const QList<int> targEnd,
             QList< QList<quint16> > &refAlleles, QList< QList<quint16> > &targAlleles)
 {
   HaplotypeCoder coder(refHapPairs, targetHapPairs);
@@ -476,7 +479,7 @@ static QVector<float> findWts(const RefHapSegs &refHapSegs, const PositionMap &m
   return wts;
 }
 
-static RefHapSegs findRefHapSegs(RefHapPairs refHapPairs,
+static RefHapSegs findRefHapSegs(const RefHapPairs &refHapPairs,
                              QList<int> targClustEnd, QList<int> targToRef)
 {
   int n = targClustEnd.length();
@@ -507,6 +510,7 @@ static RefHapSegs findRefHapSegs(RefHapPairs refHapPairs,
 ImputationData::ImputationData(const Par &par, const CurrentData &cd,
                                const SampleHapPairs &targetHapPairs,
                                const PositionMap &map)
+  : _targHapPairs(targetHapPairs)
 {
   Q_ASSERT_X(cd.targetMarkers() == targetHapPairs.markers(),
              "ImputationData::ImputationData",
@@ -524,10 +528,113 @@ ImputationData::ImputationData(const Par &par, const CurrentData &cd,
   _nClusters = targClustEnd.length();
   _refHapPairs = cd.refSampleHapPairs();
   _refHapSegs = findRefHapSegs(_refHapPairs, targClustEnd, cd.markerIndices());
-  _targHapPairs = targetHapPairs;
   _errProb = err(par.err(), targClustEnd);
   _pRecomb = findPRecomb(_refHapSegs, map, par.ne());
   _weight = findWts(_refHapSegs, map);
+}
+
+class LSHBDump
+{
+public:
+  LSHBDump() : _okToDump(false) {}
+  void setOkToDump(bool otd);
+  void setNewHap(int hap);
+  void dumpWeight(double wt);
+  void dumpAPInc(int start, int allele, float apNewValue, int segment, int seq, float hpss, char* dumpType);
+  void dumpStateProbSeg(int segNum);
+  void dumpStateProbs(float stateProbs, float fwdVal, float bwdVal, int fwdIndex, int h);
+private:
+  QFile _out;
+  bool _okToDump;
+};
+
+static LSHBDump lshbd;
+
+void LSHBDump::setOkToDump(bool otd)
+{
+  _okToDump = otd;
+  if(otd)
+  {
+    // if (!opts.outFilePath.isEmpty()) {
+    _out.setFileName("lshbdump4c.txt");
+    if (!_out.open(QIODevice::WriteOnly)) {
+      printf("Unable to write to lshbdump4c.txt.\n");
+      return;
+    }
+  }
+}
+
+void LSHBDump::setNewHap(int hap)
+{
+  if(hap == 0)
+  {
+    if(_okToDump)
+    {
+      _out.write("HAPLOTYPE: ");
+      _out.write(QByteArray::number(hap));
+      _out.write(":\n");
+    }
+  }
+  else
+    setOkToDump(false);
+}
+
+void LSHBDump::dumpWeight(double wt)
+{
+  if(_okToDump)
+  {
+    _out.write("W ");
+    _out.write(QByteArray::number(wt, 'e', 7));
+    _out.write(": ");
+  }
+}
+
+void LSHBDump::dumpAPInc(int start, int allele, float apNewValue, int segment, int seq, float hpss, char* dumpType)
+{
+  if(_okToDump)
+  {
+    _out.write(QByteArray::number(start));
+    _out.write("+");
+    _out.write(QByteArray::number(allele));
+    _out.write("/");
+    _out.write(QByteArray::number(segment));
+    _out.write("/");
+    _out.write(QByteArray::number(seq));
+    _out.write(" (");
+    _out.write(dumpType);
+    _out.write("): ");
+    _out.write(QByteArray::number(hpss, 'e', 3));
+    _out.write("/");
+    _out.write(QByteArray::number(apNewValue, 'e', 3));
+    _out.write("\n");
+  }
+}
+
+void LSHBDump::dumpStateProbSeg(int segNum)
+{
+  if(_okToDump)
+  {
+    _out.write("FOR SEGMENT: ");
+    _out.write(QByteArray::number(segNum));
+    _out.write("\n");
+  }
+}
+
+void LSHBDump::dumpStateProbs(float stateProbs, float fwdVal, float bwdVal, int fwdIndex, int h)
+{
+  if(_okToDump)
+  {
+    _out.write(QByteArray::number(stateProbs, 'e', 4));
+    _out.write("/");
+    _out.write(QByteArray::number(fwdVal, 'e', 4));
+    _out.write("/");
+    _out.write(QByteArray::number(fwdIndex));
+    _out.write("/");
+    _out.write(QByteArray::number(bwdVal, 'e', 4));
+    _out.write("/");
+    _out.write(QByteArray::number(h));
+    _out.write("\n");
+  }
 }
 
 // Utilities for LSHapBaum....
@@ -549,15 +656,16 @@ static void scale(QVector<float> &fa, float divisor)
 
 static float findThreshold(int nSeq)
 {
-  float tentThresh = 1.0 / nSeq;
-  return (tentThresh < 0.005) ? tentThresh : 0.005;
+  float tentThresh = (float) 1.0 / nSeq;
+  return (tentThresh < (float) 0.005) ? tentThresh : (float) 0.005;
 }
 
 LSHapBaum::LSHapBaum(const ImputationData &impData, bool lowMem)
+  : _impData(impData)
 {
+  //////////////// lshbd.setOkToDump(true); ///////////////
   _windowIndex = -9999;
   _arrayIndex = -9999;
-  _impData = impData;
   _lowMem = lowMem;
   _n = impData.refHapPairs().nHaps();
   _refMarkers = impData.refHapPairs().markers();
@@ -587,6 +695,7 @@ LSHapBaum::LSHapBaum(const ImputationData &impData, bool lowMem)
 
 HapAlleleProbs LSHapBaum::randomHapSample(int hap)
 {
+  lshbd.setNewHap(hap); ////////////////
   _alleleProbs.fill(0.0);
   int nMarkers = _impData.nClusters();
   _windowIndex = 0;
@@ -623,8 +732,7 @@ void LSHapBaum::setForwardValues(int start, int end, int hap)
     for (int h=0; h < _n; ++h)
     {
       float em = (a == _impData.refAllele(m, h)) ? noErrProb : errProb;
-      
-	  _fwdVal[next][h] = (m==0) ? em : em*(scale*_fwdVal[prev][h] + shift);
+      _fwdVal[next][h] = (m==0) ? em : em*(scale*_fwdVal[prev][h] + shift);
       sum += _fwdVal[next][h];
     }
     lastSum = sum;
@@ -654,11 +762,13 @@ void LSHapBaum::setBwdValue(int m, int hap)
 
 void LSHapBaum::setStateProbs(int m, int fwdIndex)
 {
+  ////////////////// lshbd.dumpStateProbSeg(m); //////////////////
   _fwdHapProbs[m].fill(0.0);
   _bwdHapProbs[m].fill(0.0);
   for (int h=0; h < _n; ++h)
   {
     float stateProbs = _fwdVal[fwdIndex][h]*_bwdVal[h];
+    ////////////////// lshbd.dumpStateProbs(stateProbs, _fwdVal[fwdIndex][h], _bwdVal[h], fwdIndex, h); ///////////////////
     _fwdHapProbs[m][_refHapSegs.seq(m+1, h)] += stateProbs;
     _bwdHapProbs[m][_refHapSegs.seq(m, h)] += stateProbs;
   }
@@ -669,6 +779,7 @@ void LSHapBaum::setStateProbs(int m, int fwdIndex)
 
 void LSHapBaum::setAlleleProbs()
 {
+  lshbd.setOkToDump(false); ///////////////
   setFirstAlleleProbs();
   int nSegsM1 = _refHapSegs.nSegs() - 1;
   for (int j=1; j<nSegsM1; ++j)
@@ -691,6 +802,7 @@ void LSHapBaum::setFirstAlleleProbs()
         int start = _refMarkers.sumAlleles(m);
         int allele = _refHapSegs.allele(segment, m, seq);
         _alleleProbs[start + allele] += _bwdHapProbs[segment][seq];
+        lshbd.dumpAPInc(start, allele, _alleleProbs[start + allele], segment, seq, _bwdHapProbs[segment][seq], "b");
       }
     }
   }
@@ -716,9 +828,10 @@ void LSHapBaum::setAlleleProbs(int segment)
     {
       for (int m=clustStart; m<clustEnd; ++m)
       {
-	int start = _refMarkers.sumAlleles(m);
-	int allele = _refHapSegs.allele(segment, m - clustStart, seq);
-	_alleleProbs[start + allele] += _fwdHapProbs[segment-1][seq];
+        int start = _refMarkers.sumAlleles(m);
+        int allele = _refHapSegs.allele(segment, m - clustStart, seq);
+        _alleleProbs[start + allele] += _fwdHapProbs[segment-1][seq];
+        lshbd.dumpAPInc(start, allele, _alleleProbs[start + allele], segment, seq, _fwdHapProbs[segment-1][seq], "f");
       }
     }
 
@@ -726,11 +839,16 @@ void LSHapBaum::setAlleleProbs(int segment)
     {
       for (int m=clustEnd; m<nextClustStart; ++m)
       {
-	int start = _refMarkers.sumAlleles(m);
-	int allele = _refHapSegs.allele(segment, m - clustStart, seq);
-	double wt = _impData.weight(m);
-	_alleleProbs[start + allele] += wt*_fwdHapProbs[segment-1][seq];
-	_alleleProbs[start + allele] += (1-wt)*_bwdHapProbs[segment][seq];
+        int start = _refMarkers.sumAlleles(m);
+        int allele = _refHapSegs.allele(segment, m - clustStart, seq);
+        double wt = _impData.weight(m);
+        lshbd.dumpWeight(wt);
+        _alleleProbs[start + allele] += wt*_fwdHapProbs[segment-1][seq];
+        lshbd.dumpAPInc(start, allele, _alleleProbs[start + allele], segment, seq,
+                        wt*_fwdHapProbs[segment-1][seq], "v");
+        _alleleProbs[start + allele] += (1-wt)*_bwdHapProbs[segment][seq];
+        lshbd.dumpAPInc(start, allele, _alleleProbs[start + allele], segment, seq,
+                        (1-wt)*_bwdHapProbs[segment][seq], "w");
       }
     }
   }
@@ -750,9 +868,10 @@ void LSHapBaum::setLastAlleleProbs()
     {
       for (int m=refMarkerStart; m<refMarkerEnd; ++m)
       {
-	int start = _refMarkers.sumAlleles(m);
-	int allele = _refHapSegs.allele(segment, m - refMarkerStart, seq);
-	_alleleProbs[start + allele] += _fwdHapProbs[cluster][seq];
+        int start = _refMarkers.sumAlleles(m);
+        int allele = _refHapSegs.allele(segment, m - refMarkerStart, seq);
+        _alleleProbs[start + allele] += _fwdHapProbs[cluster][seq];
+        lshbd.dumpAPInc(start, allele, _alleleProbs[start + allele], cluster, seq, _fwdHapProbs[cluster][seq], "c");
       }
     }
   }

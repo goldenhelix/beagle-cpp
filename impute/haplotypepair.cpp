@@ -416,7 +416,7 @@ void SplicedGL::checkIfIsRefData()
   }
 }
 
-double SplicedGL::gl(int marker, int sample, int allele1, int allele2) const
+float SplicedGL::gl(int marker, int sample, int allele1, int allele2) const
 {
   if (_glIsReversed) {
     if ((_numOfGlMarkersM1 - marker) < _overlap) {
@@ -450,18 +450,18 @@ bool SplicedGL::isPhased(int marker, int sample) const
   }
 }
 
-FuzzyGL::FuzzyGL(const SplicedGL &gl, double err, bool reverse) : SplicedGL(gl, reverse)
+FuzzyGL::FuzzyGL(const SplicedGL &gl, float err, bool reverse) : SplicedGL(gl, reverse)
 {
   Q_ASSERT_X(err >= 0.0 && err < 1.0, "FuzzyGL::FuzzyGL", "err out of range.");
 
-  double e = err;
-  double f = 1.0 - err;
+  float e = err;
+  float f = 1.0 - err;
   _ee = e * e;
   _ef = e * f;
   _ff = f * f;
 }
 
-double FuzzyGL::gl(int marker, int sample, int a1, int a2)
+float FuzzyGL::gl(int marker, int sample, int a1, int a2)
 {
   // following algorithm is for both diallelic and multi-allelic markers
   int obs1 = allele1(marker, sample);
@@ -477,7 +477,7 @@ double FuzzyGL::gl(int marker, int sample, int a1, int a2)
     return SplicedGL::gl(marker, sample, a1, a2);
 }
 
-double FuzzyGL::phasedGL(int obs1, int obs2, int a1, int a2)
+float FuzzyGL::phasedGL(int obs1, int obs2, int a1, int a2)
 {
   if (obs1 == a1) {
     return obs2 == a2 ? _ff : _ef;
@@ -518,7 +518,7 @@ void HapUtility::dumpHp(const QList<HapPair> &hapPairs)
   // if (!opts.outFilePath.isEmpty()) {
   out.setFileName("hpdump7.txt");
   if (!out.open(QIODevice::WriteOnly)) {
-	  printf("Unable to write to hpdump7.txt.\n");
+          printf("Unable to write to hpdump7.txt.\n");
     return;
   }
   // } else {
@@ -554,7 +554,7 @@ void HapUtility::dumpGl(const SplicedGL &gl)
   // if (!opts.outFilePath.isEmpty()) {
   out.setFileName("gldump.txt");
   if (!out.open(QIODevice::WriteOnly)) {
-	  printf("Unable to write to dagdump.txt.\n");
+          printf("Unable to write to dagdump.txt.\n");
     return;
   }
   // } else {
@@ -576,11 +576,11 @@ void HapUtility::dumpGl(const SplicedGL &gl)
       record.write(" ");
       record.write(QByteArray::number(gl.gl(mn, sn, 0, 0), 'f', 1));
       record.write("|");
-	  record.write(QByteArray::number(gl.gl(mn, sn, 0, 1), 'f', 1));
+          record.write(QByteArray::number(gl.gl(mn, sn, 0, 1), 'f', 1));
       record.write("|");
-	  record.write(QByteArray::number(gl.gl(mn, sn, 1, 0), 'f', 1));
+          record.write(QByteArray::number(gl.gl(mn, sn, 1, 0), 'f', 1));
       record.write("|");
-	  record.write(QByteArray::number(gl.gl(mn, sn, 1, 1), 'f', 1));
+          record.write(QByteArray::number(gl.gl(mn, sn, 1, 1), 'f', 1));
     }
     out.write(record.buffer());
     out.write("\n");

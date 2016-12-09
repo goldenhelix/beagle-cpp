@@ -180,19 +180,19 @@ public:
    * @param node2 the second node
    * @param value the value
    */
-  void sumUpdate(int node1, int node2, double value);
+  void sumUpdate(int node1, int node2, float value);
 
 #ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
   int node1(int order) const { return _orderedPairs[order].firstInt(); }
   int node2(int order) const { return _orderedPairs[order].secondInt(); }
-  double value(int order) const { return _nodes[_orderedPairs[order]]; }
+  float value(int order) const { return _nodes[_orderedPairs[order]]; }
   int size() const { return _orderedPairs.length(); }
 #else
   /**
    * Returns a Java-style iterator for the underlying QMap inside of
    * this ({@code SingleNodes}) object.
    */
-  QMapIterator<IntPair, double> nodeIterator() const;
+  QMapIterator<IntPair, float> nodeIterator() const;
 #endif
 
   /**
@@ -201,7 +201,7 @@ public:
    * @param node1 the first node
    * @param node2 the second node
    */
-  double value(int node1, int node2) const;
+  float value(int node1, int node2) const;
 
   /**
    * Sets the value of each ordered node pair to 0.
@@ -211,7 +211,7 @@ public:
 private:
   // NOTE: Only nodes with non-zero values are actually kept in this
   // map.
-  QMap<IntPair, double> _nodes;
+  QMap<IntPair, float> _nodes;
 
 #ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
   QList<IntPair> _orderedPairs;
@@ -388,7 +388,7 @@ public:
    *
    * @param state an index of a HMM state with nonzero forward probability
    */
-  double forwardValue(int state) const {
+  float forwardValue(int state) const {
     checkIndex(state);
     return _fwdValues[state];
   }
@@ -402,7 +402,7 @@ public:
    *
    * @param state an index of a state with nonzero forward probability
    */
-  double backwardValue(int state) const {
+  float backwardValue(int state) const {
     checkIndex(state);
     return _bwdValues[state];
   }
@@ -412,7 +412,7 @@ public:
    * when the forward values are computed using forward values
    * from the previous level that are normalized to sum to 1.
    */
-  double forwardValuesSum() const {
+  float forwardValuesSum() const {
     return _fwdValueSum;
   }
 
@@ -421,7 +421,7 @@ public:
    * when the backward values are computed using backward
    * values from the next level that are normalized to sum to 1.
    */
-  double backwardValuesSum() const {
+  float backwardValuesSum() const {
     return _bwdValueSum;
   }
 
@@ -438,10 +438,10 @@ private:
 
   QList<int> _edges1;
   QList<int> _edges2;
-  QList<double> _fwdValues;
-  QList<double> _bwdValues;
-  double _fwdValueSum;
-  double _bwdValueSum;
+  QList<float> _fwdValues;
+  QList<float> _bwdValues;
+  float _fwdValueSum;
+  float _bwdValueSum;
 };
 
 
@@ -497,7 +497,7 @@ private:
   double parentSum(const SingleBaumLevel &level, int sample, int state) const;
   void sampleAlleles(const SingleBaumLevel &level, int sample);
   int randomPreviousState(const SingleBaumLevel &level, int node1,
-			  int node2, double nodeValue, int copy);
+                          int node2, double nodeValue, int copy);
   SingleBaumLevel &nextLevel();
 
   SingleBaumLevel &currentLevel() { return _levels[_arrayIndex]; }

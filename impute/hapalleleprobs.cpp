@@ -108,7 +108,7 @@ int HapAlleleProbs::alleleWithMaxProb(int marker) const
     for (int j = start; j<end; ++j) {
       sumProb += convertToFloat(_alleleBin[j]);
       if (_alleleBin[j] > _alleleBin[bestIndex])
-	bestIndex = j;
+        bestIndex = j;
     }
 
     if ( sumProb < 0.5)

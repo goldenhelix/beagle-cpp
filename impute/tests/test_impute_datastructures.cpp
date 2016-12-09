@@ -1393,7 +1393,7 @@ void TestImputeDataStructures::testTargetData3x3LEandInitHaps()
   SplicedGL freqGL = cd.targetGL();
   SplicedGL emitGL = cd.targetGL();
   // bool useRevDag = false;
-  double minAlleleFreq = 0.0001f;
+  float minAlleleFreq = 0.0001f;
   LinkageEquilibriumDag leDag(freqGL, minAlleleFreq);
   Dag& dag = *(&leDag);
 
@@ -1403,14 +1403,14 @@ void TestImputeDataStructures::testTargetData3x3LEandInitHaps()
   QCOMPARE(dag.parentNode(0, 1), 0);
   QCOMPARE(dag.childNode(2, 0), 0);
   QCOMPARE(dag.symbol(1, 1), 1);
-  QCOMPARE(dag.edgeWeight(0, 0),  7.0/18.0);
-  QCOMPARE(dag.edgeWeight(0, 1), 11.0/18.0);
-  QCOMPARE(dag.parentWeight(0, 0), 1.0);
-  QCOMPARE(dag.condEdgeProb(0, 0),  7.0/18.0);
-  QCOMPARE(dag.condEdgeProb(0, 1), 11.0/18.0);
-  QCOMPARE(dag.edgeProb(0, 0),  7.0/18.0);
-  QCOMPARE(dag.edgeProb(0, 1), 11.0/18.0);
-  QCOMPARE(dag.parentProb(0, 0), 1.0);
+  QCOMPARE((float) dag.edgeWeight(0, 0), (float) 7.0 / (float) 18.0);
+  QCOMPARE((float) dag.edgeWeight(0, 1), (float) 11.0 / (float) 18.0);
+  QCOMPARE((float) dag.parentWeight(0, 0), (float) 1.0);
+  QCOMPARE((float) dag.condEdgeProb(0, 0), (float) 7.0 / (float) 18.0);
+  QCOMPARE((float) dag.condEdgeProb(0, 1), (float) 11.0 / (float) 18.0);
+  QCOMPARE((float) dag.edgeProb(0, 0), (float) 7.0 / (float) 18.0);
+  QCOMPARE((float) dag.edgeProb(0, 1), (float) 11.0 / (float) 18.0);
+  QCOMPARE((float) dag.parentProb(0, 0), (float) 1.0);
   QCOMPARE(dag.nLevels(), 3);
   QCOMPARE(dag.nNodes(), (long) 4);
   QCOMPARE(dag.nEdges(), (long) 6);
@@ -1424,9 +1424,9 @@ void TestImputeDataStructures::testTargetData3x3LEandInitHaps()
   QCOMPARE(dag.isChildOf(1, 1, 1), true);
 
   QList<double> ledagPosArray = dag.posArray();
-  QCOMPARE(ledagPosArray[0], .28009608882833831);
-  QCOMPARE(ledagPosArray[1], .56922686119261168);
-  QCOMPARE(ledagPosArray[2], .86492802335152597);
+  QCOMPARE(ledagPosArray[0], .28009607634216543);
+  QCOMPARE(ledagPosArray[1], .56922686829582081);
+  QCOMPARE(ledagPosArray[2], .86492800804127534);
 
   QList<HapPair> sampledHaps;
   ImputeDriver::sample(dag, emitGL, parw.seed(), false /* useRevDag */,

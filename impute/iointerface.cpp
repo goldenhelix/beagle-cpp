@@ -62,8 +62,8 @@ int RefDataReader::currentChromIndex() const
 }
 
 TargDataReader::TargDataReader() : _restrictedCumMarkerCnt(0),
-				   _restrictedSingleMarkerCnt(0),
-				   _restrictedZeroMarkerCnt(0)
+                                   _restrictedSingleMarkerCnt(0),
+                                   _restrictedZeroMarkerCnt(0)
 {
 }
 
@@ -560,6 +560,7 @@ void ImputeDataWriter::resetRec(const Marker &marker)
 
 void ImputeDataWriter::constructSampleDataForMarker()
 {
+  ///////////////////// debugWrite(); /////////////////////
   _gt3Probs.fill(0.0, 3);
   _allele1 = maxIndex(_alProbs1, _nAlleles);
   _allele2 = maxIndex(_alProbs2, _nAlleles);

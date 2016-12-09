@@ -109,9 +109,9 @@ void storeAlleles(BitSetGT &trec, const QList<int> &t1, const QList<int> &t2, co
 }
 
 void loadTestDataForTargetData3x3(Samples &samplesT, QList<BitSetGT> &targetEmissions,
-				  int missingVal=-1, bool defaultPhasing=false,
-				  bool read6x3=false, bool read4x3=false, bool read4x3B=false,
-				  bool read4x2=false, bool read4x2C=false)
+                                  int missingVal=-1, bool defaultPhasing=false,
+                                  bool read6x3=false, bool read4x3=false, bool read4x3B=false,
+                                  bool read4x2=false, bool read4x2C=false)
 {
   // Set the data for "samplesT" before there are any other
   // references to the object.
@@ -304,7 +304,7 @@ class TargDataReaderTest3x3 : public TargDataReader
 {
 public:
  TargDataReaderTest3x3(bool refReady, bool use4x3=false, bool use4x3B=false,
-		       bool use4x2=false, bool use4x2C=false) : _position(0)
+                       bool use4x2=false, bool use4x2C=false) : _position(0)
   {
     if(refReady)
       loadTestDataForTargetData3x3(_samples, _targetEmissionsData, 1, true);

@@ -66,7 +66,7 @@ public:
    * @param level a level of the DAG
    * @param edge the index of an edge at the specified level of the DAG
    */
-  virtual double edgeWeight(int level, int edge) const = 0;
+  virtual float edgeWeight(int level, int edge) const = 0;
 
   /**
    * Returns the sum of the weights of the sequences that pass
@@ -76,7 +76,7 @@ public:
    * @param parentNode the index of a parent node at the specified level
    * of the DAG
    */
-  virtual double parentWeight(int level, int parentNode) const = 0;
+  virtual float parentWeight(int level, int parentNode) const = 0;
 
   /**
    * Returns the ratio of the sum of the weights of the sequences that pass
@@ -86,7 +86,7 @@ public:
    *
    * @param level a level of the DAG
    */
-  virtual double condEdgeProb(int level, int edge) const = 0;
+  virtual float condEdgeProb(int level, int edge) const = 0;
 
   /**
    * Returns the ratio of the sum of the weights of the sequences that pass
@@ -96,7 +96,7 @@ public:
    * @param level a level of the DAG
    * @param edge the index of an edge at the specified level of the DAG
    */
-  virtual double edgeProb(int level, int edge) const = 0;
+  virtual float edgeProb(int level, int edge) const = 0;
 
   /**
    * Returns the ratio of the sum of the weights of the sequences that pass
@@ -107,7 +107,7 @@ public:
    * @param parentNode the index of a parent node at the specified level
    * of the DAG
    */
-  virtual double parentProb(int level, int parentNode) const = 0;
+  virtual float parentProb(int level, int parentNode) const = 0;
 
   /**
    * Returns the number of markers.
@@ -228,7 +228,7 @@ public:
    * the estimated allele frequencies
    * @param minFreq the minimum allele frequency that will be used
    */
-  LinkageEquilibriumDag(const SplicedGL &gl, double minFreq);
+  LinkageEquilibriumDag(const SplicedGL &gl, float minFreq);
 
   int nEdges(int level) const { return _alleleFreq[level].length(); }
   int nParentNodes(int level) const
@@ -261,16 +261,16 @@ public:
     return edge;
   }
 
-  double edgeWeight(int level, int edge) const { return _alleleFreq[level][edge]; }
-  double parentWeight(int level, int parentNode) const
+  float edgeWeight(int level, int edge) const { return _alleleFreq[level][edge]; }
+  float parentWeight(int level, int parentNode) const
   {
     checkParentNode(level, parentNode);
     return 1.0;
   }
 
-  double condEdgeProb(int level, int edge) const { return _alleleFreq[level][edge]; }
-  double edgeProb(int level, int edge) const { return _alleleFreq[level][edge]; }
-  double parentProb(int level, int node) const
+  float condEdgeProb(int level, int edge) const { return _alleleFreq[level][edge]; }
+  float edgeProb(int level, int edge) const { return _alleleFreq[level][edge]; }
+  float parentProb(int level, int node) const
   {
     checkParentNode(level, node);
     return 1.0;
@@ -295,15 +295,15 @@ public:
   QList<double> posArray() const;
 
 private:
-  QList<double> alleleFrequencies(const SplicedGL &gl, int marker, double minFreq);
-  void divideEntriesBySum(QList<double> &fa);
-  void enforceMinFrequency(QList<double> &alleleFreq, double minFreq);
+  QList<float> alleleFrequencies(const SplicedGL &gl, int marker, float minFreq);
+  void divideEntriesBySum(QList<float> &fa);
+  void enforceMinFrequency(QList<float> &alleleFreq, float minFreq);
   void checkLevel(int level) const;
   void checkEdge(int level, int edge) const;
   void checkParentNode(int level, int node) const;
 
   Markers _markers;
-  QList<QList<double> > _alleleFreq;
+  QList<QList<float> > _alleleFreq;
   int _maxAlleles;
   int _sumAlleles;
 };
@@ -329,7 +329,7 @@ public:
    * @param counts an array mapping edge index to edge count
    */
   DagLevel(QVector<quint16> parentNodes, QVector<quint16> childNodes,
-           QVector<quint16> symbols, QVector<double> counts);
+           QVector<quint16> symbols, QVector<float> counts);
 
   /**
    * Returns the number of edges at this level of the DAG.
@@ -370,14 +370,14 @@ public:
    *
    * @param edge an edge index
    */
-  double edgeWeight(int edge) const { return _edgeCounts[edge]; }
+  float edgeWeight(int edge) const { return _edgeCounts[edge]; }
   /**
    * Returns the sum of weights for the sequences that pass
    * through the specified node at this level of the DAG.
    *
    * @param parentNode a parent node index
    */
-  double parentWeight(int parentNode) const { return _parentCounts[parentNode]; }
+  float parentWeight(int parentNode) const { return _parentCounts[parentNode]; }
   /**
    * Returns the conditional edge probability, which is defined to be
    * the ratio of the sum of the weights of the sequences that pass
@@ -387,7 +387,7 @@ public:
    *
    * @param edge an edge index
    */
-  double condEdgeProb(int edge) const { return _condEdgeProbs[edge]; }
+  float condEdgeProb(int edge) const { return _condEdgeProbs[edge]; }
   /**
    * Returns the edge probability, which is defined to be the ratio of the
    * sum of the weights of the sequences that pass through the specified
@@ -396,7 +396,7 @@ public:
    *
    * @param edge an edge index
    */
-  double edgeProb(int edge) const { return (_edgeCounts[edge] / _count); }
+  float edgeProb(int edge) const { return (_edgeCounts[edge] / _count); }
   /**
    * Returns the parent node probability, which is defined to be the
    * ratio of the sum of the weights of the sequences that pass through
@@ -406,7 +406,7 @@ public:
    *
    * @param parentNode a parent node index
    */
-  double parentProb(int node) const { return (_parentCounts[node] / _count); }
+  float parentProb(int node) const { return (_parentCounts[node] / _count); }
   /**
    * Returns the number of outgoing edges of the specified parent node
    * at this level of the DAG.
@@ -457,7 +457,7 @@ public:
   int inEdge(int childNode, int inEdgeIndex) const;
 
 private:
-  void obtainParentCounts(QVector<quint16> parentNodes, QVector<double> counts, int nNodes);
+  void obtainParentCounts(QVector<quint16> parentNodes, QVector<float> counts, int nNodes);
 
   /*
    * The k-th edge parent node index is stored in {@code _parentNodes[k]}.
@@ -479,7 +479,7 @@ private:
    * {@code _childIndices[k]} (inclusive) and ending with
    * {@code _childIndices[k+1]} (exclusive).
    */
-  double _count;
+  float _count;
   QVector<quint16> _parentNodes;
   QVector<quint16> _childNodes;
   QVector<quint16> _parentIndices;
@@ -487,9 +487,9 @@ private:
   QVector<quint16> _childIndices;
   QVector<quint16> _children;
   QVector<quint16> _symbols;
-  QVector<double> _edgeCounts;
-  QVector<double> _condEdgeProbs;
-  QVector<double> _parentCounts;
+  QVector<float> _edgeCounts;
+  QVector<float> _condEdgeProbs;
+  QVector<float> _parentCounts;
 };
 
 /**
@@ -521,7 +521,7 @@ public:
    *  @param markers the markers
    *  @param levels the levels of the leveled DAG)
    */
-  ImmutableDag(const HapPairs &hapPairs, const QVector<double> &weights, double scale,
+  ImmutableDag(const HapPairs &hapPairs, const QVector<float> &weights, float scale,
                int nInitLevels);
 
   int nEdges(int level) const { return _dagLevels[level].nEdges(); }
@@ -530,15 +530,15 @@ public:
   int parentNode(int level, int edge) const { return _dagLevels[level].parentNode(edge); }
   int childNode(int level, int edge) const { return _dagLevels[level].childNode(edge); }
   int symbol(int level, int edge) const { return _dagLevels[level].symbol(edge); }
-  double edgeWeight(int level, int edge) const { return _dagLevels[level].edgeWeight(edge); }
-  double parentWeight(int level, int parentNode) const
+  float edgeWeight(int level, int edge) const { return _dagLevels[level].edgeWeight(edge); }
+  float parentWeight(int level, int parentNode) const
   {
     return _dagLevels[level].parentWeight(parentNode);
   }
 
-  double condEdgeProb(int level, int edge) const { return _dagLevels[level].condEdgeProb(edge); }
-  double edgeProb(int level, int edge) const { return _dagLevels[level].edgeProb(edge); }
-  double parentProb(int level, int node) const { return _dagLevels[level].parentProb(node); }
+  float condEdgeProb(int level, int edge) const { return _dagLevels[level].condEdgeProb(edge); }
+  float edgeProb(int level, int edge) const { return _dagLevels[level].edgeProb(edge); }
+  float parentProb(int level, int node) const { return _dagLevels[level].parentProb(node); }
   int nLevels() const { return _dagLevels.length(); }
   Markers markers() const { return _markers; }
   long nNodes() const { return _nNodes; }
@@ -594,7 +594,7 @@ public:
   void dumpOneScore(const Score &score, const Score &minScore);
   void dumpScores(QByteArray leadingPrompt, const Score &minScore, const QLinkedList<Score> &scores);
   void dumpOneOpinion(bool nodeAHasSibling, bool nodeBHasSibling,
-                      double nodeCountNodeA, double nodeCountNodeB,
+                      float nodeCountNodeA, float nodeCountNodeB,
                       int retainedNode, int removedNode);
   void dumpMerge(int retainedNode, int removedNode);
 private:

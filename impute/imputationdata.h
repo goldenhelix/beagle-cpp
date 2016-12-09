@@ -76,7 +76,7 @@ class RefHapSeg
 public:
 
   /**
-   * Constructs a new {@code RefHapSegs} instance from the specified data.
+   * Constructs a new {@code RefHapSeg} instance from the specified data.
    * @param refHapPairs the reference haplotype pairs
    * @param start the starting marker index (inclusive)
    * @param end the ending marker index (exclusive)
@@ -118,7 +118,7 @@ public:
   int end() const { return _end; }
 
 private:
-  RefHapPairs _refHapPairs;
+  const RefHapPairs &_refHapPairs;
   int _start;     // inclusive
   int _end;       // exclusive
   QVector<int> _hapToSeq;
@@ -244,11 +244,6 @@ public:
                  const PositionMap &map);
 
   /**
-   * Default constructor.
-   */
-  ImputationData() {}
-
-  /**
    * Return the reference haplotype pairs.
    */
   RefHapPairs refHapPairs() const { return _refHapPairs; }
@@ -315,7 +310,7 @@ public:
 
 private:
     RefHapPairs _refHapPairs;
-    SampleHapPairs _targHapPairs;
+    const SampleHapPairs &_targHapPairs;
     RefHapSegs _refHapSegs;
     QList< QList<quint16> > _refAlleles;
     QList< QList<quint16> > _targAlleles;
@@ -358,7 +353,7 @@ public:
   /**
    * Returns the input data for genotype imputation.
    */
-  ImputationData imputationData() const { return _impData; }
+  const ImputationData &imputationData() const { return _impData; }
 
 private:
   void setForwardValues(int start, int end, int hap);
@@ -373,7 +368,7 @@ private:
   int currentIndex() { return _arrayIndex; }
   int previousIndex(int hap);
 
-  ImputationData _impData;
+  const ImputationData &_impData;
   bool _lowMem;
   int _n;    // number of reference haplotypes
   Markers _refMarkers;

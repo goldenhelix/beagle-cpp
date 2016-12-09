@@ -4,7 +4,8 @@
 
 #include <math.h>
 
-#define MIN_VALUE_FOR_BAUM      1.4e-43
+#define MIN_VALUE_FOR_BAUM      100.0 * FLT_MIN
+// define MIN_VALUE_FOR_BAUM      1.4e-43
 
 #ifdef USE_ORIGINAL_VERSION_OF_SINGLENODES
 
@@ -140,7 +141,7 @@ void SingleNodes::clear()
   _size = 0;
 }
 #else
-void SingleNodes::sumUpdate(int node1, int node2, double value)
+void SingleNodes::sumUpdate(int node1, int node2, float value)
 {
   Q_ASSERT_X(node1 >= 0, "SingleNodes::sumUpdate", "node1 < 0");
   Q_ASSERT_X(node2 >= 0, "SingleNodes::sumUpdate", "node2 < 0");
@@ -157,14 +158,14 @@ void SingleNodes::sumUpdate(int node1, int node2, double value)
 }
 
 #ifndef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
-QMapIterator<IntPair, double> SingleNodes::nodeIterator()
+QMapIterator<IntPair, float> SingleNodes::nodeIterator()
 {
-  QMapIterator<IntPair, double> i(_nodes);
+  QMapIterator<IntPair, float> i(_nodes);
   return i;
 }
 #endif
 
-double SingleNodes::value(int node1, int node2) const
+float SingleNodes::value(int node1, int node2) const
 {
   Q_ASSERT_X(node1 >= 0,
              "SingleNodes::value",
@@ -211,7 +212,7 @@ void SingleBaumLevel::setForwardValues(SingleNodes &nodes, int marker, int sampl
 
 void SingleBaumLevel::setStates(const SingleNodes &nodes)
 {
-  double valueSum = 0.0;
+  float valueSum = 0.0;
   _edges1.clear();
   _edges2.clear();
   _fwdValues.clear();
@@ -225,7 +226,7 @@ void SingleBaumLevel::setStates(const SingleNodes &nodes)
     int node1 = nodes.node1(j);
     int node2 = nodes.node2(j);
 #else
-  QMapIterator<IntPair, double> nit = nodes.nodeIterator();
+  QMapIterator<IntPair, float> nit = nodes.nodeIterator();
   while (nit.hasNext())
   {
     nit.next();
@@ -242,36 +243,36 @@ void SingleBaumLevel::setStates(const SingleNodes &nodes)
       {
         int edge2 = _dag->outEdge(_marker, node2, i2);
         int symbol2 = _dag->symbol(_marker, edge2);
-        double ep = _gl->gl(_marker, _sample, symbol1, symbol2);
-	if((_marker == 15  ||  _marker == 121)  &&  _sample == 2) {
-	  double zxyw = ep;
-	}
+        float ep = _gl->gl(_marker, _sample, symbol1, symbol2);
+        if((_marker == 15  ||  _marker == 121)  &&  _sample == 2) {
+          float zxyw = ep;
+        }
         if (ep > 0.0)
         {
           _edges1.append(edge1);
           _edges2.append(edge2);
-          double tp1 = _dag->condEdgeProb(_marker, edge1);
-          double tp2 = _dag->condEdgeProb(_marker, edge2);
+          float tp1 = _dag->condEdgeProb(_marker, edge1);
+          float tp2 = _dag->condEdgeProb(_marker, edge2);
 #ifdef USE_ORIGINAL_VERSION_OF_SINGLENODES
-	  double nodeValue = nodes.enumValue(j);
+          float nodeValue = nodes.enumValue(j);
 #else
 #ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
-	  double nodeValue = nodes.value(j);
+          float nodeValue = nodes.value(j);
 #else
-	  double nodeValue = nit.value();
+          float nodeValue = nit.value();
 #endif
 #endif
-          double fwdValue = ep * nodeValue * (tp1 * tp2);
-		  if (fwdValue < MIN_VALUE_FOR_BAUM  &&  nodeValue > 0.0) {
-			  fwdValue = MIN_VALUE_FOR_BAUM;
-		  }
+          float fwdValue = ep * nodeValue * (tp1 * tp2);
+                  if (fwdValue < MIN_VALUE_FOR_BAUM  &&  nodeValue > 0.0) {
+                          fwdValue = MIN_VALUE_FOR_BAUM;
+                  }
 
           _fwdValues.append(fwdValue);
           valueSum += fwdValue;
-	  if((_marker == 15  ||  _marker == 121)  &&  _sample == 2) {
-	    double zxyw = fwdValue;
-	    double zyxw = valueSum;
-	  }
+          if((_marker == 15  ||  _marker == 121)  &&  _sample == 2) {
+            float zxyw = fwdValue;
+            float zyxw = valueSum;
+          }
         }
       }
     }
@@ -304,7 +305,7 @@ void SingleBaumLevel::setBackwardValues(SingleNodes &nodes)
   {
     int node1 = _dag->childNode(_marker, _edges1[j]);
     int node2 = _dag->childNode(_marker, _edges2[j]);
-    double backwardValue = nodes.value(node1, node2);
+    float backwardValue = nodes.value(node1, node2);
     _bwdValues.append(backwardValue);
     _bwdValueSum += backwardValue;
   }
@@ -319,8 +320,8 @@ void SingleBaumLevel::setBackwardValues(SingleNodes &nodes)
     int edge2 = _edges2[j];
     int symb1 = symbol1(j);
     int symb2 = symbol2(j);
-    double tp1 = _dag->condEdgeProb(_marker, edge1);
-    double tp2 = _dag->condEdgeProb(_marker, edge2);
+    float tp1 = _dag->condEdgeProb(_marker, edge1);
+    float tp2 = _dag->condEdgeProb(_marker, edge2);
 
     // float stateProb = fwdValues[j] * bwdValues[j];
     // int gtIndex = BasicGL.genotype(symb1, symb2);
@@ -328,8 +329,8 @@ void SingleBaumLevel::setBackwardValues(SingleNodes &nodes)
     // gtProbs[gtIndex] += stateProb;
     // gtProbsSum += stateProb;
 
-    double ep = _gl->gl(_marker, _sample, symb1, symb2);
-    double bwdValue = _bwdValues[j] * (tp1 * tp2) * ep;
+    float ep = _gl->gl(_marker, _sample, symb1, symb2);
+    float bwdValue = _bwdValues[j] * (tp1 * tp2) * ep;
     if (bwdValue < MIN_VALUE_FOR_BAUM && _bwdValues[j] > 0.0)
       bwdValue = MIN_VALUE_FOR_BAUM;
 
@@ -526,10 +527,10 @@ void SingleBaum::forwardAlgorithm(int sample)
   _windowIndex = -1;
   _arrayIndex = _levels.length() - 1;
   for (int marker = 0; marker < _nMarkers; marker++){
-	  if (sample == 2 && marker == 15){
-		  int abc = 215;
-	  }
-	  nextLevel().setForwardValues(_fwdNodes, marker, sample);
+          if (sample == 2 && marker == 15){
+                  int abc = 215;
+          }
+          nextLevel().setForwardValues(_fwdNodes, marker, sample);
   }
 }
 

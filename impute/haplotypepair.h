@@ -387,7 +387,7 @@ public:
    * @param allele1 the first allele index
    * @param allele2 the second allele index
    */
-  double gl(int marker, int sample, int allele1, int allele2) const;
+  float gl(int marker, int sample, int allele1, int allele2) const;
 
   /**
    * Returns {@code true} if the observed data for the specified
@@ -421,17 +421,17 @@ public:
    * @param gl the genotype likelihoods without error
    * @param err the allele error rate
    */
-  FuzzyGL(const SplicedGL &gl, double err, bool reverse);
+  FuzzyGL(const SplicedGL &gl, float err, bool reverse);
 
   FuzzyGL() : SplicedGL() {}
-  double gl(int marker, int sample, int a1, int a2);
+  float gl(int marker, int sample, int a1, int a2);
 
 private:
-  double phasedGL(int obs1, int obs2, int a1, int a2);
+  float phasedGL(int obs1, int obs2, int a1, int a2);
 
-  double _ee;
-  double _ef;
-  double _ff;
+  float _ee;
+  float _ef;
+  float _ff;
 };
 
 namespace HapUtility

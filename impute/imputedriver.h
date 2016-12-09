@@ -118,7 +118,7 @@ namespace ImputeDriver
    * @param haps an array of haplotype pairs
    * @param cd the input data for the current marker window
    */
-  QVector<double> getHapWeights(HapPairs haps, const CurrentData &cd);
+  QVector<float> getHapWeights(HapPairs haps, const CurrentData &cd);
 
   /**
    * "Lower-level utility" for performing sampling.

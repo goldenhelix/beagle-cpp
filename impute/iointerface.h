@@ -22,7 +22,7 @@ public:
   virtual int phase40_its() const { return 5; }
   virtual int niterations() const { return 5; }
   virtual int dagInitLevels() const { return 500; }
-  virtual double modelScale() const { return 0.8; }
+  virtual float modelScale() const { return (float) 0.8; }
   virtual bool impute() const { return true; }
   virtual bool gprobs() const { return false; }
   virtual float cluster() const { return (float) 0.005; }
@@ -345,12 +345,12 @@ public:
    * to the target data markers, or returns {@code null}
    * if there are no reference samples.
    */
-  SampleHapPairs restrictedRefSampleHapPairs() const { return _restrictedRefSampleHapPairs; }
+  const SampleHapPairs &restrictedRefSampleHapPairs() const { return _restrictedRefSampleHapPairs; }
   /**
    * Returns a list of reference haplotype pairs, or returns {@code null}
    * if there are no reference samples.
    */
-  RefHapPairs refSampleHapPairs() const { return _refSampleHapPairs; }
+  const RefHapPairs &refSampleHapPairs() const { return _refSampleHapPairs; }
   /**
    * Returns the genotype likelihoods for the
    * target samples at the target data markers.
@@ -363,13 +363,13 @@ public:
    *
    * @return inter-marker recombination rates for the target markers
    */
-  // QList<double> recombRate() {
+  // QList<float> recombRate() {
   //     return _recombRate==null ? null : _recombRate;
   // }
 
 private:
-  // QList<double> recombRate(Markers markers, GeneticMap map,
-  //   double mapScale);
+  // QList<float> recombRate(Markers markers, GeneticMap map,
+  //   float mapScale);
 
   int _window;
   SampleHapPairs _initHaps;
@@ -460,6 +460,7 @@ protected:
   virtual void initializeWindowBuffering(const int initSize) = 0;
   virtual void appendPhasedVariantData() = 0;
   virtual void finishAndWriteRec() = 0;
+  /////////////////// virtual void debugWrite() = 0; ///////////////////////
 
   Samples _samples;
   // Markers _markers;

@@ -188,7 +188,7 @@ static HapPair consensus(const QList<HapPair> &hapList /*, Random rand */)
       if (lastConsensus != ConsensusPhaser::UNINITIALIZED)
       {
         ConsensusPhaser::Phase thisConsensus;
-		if (relPhase(lastPhase, currentPhase /*, rand */) == ConsensusPhaser::IDENTICAL)
+                if (relPhase(lastPhase, currentPhase /*, rand */) == ConsensusPhaser::IDENTICAL)
           thisConsensus = lastConsensus;
         else
           thisConsensus = flip(lastConsensus);

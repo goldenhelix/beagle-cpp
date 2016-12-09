@@ -99,7 +99,7 @@ QList<HapPair> ImputeDriver::initialHaps(CurrentData &cd, const Par &par)
 {
   SplicedGL freqGL = cd.targetGL();
   SplicedGL emitGL = cd.targetGL();
-  double minAlleleFreq = 0.0001;
+  float minAlleleFreq = (float) 0.0001;
   LinkageEquilibriumDag dag(freqGL, minAlleleFreq);
   QList<HapPair> sampledHaps;
   ImputeDriver::sample(dag, emitGL, par.seed(), false, par.nSamplingsPerIndividual(), sampledHaps,
@@ -169,10 +169,10 @@ QList<HapPair> ImputeDriver::sample(const CurrentData &cd, const Par &par, QList
   cd.addRestrictedRefHapPairs(hapPairs);
   HapPairs dagHaps(hapPairs, useRevDag);
 
-  if(b2j == 7)
-    globalMgd.setOkToDump(true);
-  else if(b2j == 8)
-    globalMgd.setOkToDump(false);
+  // if(b2j == 7)
+  //   globalMgd.setOkToDump(true);
+  // else if(b2j == 8)
+  //   globalMgd.setOkToDump(false);
   ImmutableDag dag(dagHaps, ImputeDriver::getHapWeights(dagHaps, cd), par.modelScale(),
                    par.dagInitLevels());
 
@@ -187,11 +187,11 @@ QList<HapPair> ImputeDriver::sample(const CurrentData &cd, const Par &par, QList
   return sampledHaps;
 }
 
-QVector<double> ImputeDriver::getHapWeights(HapPairs haps, const CurrentData &cd)
+QVector<float> ImputeDriver::getHapWeights(HapPairs haps, const CurrentData &cd)
 {
   //// Samples samples = families().samples();
   Samples samples = cd.targetSamples();
-  QVector<double> fa(haps.nHaps());
+  QVector<float> fa(haps.nHaps());
 
   int nHapPairs = haps.nHapPairs();
   QMap<int, int> cntMap;
@@ -221,9 +221,9 @@ QVector<double> ImputeDriver::getHapWeights(HapPairs haps, const CurrentData &cd
     ////   }
     //// }
 
-    double sampleWeight = (sampleIndex == -1) ? 1.0 : NON_REFERENCE_WEIGHT;
+    float sampleWeight = (sampleIndex == -1) ? 1.0 : NON_REFERENCE_WEIGHT;
     int cnt = cntMap[idIndex];
-    double wt = sampleWeight / cnt;
+    float wt = sampleWeight / cnt;
 
     //// float MIN_SAMPLE_WEIGHT = 0.01f;
     //// float minWt = MIN_SAMPLE_WEIGHT/cnt;
@@ -316,9 +316,9 @@ ConstrainedAlleleProbs ImputeDriver::LSImpute(const CurrentData &cd, const Par &
   double scaleFactor = 1e-6;
   PositionMap imputationMap(scaleFactor);
 
-  ImputationData impData = ImputationData(par, cd, targetHapPairs, imputationMap);
+  ImputationData impData(par, cd, targetHapPairs, imputationMap);
 
-  LSHapBaum hb(impData, true);
+  LSHapBaum hb(impData, par.lowMem());
 
   QList<HapAlleleProbs> hapAlProbList;
 

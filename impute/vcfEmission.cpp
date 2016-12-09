@@ -53,7 +53,7 @@ int BitSetGTSharedData::allele2(int sample) const
                                                     : alleleFromBits(allele2Data, sample));
 }
 
-double BitSetGTSharedData::gl(int sample, int a1, int a2) const
+float BitSetGTSharedData::gl(int sample, int a1, int a2) const
 {
   bool isMiss1 = isMissing1Data.testBit(sample);
   bool isMiss2 = isMissing2Data.testBit(sample);
@@ -120,7 +120,7 @@ void BitSetRefGT::storePhasedAlleles(const QVector<int> &als1, const QVector<int
   }
 }
 
-double BitSetRefGT::gl(int sample, int al1, int al2) const
+float BitSetRefGT::gl(int sample, int al1, int al2) const
 {
   bool matches = (al1 == allele1(sample) && al2 == allele2(sample));
   return matches ? 1.0 : 0.0;
