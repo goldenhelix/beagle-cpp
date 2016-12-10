@@ -18,13 +18,14 @@ public:
   {
     return _nSamplingsPerIndividual;
   }                                                 // Test value could be 4 .
+  bool lowMem() const { return _lowmem; }
   int burnin_its() const { return _burnin_its; }    // Test value could be 4 .
   int phase40_its() const { return _phase40_its; }  // Test value could be 4 .
   int niterations() const { return _niterations; }  // Test value could be 0 .
   bool impute() const { return _impute; }           // Test value could be true .
-  float cluster() const { return (float)0.005; }
-  float ne() const { return 1000000.0; }
-  float err() const { return (float)0.0001; }
+  float cluster() const { return _cluster; }
+  float ne() const { return _ne; }
+  float err() const { return _err; }
   bool readRefData() const { return !refFilePath.isEmpty(); }
   bool parseArgs(QStringList args, QString& outErr);
 
@@ -33,6 +34,7 @@ private:
   int _overlap;
   /// int _nThreads;
   int _nSamplingsPerIndividual;
+  bool _lowmem;
   int _burnin_its;
   int _phase40_its;
   int _niterations;
@@ -55,8 +57,9 @@ void printUsage(FILE* fh = stdout)
   out << "  --out=file_name       Sends output to file (default: stdout)\n";
   out << "  --window=50000\n";
   out << "  --overlap=3000\n";
-  /// out << "  --nThreads=1\n";
+  /// out << "  --nThreads=4\n";
   out << "  --nSamplingsPerIndividual=4\n";
+  out << "  --lowmem=true\n";
   out << "  --burninits=5\n";
   out << "  --phase40its=5\n";
   out << "  --niterations=5\n";
@@ -73,6 +76,7 @@ bool ImputeOpts::parseArgs(QStringList args, QString& outErr)
   _overlap = Par::overlap();
   /// _nThreads = Par::nThreads();
   _nSamplingsPerIndividual = Par::nSamplingsPerIndividual();
+  _lowmem = Par::lowMem();
   _burnin_its = Par::burnin_its();
   _phase40_its = Par::phase40_its();
   _niterations = Par::niterations();
@@ -127,6 +131,15 @@ bool ImputeOpts::parseArgs(QStringList args, QString& outErr)
         _nSamplingsPerIndividual = param.toInt(&ok);
         if (!ok) {
           outErr = "Param nsamplingsperindividual must be an integer.";
+          return false;
+        }
+      } else if (opt.toLower() == "lowmem") {
+        if (param.toLower() == "true")
+          _lowmem = true;
+        else if (param.toLower() == "false") {
+          _lowmem = false;
+        } else {
+          outErr = "Param lowmem must be either \"true\" or \"false\".";
           return false;
         }
       } else if (opt.toLower() == "burninits") {

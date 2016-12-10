@@ -479,7 +479,8 @@ int SingleBaum::randomPreviousState(const SingleBaumLevel &level, int node1,
 {
   //////////////////  double d = random.nextDouble() * nodeValue;
   //////////////////  double d = 0.5 * nodeValue;
-  double d = (double) copy / (double)(_nSamplingsPerIndividual + 1);          /// %%%  %%%%%%% RIGHT NOW, BUGGY...............
+  //////////////////  double d = (double) copy / (double)(_nSamplingsPerIndividual + 1);    /// "LoRandom" version
+  double d = ((double)copy / (double)(_nSamplingsPerIndividual + 1)) * nodeValue;    /// "MidRandom" version
   double sum = 0.0;
   for (int j=0, n=level.size(); j<n; ++j) {
     if ( node1==level.childNode1(j)
