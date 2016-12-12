@@ -2,6 +2,7 @@
 
 #include <QMap>
 
+#include <float.h> 
 #include <math.h>
 
 #define MIN_VALUE_FOR_BAUM      100.0 * FLT_MIN
