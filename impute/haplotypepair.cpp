@@ -1,16 +1,5 @@
 #include "haplotypepair.h"
 
-#include <QFile>
-#include <QBuffer>
-
-/**
- * Constructs a new {@code HapPair} instance.
- * @param markers the sequence of markers
- * @param samples the list of samples
- * @param sampleIndex the sample index
- * @param alleles1 the sequence of allele indices for the first haplotype
- * @param alleles2 the sequence of alleles indices for the second haplotype
- */
 HapPair::HapPair(const Markers &markers, const Samples &samples, int sampleIndex,
                  const QList<int> &alleles1, const QList<int> &alleles2)
 {
@@ -511,78 +500,3 @@ QList<HapPair> HapUtility::createHapPairList(const Markers &markers,
   return list;
 }
 
-void HapUtility::dumpHp(const QList<HapPair> &hapPairs)
-{
-  QFile out;
-  QBuffer record;
-  // if (!opts.outFilePath.isEmpty()) {
-  out.setFileName("hpdump7.txt");
-  if (!out.open(QIODevice::WriteOnly)) {
-          printf("Unable to write to hpdump7.txt.\n");
-    return;
-  }
-  // } else {
-  //   if (!out.open(stdout, QIODevice::WriteOnly)) {
-  //     printf("Unable to open stdout for writing\n");
-  //     return 1;
-  //   }
-  // }
-
-  int nMarkers = hapPairs[0].nMarkers();
-  int nHp = hapPairs.length();
-  for(int mn=0; mn<nMarkers; mn++) {
-    record.close();
-    record.setData(QByteArray());
-    record.open(QBuffer::ReadWrite);
-    record.write("Alleles for marker: ");
-    record.write(QByteArray::number(mn));
-    for(int hn=0; hn<nHp; hn++) {
-      record.write(" ");
-      record.write(QByteArray::number(hapPairs[hn].allele1(mn)));
-      record.write("|");
-      record.write(QByteArray::number(hapPairs[hn].allele2(mn)));
-    }
-    out.write(record.buffer());
-    out.write("\n");
-  }
-}
-
-void HapUtility::dumpGl(const SplicedGL &gl)
-{
-  QFile out;
-  QBuffer record;
-  // if (!opts.outFilePath.isEmpty()) {
-  out.setFileName("gldump.txt");
-  if (!out.open(QIODevice::WriteOnly)) {
-          printf("Unable to write to dagdump.txt.\n");
-    return;
-  }
-  // } else {
-  //   if (!out.open(stdout, QIODevice::WriteOnly)) {
-  //     printf("Unable to open stdout for writing\n");
-  //     return 1;
-  //   }
-  // }
-
-  int nMarkers = gl.nMarkers();
-  int nSamples = gl.nSamples();
-  for(int mn=0; mn<nMarkers; mn++) {
-    record.close();
-    record.setData(QByteArray());
-    record.open(QBuffer::ReadWrite);
-    record.write("Gl values for marker: ");
-    record.write(QByteArray::number(mn));
-    for(int sn=0; sn<nSamples; sn++) {
-      record.write(" ");
-      record.write(QByteArray::number(gl.gl(mn, sn, 0, 0), 'f', 1));
-      record.write("|");
-          record.write(QByteArray::number(gl.gl(mn, sn, 0, 1), 'f', 1));
-      record.write("|");
-          record.write(QByteArray::number(gl.gl(mn, sn, 1, 0), 'f', 1));
-      record.write("|");
-          record.write(QByteArray::number(gl.gl(mn, sn, 1, 1), 'f', 1));
-    }
-    out.write(record.buffer());
-    out.write("\n");
-  }
-}

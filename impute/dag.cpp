@@ -7,8 +7,6 @@
 #include <QLinkedList>
 #include <QMutableLinkedListIterator>
 
-#include <QFile>
-
 #define UINT16_MAX 65535
 
 #define MAX_PROP_UNMERGED 0.01
@@ -622,10 +620,7 @@ void MergeableDagLevel::fillArraysWithPrev(const HapsMarkerIterator &data)
       int hap = _prevLevel->_child2FirstHap[node];
       while (hap != -1) {
         int symbol = data.allele(hap);
-                if (hap < 40){
-                        int zzw = hap;
-                }
-                float count = _weights[hap];
+        float count = _weights[hap];
         int edge = _outEdges[symbol][node];
         if (edge == -1)
           addEdge(node, symbol, count, nEdges++, hap);
@@ -634,11 +629,7 @@ void MergeableDagLevel::fillArraysWithPrev(const HapsMarkerIterator &data)
                      "MergeableDagLevel::fillArraysWithPrev",
                      "edge != _childNodes[edge]");
 
-          int child = _childNodes[edge];  ///////////////
-          if(((float)(int)_counts[edge] != _counts[edge])  &&  ((float)(int)count != count)){
-            float oldCount = _counts[edge];
-                float zyxc = count;
-          }
+          int child = _childNodes[edge];
           _counts[edge] += count;
           _hap2NextHap[hap] = _child2FirstHap[child];
           _child2FirstHap[child] = hap;
@@ -1020,12 +1011,9 @@ void MergeableDagFactory::mergeParentNodes(MergeableDagLevel *level)
   Score maxScore;  // Class "Score" default-constructs to the maximum value.
   Score newScore;  // Use "newScore" as an output variable for method "score".
 
-  globalMgd.setNewLevel();
-
   getPairwiseScores(minScore, level, scores);
 
   while (minScore.isMergeable()) {
-    globalMgd.dumpScores("Mergeable Scores: ", minScore, scores);
     int retainedNode = minScore.nodeA();
     int removedNode = minScore.nodeB();
     if (level->hasSibling(retainedNode) == false) {
@@ -1040,11 +1028,7 @@ void MergeableDagFactory::mergeParentNodes(MergeableDagLevel *level)
       removedNode = minScore.nodeB();
       retainedNode = minScore.nodeA();
     }
-    globalMgd.dumpOneOpinion(level->hasSibling(minScore.nodeA()), level->hasSibling(minScore.nodeB()),
-                             level->nodeCount(minScore.nodeA()), level->nodeCount(minScore.nodeB()),
-                             retainedNode, removedNode);
     level->mergeParentNodes(retainedNode, removedNode);
-    globalMgd.dumpMerge(retainedNode, removedNode);
     minScore = maxScore;
 
     QMutableLinkedListIterator<Score> scoreIt(scores);
@@ -1061,12 +1045,11 @@ void MergeableDagFactory::mergeParentNodes(MergeableDagLevel *level)
             scoreIt.setValue(newScore);
           } else
             scoreIt.remove();
-        } else if (s.score() < (minScore.score()-1e-12) && s.isMergeable())
+        } else if (s.score() < minScore.score() && s.isMergeable())
           minScore = s;
       }
     }
   }
-  /// globalMgd.dumpScores("Final Scores: ", minScore, scores);
 }
 
 void MergeableDagFactory::getPairwiseScores(Score &scoreObj, MergeableDagLevel *level,
@@ -1388,202 +1371,6 @@ ImmutableDag::ImmutableDag(const HapPairs &hapPairs, const QVector<float> &weigh
     double d = minusLog10CondEdgeProb(_dagLevels[j]);
 
     _posArray.append((j == 0) ? d : (_posArray[j - 1] + d));
-  }
-}
-
-void MergeDump::setOkToDump(bool otd)
-{
-  _okToDump = otd;
-  if(otd)
-  {
-    // if (!opts.outFilePath.isEmpty()) {
-    _out.setFileName("mergedump7ei.txt");
-    if (!_out.open(QIODevice::WriteOnly)) {
-      printf("Unable to write to mergedump.txt.\n");
-      return;
-    }
-  }
-  else
-    _out.close();
-}
-
-void MergeDump::setNewLevel()
-{
-  if(_okToDump)
-  {
-    _levelNum++;
-    _out.write("LEVEL ");
-    _out.write(QByteArray::number(_levelNum-1));
-    _out.write("/");
-    _out.write(QByteArray::number(_levelNum));
-    _out.write(":\n");
-  }
-}
-
-void MergeDump::dumpOneScore(const Score &score, const Score &minScore)
-{
-  _out.write(QByteArray::number(score.nodeA()));
-  _out.write("/");
-  _out.write(QByteArray::number(score.nodeB()));
-  _out.write("/");
-  _out.write(QByteArray::number(score.score(), 'e', 9));
-  _out.write("(");
-  _out.write(QByteArray::number(score.score() - minScore.score(), 'e', 9));
-  _out.write(")");
-  if (score.isMergeable())
-    _out.write("m ");
-  else
-    _out.write("Nm ");
-}
-
-void MergeDump::dumpScores(QByteArray leadingPrompt, const Score &minScore, const QLinkedList<Score> &scores)
-{
-  if(_okToDump)
-  {
-    _out.write(leadingPrompt);
-    _out.write(" (Min. score:) ");
-    dumpOneScore(minScore, minScore);
-    _out.write("    (Score list:) ");
-    QLinkedListIterator<Score> scoreIt(scores);
-    while (scoreIt.hasNext())
-      dumpOneScore(scoreIt.next(), minScore);
-    _out.write("\n");
-  }
-}
-
-void MergeDump::dumpOneOpinion(bool nodeAHasSibling, bool nodeBHasSibling,
-                               float nodeCountNodeA, float nodeCountNodeB,
-                               int retainedNode, int removedNode)
-{
-  if(_okToDump)
-  {
-    if(nodeAHasSibling)
-      _out.write("  Node A has sibling(s).");
-    if(nodeBHasSibling)
-      _out.write("  Node B has sibling(s).");
-    _out.write("  Node count A/B: ");
-    _out.write(QByteArray::number(nodeCountNodeA, 'f', 2));
-    _out.write("/");
-    _out.write(QByteArray::number(nodeCountNodeB, 'f', 2));
-    _out.write(" Retained: ");
-    _out.write(QByteArray::number(retainedNode));
-    _out.write(" Removed: ");
-    _out.write(QByteArray::number(removedNode));
-  }
-}
-
-void MergeDump::dumpMerge(int retainedNode, int removedNode)
-{
-  if(_okToDump)
-  {
-    _out.write("  Merging (removed) node ");
-    _out.write(QByteArray::number(removedNode));
-    _out.write(" into (retained) node ");
-    _out.write(QByteArray::number(retainedNode));
-    _out.write("\n");
-  }
-}
-
-MergeDump globalMgd;
-
-/*
-static QByteArray asFpString9(float value)
-{
-  QByteArray valueString = QByteArray::number(value, 'f', 9);
-
-  int finalPlace = valueString.length() - 1;
-
-  while(finalPlace > 1  &&  valueString[finalPlace] == '0'  &&  valueString[finalPlace - 1] != '.')
-  {
-    valueString.chop(1);
-    finalPlace--;
-  }
-
-  return valueString;
-}
-*/
-void DagDump::dagDump(const Dag &dag)
-{
-  QFile out;
-
-  // if (!opts.outFilePath.isEmpty()) {
-  out.setFileName("dagdump7.txt");
-  if (!out.open(QIODevice::WriteOnly)) {
-          printf("Unable to write to dagdump.txt.\n");
-    return;
-  }
-  // } else {
-  //   if (!out.open(stdout, QIODevice::WriteOnly)) {
-  //     printf("Unable to open stdout for writing\n");
-  //     return 1;
-  //   }
-  // }
-
-  int nl=dag.nLevels();
-  for(int lev=0; lev<nl; lev++) {
-    out.write("At Level ");
-    out.write(QByteArray::number(lev));
-    out.write(":  # Edges: ");
-    int ne=dag.nEdges(lev);
-    out.write(QByteArray::number(ne));
-    out.write("  # Parent Nodes: ");
-    int np = dag.nParentNodes(lev);
-    out.write(QByteArray::number(np));
-    out.write("  # Child Nodes: ");
-    int nc = dag.nChildNodes(lev);
-    out.write(QByteArray::number(nc));
-    out.write("\n");
-    out.write("  Symbols at Level: ");
-    out.write(QByteArray::number(lev));
-    for(int edge=0; edge<ne; edge++) {
-      out.write("  edge ");
-      out.write(QByteArray::number(edge));
-      out.write(": ");
-      out.write(QByteArray::number(dag.symbol(lev, edge)));
-    }
-    out.write("\n");
-    out.write("  CondEdgeProbs at Level: ");
-    out.write(QByteArray::number(lev));
-    for(int edge=0; edge<ne; edge++) {
-      out.write("  edge ");
-      out.write(QByteArray::number(edge));
-      out.write(": ");
-      out.write(QByteArray::number(dag.condEdgeProb(lev, edge), 'f', 5));
-    }
-    out.write("\n");
-    out.write("  Parent nodes at Level: ");
-    out.write(QByteArray::number(lev));
-    for(int edge=0; edge<ne; edge++) {
-      out.write("  edge ");
-      out.write(QByteArray::number(edge));
-      out.write(": ");
-      out.write(QByteArray::number(dag.parentNode(lev, edge)));
-    }
-    out.write("\n");
-    out.write("  Child nodes at Level: ");
-    out.write(QByteArray::number(lev));
-    for(int edge=0; edge<ne; edge++) {
-      out.write("  edge ");
-      out.write(QByteArray::number(edge));
-      out.write(": ");
-      out.write(QByteArray::number(dag.childNode(lev, edge)));
-    }
-    out.write("\n");
-    out.write("  Out Edges at Level: ");
-    out.write(QByteArray::number(lev));
-    for(int pn=0; pn<np; pn++) {
-      out.write("  parent node ");
-      out.write(QByteArray::number(pn));
-      int noe = dag.nOutEdges(lev, pn);
-      out.write(":  ");
-      for(int oen=0; oen<noe; oen++) {
-        out.write("  oe ");
-        out.write(QByteArray::number(oen));
-        out.write(": ");
-        out.write(QByteArray::number(dag.outEdge(lev, pn, oen)));
-      }
-    }
-    out.write("\n\n");
   }
 }
 

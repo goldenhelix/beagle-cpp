@@ -439,8 +439,6 @@ namespace HapUtility
   QList<HapPair> createHapPairList(const Markers &markers,
                                    const SampleHapPairs &targetHapPairs,
                                    const QList<int> &mapping);
-  void dumpHp(const QList<HapPair> &hapPairs);
-  void dumpGl(const SplicedGL &gl);
 };
 
 #endif

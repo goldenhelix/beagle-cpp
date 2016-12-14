@@ -6,7 +6,6 @@
 #include <math.h>
 
 #define MIN_VALUE_FOR_BAUM      100.0 * FLT_MIN
-// define MIN_VALUE_FOR_BAUM      1.4e-43
 
 #ifdef USE_ORIGINAL_VERSION_OF_SINGLENODES
 
@@ -245,9 +244,6 @@ void SingleBaumLevel::setStates(const SingleNodes &nodes)
         int edge2 = _dag->outEdge(_marker, node2, i2);
         int symbol2 = _dag->symbol(_marker, edge2);
         float ep = _gl->gl(_marker, _sample, symbol1, symbol2);
-        if((_marker == 15  ||  _marker == 121)  &&  _sample == 2) {
-          float zxyw = ep;
-        }
         if (ep > 0.0)
         {
           _edges1.append(edge1);
@@ -264,16 +260,12 @@ void SingleBaumLevel::setStates(const SingleNodes &nodes)
 #endif
 #endif
           float fwdValue = ep * nodeValue * (tp1 * tp2);
-                  if (fwdValue < MIN_VALUE_FOR_BAUM  &&  nodeValue > 0.0) {
-                          fwdValue = MIN_VALUE_FOR_BAUM;
-                  }
+
+          if (fwdValue < MIN_VALUE_FOR_BAUM  &&  nodeValue > 0.0)
+            fwdValue = MIN_VALUE_FOR_BAUM;
 
           _fwdValues.append(fwdValue);
           valueSum += fwdValue;
-          if((_marker == 15  ||  _marker == 121)  &&  _sample == 2) {
-            float zxyw = fwdValue;
-            float zyxw = valueSum;
-          }
         }
       }
     }
@@ -528,11 +520,7 @@ void SingleBaum::forwardAlgorithm(int sample)
   _fwdNodes.sumUpdate(0, 0, 1.0);
   _windowIndex = -1;
   _arrayIndex = _levels.length() - 1;
-  for (int marker = 0; marker < _nMarkers; marker++){
-          if (sample == 2 && marker == 15){
-                  int abc = 215;
-          }
-          nextLevel().setForwardValues(_fwdNodes, marker, sample);
-  }
+  for (int marker = 0; marker < _nMarkers; marker++)
+    nextLevel().setForwardValues(_fwdNodes, marker, sample);
 }
 
