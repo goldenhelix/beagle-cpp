@@ -11,6 +11,8 @@ public:
   QString refFilePath;
   QString targetFilePath;
 
+  QString pipeName; //Only used in an IPC context
+
   int window() const { return _window; }    // Test value could be 4 .
   int overlap() const { return _overlap; }  // Test value could be 2 .
   /// int nThreads() const { return _nThreads; }    // Test value could be 1 .
@@ -107,6 +109,8 @@ bool ImputeOpts::parseArgs(QStringList args, QString& outErr)
 
       if (opt.toLower() == "out") {
         outFilePath = param;
+      } else if (opt.toLower() == "pipename") {
+        pipeName = param;
       } else if (opt.toLower() == "window") {
         _window = param.toInt(&ok);
         if (!ok) {

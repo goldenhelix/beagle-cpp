@@ -1,5 +1,6 @@
 # ---< I M P U T E _ C M D T O O L S >---
 find_package(Qt5Core REQUIRED)
+find_package(Qt5Network REQUIRED)
 find_package(Qt5Xml REQUIRED) #required by ghicore
 set(QT_DONT_USE_QTGUI TRUE)
 
@@ -18,6 +19,8 @@ set(TOOLS_GENERATED )
 GHI_ADD_CMD(imputec.cpp
             GENERATED ${TOOLS_GENERATED}
             LIBS ${TOOLS_LIBS})
+
+set(TOOLS_LIBS Qt5::Network Qt5::Core impute )
 
 GHI_ADD_CMD(svs_impute_client.cpp
             GENERATED ${TOOLS_GENERATED}

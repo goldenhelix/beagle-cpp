@@ -8,6 +8,8 @@
 #include <QStringList>
 #include <QTextStream>
 #include <QTimer>
+#include <QLocalSocket>
+#include <QThread>
 
 #include "impute/cmdtools/imputeopts.h"
 
@@ -33,6 +35,7 @@ public:
   }
 
   // Convenience methods
+  void sendMessage(QString msg) { sendMessage(msg, QStringList()); }
   void sendMessage(QString msg, QString arg1) { sendMessage(msg, QStringList() << arg1); }
   void sendMessage(QString msg, QString arg1, QString arg2) { sendMessage(msg, QStringList() << arg1 << arg2); }
   void sendMessage(QString msg, QString arg1, QString arg2, QString arg3) { sendMessage(msg, QStringList() << arg1 << arg2 << arg3); }
@@ -48,13 +51,64 @@ private:
   QFileDevice* _control;
 };
 
+// Wrap a QLocalServer, but block on readData using waitForReadyRead
+// until buffer has size or connection is lost.
+class SyncLockSocketWrapper : public QIODevice
+{
+  Q_OBJECT;
+
+public:
+  SyncLockSocketWrapper(QObject* parent = 0) : QIODevice(parent), _dev(0) {}
+
+  // Don't use this class until you set the backend device
+  void setDevice(QLocalSocket* dev){
+    QIODevice::open(QIODevice::ReadWrite | QIODevice::Unbuffered);
+    _dev = dev;
+    // Pass through signals
+    connect(_dev, SIGNAL(aboutToClose()), this, SIGNAL(aboutToClose()));
+    connect(_dev, SIGNAL(bytesWritten(qint64)), this, SIGNAL(bytesWritten(qint64)));
+    connect(_dev, SIGNAL(readChannelFinished()), this, SIGNAL(readChannelFinished()));
+    connect(_dev, SIGNAL(readyRead()), this, SIGNAL(readyRead()));
+  }
+
+  // QIODevice does buffering, so we need to account for our own
+  // instance buffer here
+  qint64 bytesAvailable() const {
+    qint64 available = QIODevice::bytesAvailable();
+    available += _dev->bytesAvailable();
+    return available;
+  }
+
+  // Pass through
+  bool isSequential() const { return _dev->isSequential(); }
+  qint64 bytesToWrite() const { return _dev->bytesToWrite(); }
+  bool canReadLine() const { return _dev->canReadLine(); }
+  void close() const { return _dev->close(); }
+  bool waitForBytesWritten(int msecs = 30000) { return _dev->waitForBytesWritten(msecs); }
+  bool waitForReadyRead(int msecs = 30000) { return _dev->waitForReadyRead(msecs); }
+protected:
+  qint64 readData(char* data, qint64 size)
+  {
+    while (size && size > bytesAvailable()) {
+      _dev->waitForReadyRead();
+      if (_dev->state() != QLocalSocket::ConnectedState)
+        return -1;
+    }
+    return _dev->read(data, size);
+  }
+  // Pass through
+  qint64 writeData(const char* data, qint64 size) { return _dev->write(data, size); }
+private:
+  QLocalSocket* _dev;
+};
+
 // ---------------
 // StreamDataParser
 // ---------------
 class StreamDataParser
 {
 public:
-  StreamDataParser(QDataStream& input, ControlStream& control, QString inputToken);
+  StreamDataParser(QLocalSocket* socket, ControlStream& control, QString inputToken);
   bool readSampleNames();
   QList<QByteArray> sampleNames() const { return _sampleNames; }
 
@@ -81,18 +135,26 @@ private:
   QList<Record> _recordBuffer;
 
   ControlStream& _control;
-  QDataStream& _input;
+  QLocalSocket* _socket;
+  SyncLockSocketWrapper _syncSocket;
+  QDataStream _input;
 };
 
-StreamDataParser::StreamDataParser(QDataStream& input, ControlStream& control, QString inputToken)
-  : _input(input), _control(control), _inputToken(inputToken)
+StreamDataParser::StreamDataParser(QLocalSocket* socket, ControlStream& control, QString inputToken)
+  : _socket(socket), _control(control), _inputToken(inputToken)
 {
+  _syncSocket.setDevice(socket);
+  _input.setDevice(&_syncSocket);
 }
 
 bool StreamDataParser::readSampleNames()
 {
   _control.sendMessage("READ_SAMPLES", _inputToken);
+
   _input >> _nSamples;
+  if(_nSamples == 0)
+    return false;
+
   for(int i=0; i<_nSamples; i++){
     QByteArray sample;
     _input >> sample;
@@ -108,6 +170,7 @@ bool StreamDataParser::hasNextRec()
     return true;
 
   _control.sendMessage("READ_RECORDS", _inputToken);
+
   int numRecords;
   _input >> numRecords;
 
@@ -138,7 +201,7 @@ bool StreamDataParser::hasNextRec()
 class StreamRefDataReader : public RefDataReader
 {
 public:
-  StreamRefDataReader(QDataStream& input, ControlStream& control, QString inputToken);
+  StreamRefDataReader(QLocalSocket* socket, ControlStream& control, QString inputToken);
 
   bool canAdvanceWindow() const { return _nextRecordExists; }
   bool hasNextRec() const { return _nextRecordExists; }
@@ -158,8 +221,8 @@ private:
   StreamDataParser _parser;
 };
 
-StreamRefDataReader::StreamRefDataReader(QDataStream& input, ControlStream& control, QString inputToken)
-  : _parser(input, control, inputToken)
+StreamRefDataReader::StreamRefDataReader(QLocalSocket* socket, ControlStream& control, QString inputToken)
+  : _parser(socket, control, inputToken)
 {
   if (!_parser.readSampleNames()) {
     control.sendError("Expected sample names");
@@ -174,7 +237,8 @@ StreamRefDataReader::StreamRefDataReader(QDataStream& input, ControlStream& cont
   // Cache the first record, assuming it exists. Else mark that we
   // don't have a "next" record. Also set up the "samples" object.
   _nextRecordExists = _parser.hasNextRec();
-  assembleNextRefRec();
+  if(_nextRecordExists)
+    assembleNextRefRec();
 }
 
 BitSetRefGT StreamRefDataReader::nextRec() const
@@ -215,7 +279,7 @@ void StreamRefDataReader::assembleNextRefRec()
 class StreamTargetDataReader : public TargDataReader
 {
 public:
-  StreamTargetDataReader(QDataStream& input, ControlStream& control, QString inputToken);
+  StreamTargetDataReader(QLocalSocket* socket, ControlStream& control, QString inputToken);
 
   bool canAdvanceWindow() const { return _nextRecordExists; }
   bool hasNextRec() const { return _nextRecordExists; }
@@ -234,9 +298,9 @@ private:
   StreamDataParser _parser;
 };
 
-StreamTargetDataReader::StreamTargetDataReader(QDataStream& input, ControlStream& control,
+StreamTargetDataReader::StreamTargetDataReader(QLocalSocket* socket, ControlStream& control,
                                                QString inputToken)
-  : _parser(input, control, inputToken)
+  : _parser(socket, control, inputToken)
 {
   if (!_parser.readSampleNames()) {
     control.sendError("Expected sample names");
@@ -248,7 +312,8 @@ StreamTargetDataReader::StreamTargetDataReader(QDataStream& input, ControlStream
   // Cache the first record, assuming it exists. Else mark that we
   // don't have a "next" record. Also set up the "samples" object.
   _nextRecordExists = _parser.hasNextRec();
-  assembleNextTargetRec();
+  if(_nextRecordExists)
+    assembleNextTargetRec();
 }
 
 BitSetGT StreamTargetDataReader::nextRec() const
@@ -288,7 +353,7 @@ void StreamTargetDataReader::assembleNextTargetRec()
 class StreamDataWriter : public ImputeDataWriter
 {
 public:
-  StreamDataWriter(QDataStream& out, const Samples& samples) : ImputeDataWriter(samples), _out(out) {}
+  StreamDataWriter(QLocalSocket* socket, ControlStream& control, const Samples& samples);
   void writeHeader();
   void writeEOF() {}
 protected:
@@ -301,9 +366,16 @@ private:
   void outputInfo();
   void outputFormat();
 
-  QDataStream& _out;
-  QBuffer _recs;
+  ControlStream& _control;
+  QDataStream _out;
+  QLocalSocket* _socket;
 };
+
+StreamDataWriter::StreamDataWriter(QLocalSocket* socket, ControlStream& control, const Samples& samples)
+  : ImputeDataWriter(samples), _socket(socket), _control(control)
+{
+  _out.setDevice(_socket);
+}
 
 void StreamDataWriter::writeHeader()
 {
@@ -311,13 +383,13 @@ void StreamDataWriter::writeHeader()
   _out << n;
   for (int s = 0, n = _samples.nSamples(); s < n; s++)
     _out << _samples.name(s);
+  _socket->flush();
+  _control.sendMessage("WRITE_HEADER");
 }
 
 void StreamDataWriter::initializeWindowBuffering(const int initSize)
 {
-  _recs.close();
-  _recs.setData(QByteArray());
-  _recs.open(QBuffer::ReadWrite);
+  _control.sendDebug(QString("Init window %1").arg(initSize));
 }
 
 void StreamDataWriter::appendPhasedVariantData()
@@ -341,7 +413,6 @@ void StreamDataWriter::appendPhasedVariantData()
   }else{
     _out << 0;
   }
-  static_cast<QFileDevice*>(_out.device())->flush();
 }
 
 void StreamDataWriter::finishAndWriteRec()
@@ -349,9 +420,11 @@ void StreamDataWriter::finishAndWriteRec()
   _out << _marker.chrom();
   _out << _marker.pos();
   _out << _marker.id();
-  _out << _marker.allele(0);
-  _out << (_marker.nAlleles() == 1 ? CString(".") : _marker.allele(1));
+  _out << _nAlleles;
+  for(int i=0; i<_nAlleles; i++)
+    _out << _marker.allele(i);
 
+  /*
   if (_printDS || _printGP) {
     _out << _r2Est.allelicR2();
     _out << _r2Est.doseR2();
@@ -362,7 +435,9 @@ void StreamDataWriter::finishAndWriteRec()
     }
     _out << _isImputed[_mNum];
   }
-  static_cast<QFileDevice*>(_out.device())->flush();
+  */
+  _socket->flush();
+  _control.sendMessage("WRITE_RECORD");
 }
 
 int main(int argc, char* argv[])
@@ -378,17 +453,6 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  QFile stdinFile;
-  if(!stdinFile.open(stdin, QFile::ReadOnly)){
-    return 1;
-  }
-  QFile stdoutFile;
-  if(!stdoutFile.open(stdout, QFile::WriteOnly)){
-    return 1;
-  }
-
-  QDataStream input(&stdinFile);
-  QDataStream output(&stdoutFile);
   ControlStream control(&stderrFile);
   control.sendDebug("startup");
 
@@ -398,14 +462,28 @@ int main(int argc, char* argv[])
     control.sendError(err);
     return 1;
   }
-  control.sendDebug("args parsed!");
-  StreamTargetDataReader tr(input, control, opts.targetFilePath);
+  if(opts.pipeName.isEmpty()) {
+    control.sendError("No --pipename param provided.\n\nExpected a QLocalServer server name to communicate over with a QDataStream.\n\nIf you are seeing this, you are probably trying to run this program outside of the SVS sub-process context it was designed for.");
+    return 1;
+  }
 
-  StreamDataWriter dw(output, tr.samples());
+  control.sendDebug("args parsed!");
+
+  QLocalSocket streamSocket;
+  streamSocket.connectToServer(opts.pipeName);
+  if(!streamSocket.waitForConnected(5000)){
+    control.sendError("Unable to connect to pip named: " + opts.pipeName);
+    return 1;
+  }
+
+  QThread::msleep(30000);
+  StreamTargetDataReader tr(&streamSocket, control, opts.targetFilePath);
+
+  StreamDataWriter dw(&streamSocket, control, tr.samples());
 
   if (opts.readRefData()) {
     // Reference and target data both exist. Open the reference data.
-    StreamRefDataReader rr(input, control, opts.refFilePath);
+    StreamRefDataReader rr(&streamSocket, control, opts.refFilePath);
 
     AllData ad;
     ImputeDriver::phaseAndImpute(ad, tr, rr, dw, opts.window(), opts);
@@ -437,4 +515,4 @@ int main(int argc, char* argv[])
 };
 
 // // For any qt signal/slot MOC stuff
-// #include "svs_impute_client.moc"
+#include "svs_impute_client.moc"
