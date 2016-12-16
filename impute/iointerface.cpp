@@ -535,6 +535,8 @@ void ImputeDataWriter::printWindowData(const ConstrainedAlleleProbs &alProbs)
     }
     finishAndWriteRec();
   }
+
+  finalizeForWindow();
 }
 
 void ImputeDataWriter::initializeForWindow(int initSize)

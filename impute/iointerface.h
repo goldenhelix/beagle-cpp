@@ -458,6 +458,7 @@ public:
 
 protected:
   virtual void initializeWindowBuffering(const int initSize) = 0;
+  virtual void finalizeForWindow() {};
   virtual void appendPhasedVariantData() = 0;
   virtual void finishAndWriteRec() = 0;
   /////////////////// virtual void debugWrite() = 0; ///////////////////////
