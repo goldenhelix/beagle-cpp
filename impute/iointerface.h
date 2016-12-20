@@ -457,7 +457,7 @@ public:
   virtual void writeEOF() = 0;
 
 protected:
-  virtual void initializeWindowBuffering(const int initSize) = 0;
+  virtual void initializeWindowBuffering(const int initSize, const int nMarkers=-1) = 0;
   virtual void finalizeForWindow() {};
   virtual void appendPhasedVariantData() = 0;
   virtual void finishAndWriteRec() = 0;
@@ -492,7 +492,7 @@ protected:
 private:
   void setIsImputed(const CurrentData &cd);
   void printWindowData(const ConstrainedAlleleProbs &alProbs);
-  void initializeForWindow(const int initSize);
+  void initializeForWindow(const int initSize, int nMarkers);
   void resetRec(const Marker &marker);
   void constructSampleDataForMarker();
   int maxIndex(QVector<double> &da, int expLength);

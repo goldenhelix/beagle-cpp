@@ -504,7 +504,7 @@ public:
   void writeEOF() {}
 
 protected:
-  void initializeWindowBuffering(const int initSize);
+  void initializeWindowBuffering(const int initSize, const int nMarkers);
   void appendPhasedVariantData();
   void finishAndWriteRec();
 
@@ -527,7 +527,7 @@ void TestDataWriter::writeHeader()
   qDebug("%s", (const char *) _outRec.toLatin1());
 }
 
-void TestDataWriter::initializeWindowBuffering(const int initSize)
+void TestDataWriter::initializeWindowBuffering(const int initSize, int nMarkers)
 {
   _variantRec.clear();
 }

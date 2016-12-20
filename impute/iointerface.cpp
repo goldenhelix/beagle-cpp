@@ -516,7 +516,7 @@ void ImputeDataWriter::printWindowData(const ConstrainedAlleleProbs &alProbs)
              "ImputeDataWriter::printWindowData",
              "inconsistent data");
 
-  initializeForWindow(4*alProbs.nSamples());
+  initializeForWindow(4*alProbs.nSamples(), _end-_start);
 
   for (_mNum=_start; _mNum < _end; ++_mNum)
   {
@@ -539,11 +539,11 @@ void ImputeDataWriter::printWindowData(const ConstrainedAlleleProbs &alProbs)
   finalizeForWindow();
 }
 
-void ImputeDataWriter::initializeForWindow(int initSize)
+void ImputeDataWriter::initializeForWindow(int initSize, int nMarkers)
 {
   _gt3Probs.fill(0.0, 3);
 
-  initializeWindowBuffering(initSize);
+  initializeWindowBuffering(initSize, nMarkers);
 }
 
 void ImputeDataWriter::resetRec(const Marker &marker)

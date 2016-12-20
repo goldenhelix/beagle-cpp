@@ -51,86 +51,62 @@ private:
   QFileDevice* _control;
 };
 
-// Wrap a QLocalServer, but block on readData using waitForReadyRead
-// until buffer has size or connection is lost.
-class SyncLockSocketWrapper : public QIODevice
+// Use a QLocalSocket to connect to provided server and read all data
+// until close, returning in QByteArray
+class SocketReader : public QObject
 {
   Q_OBJECT;
 
 public:
-  SyncLockSocketWrapper(QObject* parent = 0) : QIODevice(parent), _dev(0), _bytesRead(0) {}
+  SocketReader(QString pipeName)
+    : _pipeName(pipeName)
+  {}
 
-  // Don't use this class until you set the backend device
-  void setDevice(QLocalSocket* dev){
-    _dev = dev;
-    // Pass through signals
-    connect(_dev, SIGNAL(aboutToClose()), this, SIGNAL(aboutToClose()));
-    connect(_dev, SIGNAL(bytesWritten(qint64)), this, SIGNAL(bytesWritten(qint64)));
-    connect(_dev, SIGNAL(readChannelFinished()), this, SIGNAL(readChannelFinished()));
-    connect(_dev, SIGNAL(readyRead()), this, SIGNAL(readyRead()));
-  }
-
-  void clearBuffers(){
-    QIODevice::close();
-    QIODevice::open(QIODevice::ReadWrite);
-  }
-
-  // QIODevice does buffering, so we need to account for our own
-  // instance buffer here
-  qint64 bytesAvailable() const {
-    qint64 available = QIODevice::bytesAvailable();
-    available += _dev->bytesAvailable();
-    return available;
-  }
-
-  // Pass through
-  bool isSequential() const { return _dev->isSequential(); }
-  qint64 bytesToWrite() const { return _dev->bytesToWrite(); }
-  bool canReadLine() const { return _dev->canReadLine(); }
-  void close() const { return _dev->close(); }
-  bool waitForBytesWritten(int msecs = 30000) { return _dev->waitForBytesWritten(msecs); }
-  bool waitForReadyRead(int msecs = 30000) { return _dev->waitForReadyRead(msecs); }
-protected:
-  qint64 readData(char* data, qint64 size)
-  {
-    if(!size)
-      _dev->read(data, size);
-    qint64 sizeLeft = size;
-    char* dataPtr = data;
-    while (sizeLeft > 0){
-      qint64 avail = _dev->bytesAvailable();
-      if(avail == 0){
-        if(!_dev->waitForReadyRead(10)) {
-          if (_dev->state() != QLocalSocket::ConnectedState)
-            return (dataPtr-data);
-
-          // Socket closing is a queued connection, run an event loop
-          // to see if there is more data or the socket has reached
-          // its end and will close itself.
-          qDebug("Waiting for end of stream...");
-          QEventLoop wait;
-          connect(_dev, SIGNAL(stateChanged(QLocalSocket::LocalSocketState)), &wait, SLOT(quit()));
-          connect(_dev, SIGNAL(readyRead()), &wait, SLOT(quit()));
-          wait.exec();
-        }
-        continue;
-      }
-
-      qint64 ret = _dev->read(dataPtr, sizeLeft);
-      Q_ASSERT(ret > 0 && ret <= size && ret <= avail);
-      sizeLeft -= ret;
-      dataPtr = dataPtr + (int)ret;
-      _bytesRead += ret;
-      //qDebug("read %lld total %lld of %lld avail (%lld left)", _bytesRead, size, avail, sizeLeft);
+  QByteArray readAll(QString &outErr){
+    _socket.connectToServer(_pipeName, QIODevice::ReadOnly);
+    if(!_socket.waitForConnected(5000)){
+      outErr = "Unable to connect to pip named: " + _pipeName;
+      return QByteArray();
     }
-    return size;
+    _buffer.open(QIODevice::WriteOnly);
+
+    connect(&_socket, SIGNAL(disconnected()), this, SLOT(socketDisconnected()));
+    connect(&_socket, SIGNAL(readyRead()), this, SLOT(readBuffer()));
+    //connect(&_socket, SIGNAL(stateChanged(QLocalSocket::LocalSocketState)), this, SLOT(stateChanged(QLocalSocket::LocalSocketState)));
+
+    QEventLoop wait;
+    connect(this, SIGNAL(readFinished()), &wait, SLOT(quit()));
+    wait.exec();
+
+    readBuffer(); // finish read
+    _buffer.close();
+    return _buffer.data();
   }
-  // Pass through
-  qint64 writeData(const char* data, qint64 size) { return _dev->write(data, size); }
+
+signals:
+  void readFinished();
+
+public slots:
+  void readBuffer(){
+    QByteArray read = _socket.readAll();
+    _buffer.write(read);
+  }
+
+  void socketDisconnected(){
+    //qDebug("disconnected");
+    emit readFinished();
+  }
+
+  void stateChanged(QLocalSocket::LocalSocketState socketState){
+    qDebug("state changed: %d", socketState);
+  }
+
 private:
-  QLocalSocket* _dev;
-  qint64 _bytesRead;
+  QString _pipeName;
+  QLocalSocket _socket;
+  QBuffer _buffer;
 };
+
 
 // ---------------
 // StreamDataParser
@@ -166,37 +142,35 @@ private:
 
   QString _pipeName;
   ControlStream& _control;
-  QLocalSocket _socket;
-  SyncLockSocketWrapper _syncSocket;
-  QDataStream _input;
-
 };
 
 StreamDataParser::StreamDataParser(QString pipeName, ControlStream& control, QString inputToken)
   : _pipeName(pipeName), _control(control), _inputToken(inputToken)
 {
-  _input.setDevice(&_syncSocket);
-  _input.setByteOrder(QDataStream::LittleEndian);
-  _syncSocket.setDevice(&_socket);
 }
 
 bool StreamDataParser::readSampleNames()
 {
   _control.sendMessage("READ_SAMPLES", _inputToken);
-  _socket.connectToServer(_pipeName, QIODevice::ReadOnly);
-  if(!_socket.waitForConnected(5000)){
-    _control.sendError("Unable to connect to pip named: " + _pipeName);
+
+  SocketReader reader(_pipeName);
+  QString err;
+  QByteArray data = reader.readAll(err);
+  if(!err.isEmpty()){
+    _control.sendError(err);
     exit(1);
   }
-  _syncSocket.clearBuffers();
 
-  _input >> _nSamples;
+  QDataStream input(data);
+  input.setByteOrder(QDataStream::LittleEndian);
+
+  input >> _nSamples;
   if(_nSamples == 0)
     return false;
 
   for(int i=0; i<_nSamples; i++){
     QByteArray sample;
-    _input >> sample;
+    input >> sample;
     _sampleNames << sample;
   }
   _control.sendDebug(QString("Received %1 samples").arg(_nSamples));
@@ -211,15 +185,18 @@ bool StreamDataParser::hasNextRec()
   // Fill up record buffer
   _control.sendMessage("READ_RECORDS", _inputToken);
 
-  _socket.connectToServer(_pipeName, QIODevice::ReadOnly);
-  if(!_socket.waitForConnected(5000)){
-    _control.sendError("Unable to connect to pip named: " + _pipeName);
+  SocketReader reader(_pipeName);
+  QString err;
+  QByteArray data = reader.readAll(err);
+  if(!err.isEmpty()){
+    _control.sendError(err);
     exit(1);
   }
-  _syncSocket.clearBuffers();
+  QDataStream input(data);
+  input.setByteOrder(QDataStream::LittleEndian);
 
   int numRecords;
-  _input >> numRecords;
+  input >> numRecords;
 
   // Don't bother asking for more data
   if(numRecords == 0) {
@@ -228,18 +205,18 @@ bool StreamDataParser::hasNextRec()
 
   // Should be ready to read numRecords into our buffer
   for(int r=0; r<numRecords; r++){
-    qDebug("reading %d of %d", r, numRecords);
     Record record;
-    _input >> record.chrom;
-    _input >> record.pos;
-    _input >> record.id;
-    _input >> record.alleles;
-    _input >> record.var1;
-    _input >> record.var2;
-    _input >> record.phased;
+    input >> record.chrom;
+    input >> record.pos;
+    input >> record.id;
+    input >> record.alleles;
+    input >> record.var1;
+    input >> record.var2;
+    input >> record.phased;
 
     _recordBuffer << record;
   }
+  qDebug("read %d records in %d bytes", numRecords, data.size());
   return true;
 }
 
@@ -406,7 +383,7 @@ public:
   void writeEOF() {}
 protected:
   // These are all overrides of ImputeDataWriter virtual functions
-  void initializeWindowBuffering(const int initSize);
+  void initializeWindowBuffering(const int initSize, const int nMarkers);
   void appendPhasedVariantData();
   void finishAndWriteRec();
   void finalizeForWindow();
@@ -432,9 +409,9 @@ void StreamDataWriter::writeHeader()
   // NO-OP
 }
 
-void StreamDataWriter::initializeWindowBuffering(const int initSize)
+void StreamDataWriter::initializeWindowBuffering(const int initSize, const int nMarkers)
 {
-  _control.sendDebug(QString("Init window %1").arg(initSize));
+  _control.sendDebug(QString("Init window %1 %2").arg(initSize).arg(nMarkers));
   // connect;
   _control.sendMessage("WRITE_RECORDS");
 
@@ -445,6 +422,7 @@ void StreamDataWriter::initializeWindowBuffering(const int initSize)
   }
   _out.setDevice(&_socket);
   _out.setByteOrder(QDataStream::LittleEndian);
+  _out << nMarkers;
 }
 
 void StreamDataWriter::appendPhasedVariantData()
@@ -479,6 +457,7 @@ void StreamDataWriter::finishAndWriteRec()
   for(int i=0; i<_nAlleles; i++)
     _out << _marker.allele(i);
 
+  qDebug("output marker");
   /*
   if (_printDS || _printGP) {
     _out << _r2Est.allelicR2();
@@ -491,12 +470,17 @@ void StreamDataWriter::finishAndWriteRec()
     _out << _isImputed[_mNum];
   }
   */
-  _socket.flush();
 }
 
 void StreamDataWriter::finalizeForWindow()
 {
-  _socket.disconnectFromServer();
+  qDebug("finalizing...");
+  _socket.flush();
+  if(!_socket.waitForBytesWritten(60000)){
+    _control.sendError("Unable to finish writing records back to SVS in a reasonable time");
+    exit(1);
+  }
+  _socket.close();
 }
 
 int main(int argc, char* argv[])
@@ -528,7 +512,7 @@ int main(int argc, char* argv[])
 
   control.sendDebug("args parsed!");
 
-  QThread::msleep(30000);
+  //QThread::msleep(15000);
   StreamTargetDataReader tr(opts.pipeName, control, opts.targetFilePath);
 
   StreamDataWriter dw(opts.pipeName, control, tr.samples());

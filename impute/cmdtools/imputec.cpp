@@ -317,7 +317,7 @@ public:
   void writeHeader();
   void writeEOF() {}
 protected:
-  void initializeWindowBuffering(const int initSize);
+  void initializeWindowBuffering(const int initSize, const int nMarkers);
   void appendPhasedVariantData();
   void finishAndWriteRec();
   /////////////////// void debugWrite();
@@ -378,7 +378,7 @@ void VcfDataWriter::writeHeader()
   _out.write("\n");
 }
 
-void VcfDataWriter::initializeWindowBuffering(const int initSize)
+void VcfDataWriter::initializeWindowBuffering(const int initSize, int nMarkers)
 {
   _recs.close();
   _recs.setData(QByteArray());
