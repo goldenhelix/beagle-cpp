@@ -9,6 +9,7 @@ set(IMPUTE_HEADERS
   dag.h
   baumhmm.h
   consensusphaser.h
+  genotypecorrection.h
   hapalleleprobs.h
   imputationdata.h
   imputedriver.h
@@ -23,6 +24,7 @@ set(IMPUTE_SOURCES
   dag.cpp
   baumhmm.cpp
   consensusphaser.cpp
+  genotypecorrection.cpp
   hapalleleprobs.cpp
   imputationdata.cpp
   imputedriver.cpp

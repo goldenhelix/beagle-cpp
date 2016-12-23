@@ -434,6 +434,47 @@ private:
   float _ff;
 };
 
+/**
+ * Class {@code MaskedEndsGL} is a wrapper for a {@code SplicedGL}
+ * instance that masks the genotype emission probabilities for a
+ * user-specified number of starting and ending markers. The {@code
+ * gl()}, {@code allele1()}, and {@code allele2()} methods return
+ * {@code 1.0f}, {@code -1}, and {@code -1} respectively if a genotype
+ * emission probability for a marker is masked.
+ *
+ * "Instances of class {@code MaskedEndsGL} are immutable."
+ */
+class MaskedEndsGL
+{
+public:
+
+  /**
+   * Constructs a new {@code MaskedEndsGL} instance.
+   * @param gl genotype emission probabilities for all markers
+   * @param start the starting marker index (inclusive) of the markers
+   * whose genotype emission probabilities are not masked
+   * @param end the ending marker index (exclusive) of the markers
+   * whose genotype emission probabilities are not masked
+   */
+  MaskedEndsGL(const SplicedGL &gl, int start, int end);
+  float gl(int marker, int sample, int allele1, int allele2) const;
+  bool isPhased(int marker, int sample) const;
+  int allele1(int marker, int sample) const;
+  int allele2(int marker, int sample) const;
+
+  Markers markers() const { return _gl.markers(); }
+  int nMarkers() const { return _gl.nMarkers(); }
+  Samples samples() const { return _gl.samples(); }
+
+private:
+  void checkMarkerAndSample(int marker, int sample) const;
+  void checkAllele(int marker, int allele) const;
+
+  const SplicedGL &_gl;
+  int _start;
+  int _end;
+};
+
 namespace HapUtility
 {
   QList<HapPair> createHapPairList(const Markers &markers,

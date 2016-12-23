@@ -1,6 +1,7 @@
 #include "impute/imputedriver.h"
 
 #include "impute/imputationdata.h"
+#include "impute/genotypecorrection.h"
 
 #include <QVector>
 
@@ -157,7 +158,7 @@ QList<HapPair> ImputeDriver::sample(const CurrentData &cd, const Par &par, QList
   Q_ASSERT_X(!hapPairs.isEmpty(), "ImputeDriver::sample", "hapPairs.isEmpty()");
 
   int nThreads = par.nThreads();
-  int nSampledHaps = par.nSamplingsPerIndividual() * cd.nTargetSamples();
+
   SplicedGL gl(cd.targetGL(), useRevDag);
 
   cd.addRestrictedRefHapPairs(hapPairs);
@@ -250,21 +251,35 @@ QList<HapPair> ImputeDriver::recombSample(const CurrentData &cd, const Par &par,
                                           const QList<HapPair> &hapPairs,
                                           bool useRevDag)
 {
-  SamplerData samplerData(par, cd, hapPairs, useRevDag /* , runStats */ );
-  int nSampledHaps = N_COPIES * cd.nTargetSamples();
+  /*
+  QList<HapPair> haps = ConsensusPhaser.consensusPhase(hapPairs);
+  cd.addRestrictedRefHapPairs(haps);
+
+  SampleHapPairs dagHaps(cd.allSamples(), haps, useRevDag);
+
+  ImmutableDag dag(dagHaps, ImputeDriver::getHapWeights(dagHaps, cd), par.modelScale(),
+                   par.dagInitLevels());
+
+  RestrictedDag rdag(dag, dagHaps, par.ibdlength(), par.ibdextend());
+
+  SamplerData samplerData(rdag, par, cd, useRevDag /+ , runStats +/ );
+
   QList<HapPair> sampledHaps;
   ImputeDriver::recombSample(samplerData, par, sampledHaps);
   return sampledHaps;
+  */
+  QList<HapPair> retHaps = hapPairs;
+  return retHaps;
 }
-
+/*
 void ImputeDriver::recombSample(const SamplerData &samplerData, const Par &par, QList<HapPair> &sampledHaps)
 {
   // long t0 = System.nanoTime();
-  // int nThreads = samplerData.par().nthreads();
+  // int nThreads = par().nthreads();
   bool markersAreReversed = samplerData.markersAreReversed();
   // Random rand = new Random(par.seed());
 
-  RecombSingleBaum baum(samplerData, /* rand.nextLong(), */ N_COPIES, true /* par.lowmem() */);
+  RecombSingleBaum baum(samplerData, /+ rand.nextLong(), +/ N_COPIES, par.lowmem());
 
   int nSamples = samplerData.nSamples();
   for (int single = 0; single < nSamples; single++)
@@ -281,13 +296,7 @@ void ImputeDriver::recombSample(const SamplerData &samplerData, const Par &par, 
 
   // runStats.sampleNanos(System.nanoTime() - t0);
 }
-
-//// Fake definition standing in for Version 4.1 phasing:
-QList<HapPair> GenotypeCorrection::correct(QList<HapPair> hapPairs, const MaskedEndsGL &gl, int seed)
-{
-  QList<HapPair> qlhp; return qlhp;
-}
-
+*/
 QList<HapPair> ImputeDriver::correctGenotypes(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs)
 {
   int start = cd.prevTargetSpliceStart();

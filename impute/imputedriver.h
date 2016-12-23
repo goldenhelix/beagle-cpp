@@ -11,33 +11,6 @@
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
 
-
-//// Fake Classes and Namespaces standing in for Version 4.1 phasing:
-class SamplerData
-{
-public:
-  SamplerData(const Par &par, const CurrentData &cd, const QList<HapPair> &hapPairs, bool useRevDag){}
-  bool markersAreReversed() const { return false; }
-  int nSamples() const { return 5; }
-};
-class RecombSingleBaum
-{
-public:
-  RecombSingleBaum(const SamplerData &samplerData, int nCopies, bool lowMem){}
-  QList<HapPair> randomSample(int sampNum){QList<HapPair> qlhp; return qlhp;}
-};
-class MaskedEndsGL
-{
-public:
-  MaskedEndsGL(const SplicedGL &splicedGL, int start, int end){}
-};
-namespace GenotypeCorrection
-{
-  QList<HapPair> correct(QList<HapPair> hapPairs, const MaskedEndsGL &gl, int seed);
-};
-//// End Fake Classes and Namespaces
-
-
 namespace ImputeDriver
 {
   void phaseAndImpute(InputData &data, TargDataReader &targReader, RefDataReader &refReader,
@@ -146,7 +119,7 @@ namespace ImputeDriver
                               const QList<HapPair> &hapPairs,
                               bool useRevDag);
 
-  void recombSample(const SamplerData &samplerData, const Par &par,  QList<HapPair> &sampledHaps);
+  /// void recombSample(const SamplerData &samplerData, const Par &par,  QList<HapPair> &sampledHaps);
   QList<HapPair> correctGenotypes(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs);
 
   ConstrainedAlleleProbs LSImpute(const CurrentData &cd, const Par &par,

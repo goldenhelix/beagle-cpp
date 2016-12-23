@@ -86,7 +86,7 @@ public:
   /**
    * Returns the reference haplotype pairs.
    */
-  const RefHapPairs& refHapPairs() const { return _refHapPairs; }
+  /// const RefHapPairs& refHapPairs() const { return _refHapPairs; }
 
   /**
    * Return the number of reference allele sequences in this segment.
@@ -118,7 +118,7 @@ public:
   int end() const { return _end; }
 
 private:
-  const RefHapPairs &_refHapPairs;
+  RefHapPairs _refHapPairs;
   int _start;     // inclusive
   int _end;       // exclusive
   QVector<int> _hapToSeq;

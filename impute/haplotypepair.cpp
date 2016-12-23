@@ -475,6 +475,77 @@ float FuzzyGL::phasedGL(int obs1, int obs2, int a1, int a2)
   }
 }
 
+MaskedEndsGL::MaskedEndsGL(const SplicedGL &gl, int start, int end)
+    : _gl(gl), _start(start), _end(end)
+{
+  Q_ASSERT_X(start >= 0  &&  start <= end  &&  end <= gl.nMarkers(),
+             "MaskedEndsGL::MaskedEndsGL",
+             "start<0 || start>end || end>gl.nMarkers()");
+}
+
+void MaskedEndsGL::checkMarkerAndSample(int marker, int sample) const
+{
+  Q_ASSERT_X(marker >= 0  &&  marker < _gl.nMarkers(),
+             "MaskedEndsGL::checkMarkerAndSample",
+             "marker<0 || marker>=_gl.nMarkers()");
+
+  Q_ASSERT_X(sample >= 0  &&  sample < _gl.nSamples(),
+             "MaskedEndsGL::checkMarkerAndSample",
+             "sample<0 || sample>=_gl.nSamples()");
+}
+
+void MaskedEndsGL::checkAllele(int marker, int allele) const
+{
+  Q_ASSERT_X(allele<0 || allele>=_gl.marker(marker).nAlleles(),
+             "MaskedEndsGL::checkAllele",
+             "allele<0 || allele>=_gl.marker(marker).nAlleles()");
+}
+
+float MaskedEndsGL::gl(int marker, int sample, int allele1, int allele2) const
+{
+  if (marker < _start  ||  marker >= _end)
+  {
+    checkMarkerAndSample(marker, sample);
+    checkAllele(marker, allele1);
+    checkAllele(marker, allele2);
+    return 1.0f;
+  }
+  else
+    return _gl.gl(marker, sample, allele1, allele2);
+}
+
+bool MaskedEndsGL::isPhased(int marker, int sample) const
+{
+  if (marker < _start  ||  marker >= _end)
+  {
+    checkMarkerAndSample(marker, sample);
+    return false;
+  }
+  else
+    return _gl.isPhased(marker, sample);
+}
+
+int MaskedEndsGL::allele1(int marker, int sample) const
+{
+  if (marker < _start  ||  marker >= _end)
+  {
+    checkMarkerAndSample(marker, sample);
+    return -1;
+  }
+  else
+    return _gl.allele1(marker, sample);
+}
+
+int MaskedEndsGL::allele2(int marker, int sample) const
+{
+  if (marker < _start  ||  marker >= _end)
+  {
+    checkMarkerAndSample(marker, sample);
+    return -1;
+  }
+  else
+    return _gl.allele2(marker, sample);
+}
 
 QList<HapPair> HapUtility::createHapPairList(const Markers &markers,
                                              const SampleHapPairs &targetHapPairs,
