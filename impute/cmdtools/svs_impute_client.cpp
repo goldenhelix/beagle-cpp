@@ -476,12 +476,10 @@ void StreamDataWriter::finalizeForWindow()
 {
   qDebug("finalizing...");
   _socket.flush();
-  /*
   if(!_socket.waitForBytesWritten(60000)){
     _control.sendError("Unable to finish writing records back to SVS in a reasonable time");
     exit(1);
   }
-  */
   _socket.close();
 }
 
