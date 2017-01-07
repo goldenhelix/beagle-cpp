@@ -8,8 +8,9 @@
 #include <QStringList>
 #include <QTextStream>
 #include <QTimer>
-#include <QLocalSocket>
+#include <QTcpSocket>
 #include <QThread>
+#include <QEventLoop>
 
 #include "impute/cmdtools/imputeopts.h"
 
@@ -51,7 +52,7 @@ private:
   QFileDevice* _control;
 };
 
-// Use a QLocalSocket to connect to provided server and read all data
+// Use a QTcpSocket to connect to provided server and read all data
 // until close, returning in QByteArray
 class SocketReader : public QObject
 {
@@ -63,22 +64,23 @@ public:
   {}
 
   QByteArray readAll(QString &outErr){
-    _socket.connectToServer(_pipeName, QIODevice::ReadOnly);
-    if(!_socket.waitForConnected(5000)){
-      outErr = "Unable to connect to pip named: " + _pipeName;
-      return QByteArray();
+    int port = _pipeName.toInt();
+    _socket.connectToHost("127.0.0.1", port, QIODevice::ReadOnly);
+    if(_socket.state() != QAbstractSocket::ConnectedState){
+      QEventLoop wait;
+      connect(&_socket, SIGNAL(connected()), &wait, SLOT(quit()));
+      wait.exec();
     }
     _buffer.open(QIODevice::WriteOnly);
 
     connect(&_socket, SIGNAL(disconnected()), this, SLOT(socketDisconnected()));
     connect(&_socket, SIGNAL(readyRead()), this, SLOT(readBuffer()));
-    //connect(&_socket, SIGNAL(stateChanged(QLocalSocket::LocalSocketState)), this, SLOT(stateChanged(QLocalSocket::LocalSocketState)));
 
     QEventLoop wait;
     connect(this, SIGNAL(readFinished()), &wait, SLOT(quit()));
     wait.exec();
 
-    readBuffer(); // finish read
+     readBuffer(); // finish read
     _buffer.close();
     return _buffer.data();
   }
@@ -89,6 +91,7 @@ signals:
 public slots:
   void readBuffer(){
     QByteArray read = _socket.readAll();
+    //qDebug("read %d", read.size());
     _buffer.write(read);
   }
 
@@ -97,16 +100,44 @@ public slots:
     emit readFinished();
   }
 
-  void stateChanged(QLocalSocket::LocalSocketState socketState){
-    qDebug("state changed: %d", socketState);
-  }
-
 private:
   QString _pipeName;
-  QLocalSocket _socket;
+  QTcpSocket _socket;
   QBuffer _buffer;
 };
 
+class SocketWriter : public QObject
+{
+  Q_OBJECT;
+
+public:
+  SocketWriter(QTcpSocket* socket)
+    : _socket(socket)
+  {
+    connect(socket, SIGNAL(bytesWritten(qint64)), this, SLOT(markWritten(qint64)));
+  }
+
+  void writeBlocking(const QByteArray& data){
+    _toWrite = data.size();
+    _socket->write(data);
+    QEventLoop wait;
+    connect(this, SIGNAL(finished()), &wait, SLOT(quit()));
+    wait.exec();
+  }
+
+signals:
+  void finished();
+
+public slots:
+  void markWritten(qint64 written){
+    _toWrite -= written;
+    if(_toWrite <= 0)
+      emit finished();
+  }
+private:
+  QTcpSocket* _socket;
+  qint64 _toWrite;
+};
 
 // ---------------
 // StreamDataParser
@@ -214,7 +245,11 @@ bool StreamDataParser::hasNextRec()
     input >> record.var2;
     input >> record.phased;
 
-    _recordBuffer << record;
+    Q_ASSERT(record.var1.count() > 0 && record.var2.count() > 0 && record.phased.count() > 0);
+    Q_ASSERT(record.var1.count() == record.var2.count() && record.var2.count() == record.phased.count());
+
+    if(record.alleles.size() > 0)
+      _recordBuffer << record; //Don't add all missing markers
   }
   qDebug("read %d records in %d bytes", numRecords, data.size());
   return true;
@@ -395,8 +430,9 @@ private:
 
   QString _pipeName;
   ControlStream& _control;
+  QBuffer _buffer;
   QDataStream _out;
-  QLocalSocket _socket;
+  QTcpSocket _socket;
 };
 
 StreamDataWriter::StreamDataWriter(QString pipeName, ControlStream& control, const Samples& samples)
@@ -415,12 +451,8 @@ void StreamDataWriter::initializeWindowBuffering(const int initSize, const int n
   // connect;
   _control.sendMessage("WRITE_RECORDS");
 
-  _socket.connectToServer(_pipeName, QIODevice::WriteOnly);
-  if(!_socket.waitForConnected(5000)){
-    _control.sendError("Unable to connect to pip named: " + _pipeName);
-    exit(1);
-  }
-  _out.setDevice(&_socket);
+  _buffer.open(QIODevice::WriteOnly | QIODevice::Truncate);
+  _out.setDevice(&_buffer);
   _out.setByteOrder(QDataStream::LittleEndian);
   _out << nMarkers;
 }
@@ -457,7 +489,6 @@ void StreamDataWriter::finishAndWriteRec()
   for(int i=0; i<_nAlleles; i++)
     _out << _marker.allele(i);
 
-  qDebug("output marker");
   /*
   if (_printDS || _printGP) {
     _out << _r2Est.allelicR2();
@@ -474,13 +505,20 @@ void StreamDataWriter::finishAndWriteRec()
 
 void StreamDataWriter::finalizeForWindow()
 {
-  qDebug("finalizing...");
-  _socket.flush();
-  if(!_socket.waitForBytesWritten(60000)){
-    _control.sendError("Unable to finish writing records back to SVS in a reasonable time");
-    exit(1);
+  _buffer.close();
+  QByteArray data = _buffer.data();
+  qDebug("finished window. Sending %d bytes", data.size());
+
+  _socket.connectToHost("127.0.0.1", _pipeName.toInt(), QIODevice::WriteOnly);
+  if(_socket.state() != QAbstractSocket::ConnectedState){
+    QEventLoop wait;
+    QObject::connect(&_socket, SIGNAL(connected()), &wait, SLOT(quit()));
+    wait.exec();
   }
+  SocketWriter writer(&_socket);
+  writer.writeBlocking(data); //Wait till all bytes written
   _socket.close();
+  // qDebug("written!");
 }
 
 int main(int argc, char* argv[])
@@ -506,13 +544,13 @@ int main(int argc, char* argv[])
     return 1;
   }
   if(opts.pipeName.isEmpty()) {
-    control.sendError("No --pipename param provided.\n\nExpected a QLocalServer server name to communicate over with a QDataStream.\n\nIf you are seeing this, you are probably trying to run this program outside of the SVS sub-process context it was designed for.");
+    control.sendError("No --pipename param provided.\n\nExpected a QTcpServer server name to communicate over with a QDataStream.\n\nIf you are seeing this, you are probably trying to run this program outside of the SVS sub-process context it was designed for.");
     return 1;
   }
 
   control.sendDebug("args parsed!");
 
-  //QThread::msleep(15000);
+  // QThread::msleep(15000);
   StreamTargetDataReader tr(opts.pipeName, control, opts.targetFilePath);
 
   StreamDataWriter dw(opts.pipeName, control, tr.samples());
