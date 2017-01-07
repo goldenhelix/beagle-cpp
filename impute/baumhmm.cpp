@@ -435,7 +435,8 @@ int SingleBaum::initialRandomState(const SingleBaumLevel &level, int copy)
       return j;
     }
   }
-  return level.size()-1; // if reached due to rounding
+  // GR: Added floor of 0 here
+  return qMax(level.size()-1, 0); // if reached due to rounding
 }
 
 double SingleBaum::parentSum(const SingleBaumLevel &level, int sample, int state) const
