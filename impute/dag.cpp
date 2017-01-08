@@ -1288,7 +1288,7 @@ void DagLevel::obtainParentCounts(QVector<quint16> parentNodes, QVector<float> c
   _parentCounts.fill(0.0, nNodes);
 
   for (int j = 0; j < _condEdgeProbs.length(); ++j) {
-    char p = parentNodes[j];
+    quint16 p = parentNodes[j];
     _parentCounts[p] += counts[j];
   }
 }
