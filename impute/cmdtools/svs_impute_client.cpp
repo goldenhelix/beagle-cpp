@@ -535,7 +535,6 @@ int main(int argc, char* argv[])
   }
 
   ControlStream control(&stderrFile);
-  control.sendDebug("startup");
 
   ImputeOpts opts;
   QString err;
@@ -548,7 +547,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  control.sendDebug("args parsed!");
+  control.sendMessage("STARTUP_COMPLETE");
 
   // QThread::msleep(15000);
   StreamTargetDataReader tr(opts.pipeName, control, opts.targetFilePath);
