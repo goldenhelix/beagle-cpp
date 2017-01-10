@@ -1431,7 +1431,7 @@ void TestImputeDataStructures::testTargetData3x3LEandInitHaps()
   QList<HapPair> sampledHaps;
   ImputeDriver::sample(dag, emitGL, parw.seed(), false /* useRevDag */,
                        par.nSamplingsPerIndividual(), sampledHaps,
-                       par.nThreads(), par.lowMem());
+                       par.nThreads(), par.lowMem(), "Unit Test");
 
   //// return sampledHaps; (from initialHaps()) (called hapPairs in phase())
   //// Phasing happens....then "consensus phasing" happens....

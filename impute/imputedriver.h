@@ -63,7 +63,7 @@ namespace ImputeDriver
    * {@code false} otherwise
    */
   QList<HapPair> sample(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs,
-                        bool useRevDag);
+                        bool useRevDag, char *whichIteration);
 
   /**
    * Returns an array of length {@code haps.nHaps()} with
@@ -97,7 +97,8 @@ namespace ImputeDriver
    * "Lower-level utility" for performing sampling.
    */
   void sample(Dag &dag, SplicedGL &gl, int seed, bool markersAreReversed,
-              int nSamplingsPerIndividual, QList<HapPair> &sampledHaps, int nThreads, bool lowmem);
+              int nSamplingsPerIndividual, QList<HapPair> &sampledHaps,
+              int nThreads, bool lowmem, char *whichIteration);
 
   /**
    * Returns a list of sampled haplotype pairs. Haplotype pairs are
@@ -117,9 +118,14 @@ namespace ImputeDriver
    */
   QList<HapPair> recombSample(const CurrentData &cd, const Par &par,
                               const QList<HapPair> &hapPairs,
-                              bool useRevDag);
+                              bool useRevDag, char *whichIteration);
 
-  /// void recombSample(const SamplerData &samplerData, const Par &par,  QList<HapPair> &sampledHaps);
+  /**
+   * "Lower-level utility" for performing (phasing 4.1) sampling.
+   */
+  // void recombSample(const SamplerData &samplerData, const Par &par,
+  //                   QList<HapPair> &sampledHaps, char *whichIteration);
+
   QList<HapPair> correctGenotypes(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs);
 
   ConstrainedAlleleProbs LSImpute(const CurrentData &cd, const Par &par,

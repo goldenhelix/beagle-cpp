@@ -18,6 +18,9 @@ void ImputeDriver::phaseAndImpute(InputData &data, TargDataReader &targReader,
   impWriter.writeHeader();
   while (data.canAdvanceWindow(targReader, refReader))
   {
+    fprintf(stderr, "PROGRESS_OUTPUT\tLoading (marker window) data...\n");
+    fflush(stderr);
+
     data.advanceWindow(overlap, par.window(), targReader, refReader);
     data.setCdData(cd, par, overlapHaps, targReader, refReader);
 
@@ -41,11 +44,19 @@ int ImputeDriver::finishWindow(SampleHapPairs &overlapHaps, const CurrentData &c
   if(cd.nTargetMarkers())
   {
     if (cd.nMarkers() == cd.nTargetMarkers() || par.impute() == false)
+    {
+      fprintf(stderr, "PROGRESS_OUTPUT\tOutputting (marker window) data...\n");
+      fflush(stderr);
+
       impWriter.printWindowOutput(cd, targetHapPairs, ConstrainedAlleleProbs(targetHapPairs), par);
+    }
     else
       impWriter.printWindowOutput(cd, targetHapPairs, ImputeDriver::LSImpute(cd, par, targetHapPairs),
                                   par);
   }
+
+  fprintf(stderr, "PROGRESS_OUTPUT\tFinishing marker window...\n");
+  fflush(stderr);
 
   overlapHaps = ImputeDriver::overlapHaps(cd, targetHapPairs);
   return cd.nMarkers() - cd.nextOverlapStart();
@@ -53,6 +64,9 @@ int ImputeDriver::finishWindow(SampleHapPairs &overlapHaps, const CurrentData &c
 
 QList<HapPair> ImputeDriver::phase(CurrentData &cd, const Par &par)
 {
+  fprintf(stderr, "PROGRESS_OUTPUT\tPreparing for initialization...\n");
+  fflush(stderr);
+
   QList<HapPair> hapPairs = ImputeDriver::initialHaps(cd, par);
 
   if (par.burnin_its() > 0)
@@ -104,7 +118,7 @@ QList<HapPair> ImputeDriver::initialHaps(CurrentData &cd, const Par &par)
   LinkageEquilibriumDag dag(freqGL, minAlleleFreq);
   QList<HapPair> sampledHaps;
   ImputeDriver::sample(dag, emitGL, par.seed(), false, par.nSamplingsPerIndividual(), sampledHaps,
-                       par.nThreads(), par.lowMem());
+                       par.nThreads(), par.lowMem(), "Initializing");
   return sampledHaps;
 }
 
@@ -113,8 +127,11 @@ QList<HapPair> ImputeDriver::runBurnin1(const CurrentData &cd, const Par &par,
 {
   for (int j = 0; j < par.burnin_its(); ++j) {
     bool useRevDag = (j & 1) == 1;
-    hapPairs = ImputeDriver::sample(cd, par, hapPairs, useRevDag);
-    // runStats.printIterationUpdate(cd.window(), j+1);
+
+    char progressBuff[27];
+	sprintf(progressBuff, "Burn-in iteration %d of %d", j + 1, par.burnin_its());
+
+    hapPairs = ImputeDriver::sample(cd, par, hapPairs, useRevDag, progressBuff);
   }
   return hapPairs;
 }
@@ -127,8 +144,11 @@ QList<HapPair> ImputeDriver::runBurnin2(const CurrentData &cd, const Par &par,
   int end = start + par.phase40_its();
   for (int j = start; j < end; ++j) {
     bool useRevDag = (j & 1) == 1;
-    hapPairs = ImputeDriver::sample(cd, par, hapPairs, useRevDag);
-    // runStats.printIterationUpdate(cd.window(), j+1);
+
+    char progressBuff[33];
+	sprintf(progressBuff, "Phasing (4.0) iteration %d of %d", j + 1 - start, par.phase40_its());
+
+    hapPairs = ImputeDriver::sample(cd, par, hapPairs, useRevDag, progressBuff);
     cumHapPairs.append(hapPairs);
   }
   return cumHapPairs;
@@ -143,8 +163,11 @@ QList<HapPair> ImputeDriver::runRecomb(const CurrentData &cd, const Par &par, QL
   for (int j=start; j<end; ++j)
   {
     bool useRevDag = (j & 1)==1;
-    hapPairs = ImputeDriver::recombSample(cd, par, hapPairs, useRevDag);
-    // runStats.printIterationUpdate(cd.window(), j+1);
+
+    char progressBuff[33];
+	sprintf(progressBuff, "Phasing (4.1) iteration %d of %d", j + 1 - start, par.niterations());
+
+    hapPairs = ImputeDriver::recombSample(cd, par, hapPairs, useRevDag, progressBuff);
     cumHapPairs.append(hapPairs);
   }
   hapPairs = ConsensusPhaser::consensusPhase(cumHapPairs);
@@ -153,9 +176,12 @@ QList<HapPair> ImputeDriver::runRecomb(const CurrentData &cd, const Par &par, QL
 }
 
 QList<HapPair> ImputeDriver::sample(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs,
-                                    bool useRevDag)
+                                    bool useRevDag, char *whichIteration)
 {
   Q_ASSERT_X(!hapPairs.isEmpty(), "ImputeDriver::sample", "hapPairs.isEmpty()");
+
+  fprintf(stderr, "PROGRESS_OUTPUT\t%s: Preparing directed acyclic graph...\n", whichIteration);
+  fflush(stderr);
 
   int nThreads = par.nThreads();
 
@@ -170,7 +196,7 @@ QList<HapPair> ImputeDriver::sample(const CurrentData &cd, const Par &par, QList
   QList<HapPair> sampledHaps;
 
   sample(dag, gl, par.seed(), useRevDag, par.nSamplingsPerIndividual(), sampledHaps, nThreads,
-         par.lowMem());
+         par.lowMem(), whichIteration);
 
   return sampledHaps;
 }
@@ -227,13 +253,16 @@ QVector<float> ImputeDriver::getHapWeights(HapPairs haps, const CurrentData &cd)
 
 void ImputeDriver::sample(Dag &dag, SplicedGL &gl, int seed, bool markersAreReversed,
                           int nSamplingsPerIndividual, QList<HapPair> &sampledHaps, int nThreads,
-                          bool lowmem)
+                          bool lowmem, char *whichIteration)
 {
   SingleBaum baum(dag, gl, seed, nSamplingsPerIndividual, lowmem);
 
   int nSamples = gl.nSamples();
   for (int single = 0; single < nSamples; single++)
   {
+    fprintf(stderr, "PROGRESS_OUTPUT\t%s: sample %d of %d...\n", whichIteration, single + 1, nSamples);
+    fflush(stderr);
+
     QList<HapPair> newHaps = baum.randomSample(single);
 
     if (markersAreReversed)
@@ -249,9 +278,12 @@ void ImputeDriver::sample(Dag &dag, SplicedGL &gl, int seed, bool markersAreReve
 
 QList<HapPair> ImputeDriver::recombSample(const CurrentData &cd, const Par &par,
                                           const QList<HapPair> &hapPairs,
-                                          bool useRevDag)
+                                          bool useRevDag, char *whichIteration)
 {
   /*
+  fprintf(stderr, "PROGRESS_OUTPUT\t%s: Preparing DAG and IBS data...\n", whichIteration);
+  fflush(stderr);
+
   QList<HapPair> haps = ConsensusPhaser.consensusPhase(hapPairs);
   cd.addRestrictedRefHapPairs(haps);
 
@@ -265,14 +297,15 @@ QList<HapPair> ImputeDriver::recombSample(const CurrentData &cd, const Par &par,
   SamplerData samplerData(rdag, par, cd, useRevDag /+ , runStats +/ );
 
   QList<HapPair> sampledHaps;
-  ImputeDriver::recombSample(samplerData, par, sampledHaps);
+  ImputeDriver::recombSample(samplerData, par, sampledHaps, whichIteration);
   return sampledHaps;
   */
   QList<HapPair> retHaps = hapPairs;
   return retHaps;
 }
 /*
-void ImputeDriver::recombSample(const SamplerData &samplerData, const Par &par, QList<HapPair> &sampledHaps)
+void ImputeDriver::recombSample(const SamplerData &samplerData, const Par &par,
+                                QList<HapPair> &sampledHaps, char *whichIteration)
 {
   // long t0 = System.nanoTime();
   // int nThreads = par().nthreads();
@@ -284,6 +317,9 @@ void ImputeDriver::recombSample(const SamplerData &samplerData, const Par &par, 
   int nSamples = samplerData.nSamples();
   for (int single = 0; single < nSamples; single++)
   {
+    fprintf(stderr, "PROGRESS_OUTPUT\t%s: sample %d of %d...\n", whichIteration, single + 1, nSamples);
+    fflush(stderr);
+
     QList<HapPair> newHaps = baum.randomSample(single);
 
     if (markersAreReversed)
@@ -309,6 +345,9 @@ QList<HapPair> ImputeDriver::correctGenotypes(const CurrentData &cd, const Par &
 ConstrainedAlleleProbs ImputeDriver::LSImpute(const CurrentData &cd, const Par &par,
                                               const SampleHapPairs &targetHapPairs)
 {
+  fprintf(stderr, "PROGRESS_OUTPUT\tPreparing to impute (marker window) data...\n");
+  fflush(stderr);
+
   double scaleFactor = 1e-6;
   PositionMap imputationMap(scaleFactor);
 
@@ -321,9 +360,16 @@ ConstrainedAlleleProbs ImputeDriver::LSImpute(const CurrentData &cd, const Par &
   for (int sample = 0, n = targetHapPairs.nSamples(); sample < n; ++sample) {
     int hap1 = 2 * sample;
     int hap2 = 2 * sample + 1;
+
+    fprintf(stderr, "PROGRESS_OUTPUT\tImputing for sample %d of %d\n", sample + 1, n);
+    fflush(stderr);
+
     hapAlProbList.append(hb.randomHapSample(hap1));
     hapAlProbList.append(hb.randomHapSample(hap2));
   }
+
+  fprintf(stderr, "PROGRESS_OUTPUT\tOutputting (marker window) data...\n");
+  fflush(stderr);
 
   return ConstrainedAlleleProbs(targetHapPairs, hapAlProbList, cd.markerIndices());
 }
