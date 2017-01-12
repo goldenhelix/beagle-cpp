@@ -461,22 +461,8 @@ void StreamDataWriter::appendPhasedVariantData()
 {
   _out << _allele1;
   _out << _allele2;
-  if (_printDS) {
-    _out << _nAlleles - 1;
-    for (int j = 1; j < _nAlleles; ++j) {
-      _out << _dose[j];
-    }
-  }else{
-    _out << 0;
-  }
-
   if (_printGP) {
-    _out << _gtProbs.length();
-    for (int j = 0; j < _gtProbs.length(); ++j) {
-      _out << _gtProbs[j];
-    }
-  }else{
-    _out << 0;
+    _out << _gtProbs[_gtIndex];
   }
 }
 
@@ -489,18 +475,11 @@ void StreamDataWriter::finishAndWriteRec()
   for(int i=0; i<_nAlleles; i++)
     _out << _marker.allele(i);
 
-  /*
-  if (_printDS || _printGP) {
+  if (_printGP) {
     _out << _r2Est.allelicR2();
     _out << _r2Est.doseR2();
-    _out << _nAlleles;
-    for (int j = 1; j < _nAlleles; ++j) {
-      double af = _cumAlleleProbs[j] / (2 * _r2Est.nGenotypes());
-      _out << af;
-    }
     _out << _isImputed[_mNum];
   }
-  */
 }
 
 void StreamDataWriter::finalizeForWindow()

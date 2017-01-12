@@ -25,6 +25,7 @@ public:
   int phase40_its() const { return _phase40_its; }  // Test value could be 4 .
   int niterations() const { return _niterations; }  // Test value could be 0 .
   bool impute() const { return _impute; }           // Test value could be true .
+  bool gprobs() const { return _gprobs; }
   float cluster() const { return _cluster; }
   float ne() const { return _ne; }
   float err() const { return _err; }
@@ -44,6 +45,7 @@ private:
   float _cluster;
   float _ne;
   float _err;
+  bool _gprobs;
 };
 
 void printUsage(FILE* fh = stdout)
@@ -69,6 +71,7 @@ void printUsage(FILE* fh = stdout)
   out << "  --cluster=0.005\n";
   out << "  --ne=1000000.0\n";
   out << "  --err=0.0001\n";
+  out << "  --gprobs=false\n";
   out << "\n";
 }
 
@@ -86,6 +89,7 @@ bool ImputeOpts::parseArgs(QStringList args, QString& outErr)
   _cluster = Par::cluster();
   _ne = Par::ne();
   _err = Par::err();
+  _gprobs = false;
 
   args.takeFirst();  // Pop app name
 
@@ -189,6 +193,15 @@ bool ImputeOpts::parseArgs(QStringList args, QString& outErr)
         _err = param.toFloat(&ok);
         if (!ok) {
           outErr = "Param err must be a float.";
+          return false;
+        }
+      } else if (opt.toLower() == "gprobs") {
+        if (param.toLower() == "true")
+          _gprobs = true;
+        else if (param.toLower() == "false") {
+          _gprobs = false;
+        } else {
+          outErr = "Param lowmem must be either \"true\" or \"false\".";
           return false;
         }
       } else {
