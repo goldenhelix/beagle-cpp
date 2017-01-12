@@ -5,8 +5,15 @@
 
 #include <QVector>
 
+#include <stdio.h>
+
 #define NON_REFERENCE_WEIGHT 1.0
 #define N_COPIES               4
+
+#define SEND_PROG_MSG(msg, ...) { \
+  fprintf(stderr, "PROGRESS_OUTPUT\t" msg "\n", ##__VA_ARGS__); \
+  fflush(stderr);  \
+}
 
 void ImputeDriver::phaseAndImpute(InputData &data, TargDataReader &targReader,
                                   RefDataReader &refReader, ImputeDataWriter &impWriter,
@@ -18,8 +25,7 @@ void ImputeDriver::phaseAndImpute(InputData &data, TargDataReader &targReader,
   impWriter.writeHeader();
   while (data.canAdvanceWindow(targReader, refReader))
   {
-    fprintf(stderr, "PROGRESS_OUTPUT\tLoading (marker window) data...\n");
-    fflush(stderr);
+    SEND_PROG_MSG("Loading (marker window) data...");
 
     data.advanceWindow(overlap, par.window(), targReader, refReader);
     data.setCdData(cd, par, overlapHaps, targReader, refReader);
@@ -45,8 +51,7 @@ int ImputeDriver::finishWindow(SampleHapPairs &overlapHaps, const CurrentData &c
   {
     if (cd.nMarkers() == cd.nTargetMarkers() || par.impute() == false)
     {
-      fprintf(stderr, "PROGRESS_OUTPUT\tOutputting (marker window) data...\n");
-      fflush(stderr);
+      SEND_PROG_MSG("Outputting (marker window) data...");
 
       impWriter.printWindowOutput(cd, targetHapPairs, ConstrainedAlleleProbs(targetHapPairs), par);
     }
@@ -55,8 +60,7 @@ int ImputeDriver::finishWindow(SampleHapPairs &overlapHaps, const CurrentData &c
                                   par);
   }
 
-  fprintf(stderr, "PROGRESS_OUTPUT\tFinishing marker window...\n");
-  fflush(stderr);
+  SEND_PROG_MSG("Finishing marker window...");
 
   overlapHaps = ImputeDriver::overlapHaps(cd, targetHapPairs);
   return cd.nMarkers() - cd.nextOverlapStart();
@@ -64,8 +68,7 @@ int ImputeDriver::finishWindow(SampleHapPairs &overlapHaps, const CurrentData &c
 
 QList<HapPair> ImputeDriver::phase(CurrentData &cd, const Par &par)
 {
-  fprintf(stderr, "PROGRESS_OUTPUT\tPreparing for initialization...\n");
-  fflush(stderr);
+  SEND_PROG_MSG("Preparing for initialization...");
 
   QList<HapPair> hapPairs = ImputeDriver::initialHaps(cd, par);
 
@@ -180,8 +183,7 @@ QList<HapPair> ImputeDriver::sample(const CurrentData &cd, const Par &par, QList
 {
   Q_ASSERT_X(!hapPairs.isEmpty(), "ImputeDriver::sample", "hapPairs.isEmpty()");
 
-  fprintf(stderr, "PROGRESS_OUTPUT\t%s: Preparing directed acyclic graph...\n", whichIteration);
-  fflush(stderr);
+  SEND_PROG_MSG("%s: Preparing directed acyclic graph...", whichIteration);
 
   int nThreads = par.nThreads();
 
@@ -260,8 +262,7 @@ void ImputeDriver::sample(Dag &dag, SplicedGL &gl, int seed, bool markersAreReve
   int nSamples = gl.nSamples();
   for (int single = 0; single < nSamples; single++)
   {
-    fprintf(stderr, "PROGRESS_OUTPUT\t%s: sample %d of %d...\n", whichIteration, single + 1, nSamples);
-    fflush(stderr);
+    SEND_PROG_MSG("%s: sample %d of %d...", whichIteration, single + 1, nSamples);
 
     QList<HapPair> newHaps = baum.randomSample(single);
 
@@ -281,8 +282,7 @@ QList<HapPair> ImputeDriver::recombSample(const CurrentData &cd, const Par &par,
                                           bool useRevDag, char *whichIteration)
 {
   /*
-  fprintf(stderr, "PROGRESS_OUTPUT\t%s: Preparing DAG and IBS data...\n", whichIteration);
-  fflush(stderr);
+  SEND_PROG_MSG("%s: Preparing DAG and IBS data...", whichIteration);
 
   QList<HapPair> haps = ConsensusPhaser.consensusPhase(hapPairs);
   cd.addRestrictedRefHapPairs(haps);
@@ -317,8 +317,7 @@ void ImputeDriver::recombSample(const SamplerData &samplerData, const Par &par,
   int nSamples = samplerData.nSamples();
   for (int single = 0; single < nSamples; single++)
   {
-    fprintf(stderr, "PROGRESS_OUTPUT\t%s: sample %d of %d...\n", whichIteration, single + 1, nSamples);
-    fflush(stderr);
+    SEND_PROG_MSG("%s: sample %d of %d...", whichIteration, single + 1, nSamples);
 
     QList<HapPair> newHaps = baum.randomSample(single);
 
@@ -345,8 +344,7 @@ QList<HapPair> ImputeDriver::correctGenotypes(const CurrentData &cd, const Par &
 ConstrainedAlleleProbs ImputeDriver::LSImpute(const CurrentData &cd, const Par &par,
                                               const SampleHapPairs &targetHapPairs)
 {
-  fprintf(stderr, "PROGRESS_OUTPUT\tPreparing to impute (marker window) data...\n");
-  fflush(stderr);
+  SEND_PROG_MSG("Preparing to impute (marker window) data...");
 
   double scaleFactor = 1e-6;
   PositionMap imputationMap(scaleFactor);
@@ -361,15 +359,13 @@ ConstrainedAlleleProbs ImputeDriver::LSImpute(const CurrentData &cd, const Par &
     int hap1 = 2 * sample;
     int hap2 = 2 * sample + 1;
 
-    fprintf(stderr, "PROGRESS_OUTPUT\tImputing for sample %d of %d\n", sample + 1, n);
-    fflush(stderr);
+    SEND_PROG_MSG("Imputing for sample %d of %d...", sample + 1, n);
 
     hapAlProbList.append(hb.randomHapSample(hap1));
     hapAlProbList.append(hb.randomHapSample(hap2));
   }
 
-  fprintf(stderr, "PROGRESS_OUTPUT\tOutputting (marker window) data...\n");
-  fflush(stderr);
+  SEND_PROG_MSG("Outputting (marker window) data...");
 
   return ConstrainedAlleleProbs(targetHapPairs, hapAlProbList, cd.markerIndices());
 }
