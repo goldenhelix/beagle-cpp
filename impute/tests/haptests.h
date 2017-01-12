@@ -238,6 +238,7 @@ public:
   int burnin_its() const { return 4; }
   int phase40_its() const { return 4; }
   int niterations() const { return 0; }
+  bool gprobs() const { return true; }
 };
 
 
@@ -550,6 +551,7 @@ void TestDataWriter::appendPhasedVariantData()
     {
       _variantRec.append( QString("%1%2").arg((j==0) ? ":" : "," ).arg(_gtProbs[j], 4, 'f', 2) );
     }
+    _variantRec.append( QString(" (gtIndex = %1)").arg(_gtIndex) );
   }
 }
 

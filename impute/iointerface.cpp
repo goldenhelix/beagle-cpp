@@ -466,6 +466,26 @@ double R2Estimator::doseR2()
   return (den < MIN_R2_DEN) ? 0.0 : (num / den);
 }
 
+/**
+ * Returns the VCF genotype index for the specified pair of alleles.
+ * @param a1 the first allele
+ * @param a2 the second allele
+ */
+static int gtIndex(int a1, int a2)
+{
+  Q_ASSERT_X(a1 >= 0,
+             "gtIndex (iointerface.cpp)",
+             "a1<0");
+
+  Q_ASSERT_X(a2 >= 0,
+             "gtIndex (iointerface.cpp)",
+             "a2<0");
+
+  if (a1 < a2)
+    return (a2 * (a2 + 1)) / 2 + a1;
+  else
+    return (a1 * (a1 + 1)) / 2 + a2;
+}
 
 void ImputeDataWriter::printWindowOutput(const CurrentData &cd,
                                          const SampleHapPairs &targetHapPairs,
@@ -589,6 +609,8 @@ void ImputeDataWriter::constructSampleDataForMarker()
     _cumAlleleProbs[j] += _dose[j];
 
   _r2Est.addSampleData(_gt3Probs);
+
+  _gtIndex = gtIndex(_allele1, _allele2);
 
   appendPhasedVariantData();
 }

@@ -482,6 +482,7 @@ protected:
   int _nGenotypes;
   int _allele1;
   int _allele2;
+  int _gtIndex;
   QVector<double> _gtProbs;
   QVector<double> _dose;
   QVector<double> _cumAlleleProbs;
