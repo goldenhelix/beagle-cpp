@@ -7,8 +7,6 @@
 
 #include <QVector>
 
-#endif
-
 /**
  * Class {@code PositionMap} represents a genetic map obtained by
  * multiplying chromosome position by a scale factor.
@@ -384,3 +382,5 @@ private:
   int _windowIndex;
   int _arrayIndex;
 };
+
+#endif

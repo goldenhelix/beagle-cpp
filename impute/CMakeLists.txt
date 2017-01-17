@@ -1,33 +1,35 @@
 # ---< I M P U T E >---
 
 set(IMPUTE_HEADERS
-  haplotypepair.h
-  samples.h
-  markers.h
-  vcfemission.h
-  iointerface.h
-  dag.h
   baumhmm.h
   consensusphaser.h
+  dag.h
   genotypecorrection.h
   hapalleleprobs.h
+  haplotypepair.h
   imputationdata.h
   imputedriver.h
+  iointerface.h
+  markers.h
+  samples.h
+  workerrunner.h
+  vcfemission.h
 )
 
 set(IMPUTE_SOURCES
-  haplotypepair.cpp
-  samples.cpp
-  markers.cpp
-  vcfemission.cpp
-  iointerface.cpp
-  dag.cpp
   baumhmm.cpp
   consensusphaser.cpp
+  dag.cpp
   genotypecorrection.cpp
   hapalleleprobs.cpp
+  haplotypepair.cpp
   imputationdata.cpp
   imputedriver.cpp
+  iointerface.cpp
+  markers.cpp
+  samples.cpp
+  workerrunner.cpp
+  vcfemission.cpp
 )
 
 find_package(Qt5Core REQUIRED)

@@ -462,7 +462,7 @@ void StreamDataWriter::appendPhasedVariantData()
   _out << _allele1;
   _out << _allele2;
   if (_printGP) {
-    _out << _gtProbs[_gtIndex];
+    _out << (float)_gtProbs[_gtIndex];
   }
 }
 

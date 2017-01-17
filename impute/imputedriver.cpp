@@ -2,8 +2,10 @@
 
 #include "impute/imputationdata.h"
 #include "impute/genotypecorrection.h"
+#include "impute/workerrunner.h"
 
 #include <QVector>
+#include <QThread>
 
 #include <stdio.h>
 
@@ -253,27 +255,62 @@ QVector<float> ImputeDriver::getHapWeights(HapPairs haps, const CurrentData &cd)
   return fa;
 }
 
+    /*
+struct WorkerArgs {
+  Dag* dag;
+  SplicedGL* gl;
+  int seed;
+  int nSamplingsPerIndividual;
+  bool lowmem;
+  int sampleIdx;
+
+  WorkerArgs(Dag* dag_, SplicedGL* gl_, int seed_, int nSamplingsPerIndividual_, bool lowmem_, int sampleIdx_)
+    : dag(dag_), gl(gl_), seed(seed_), nSamplingsPerIndividual(nSamplingsPerIndividual_), lowmem(lowmem_), sampleIdx(sampleIdx_)
+  {}
+};
+
+QList<HapPair> runSingleBaumWork(WorkerArgs args)
+{
+ SingleBaum baum(*args.dag, *args.gl, args.seed, args.nSamplingsPerIndividual, args.lowmem);
+ return baum.randomSample(single);
+}
+    */
+
+QList<QThread*> gThreads; // Global thread pool
+
 void ImputeDriver::sample(Dag &dag, SplicedGL &gl, int seed, bool markersAreReversed,
                           int nSamplingsPerIndividual, QList<HapPair> &sampledHaps, int nThreads,
                           bool lowmem, char *whichIteration)
 {
-  SingleBaum baum(dag, gl, seed, nSamplingsPerIndividual, lowmem);
+  for (int i = gThreads.size(); i < nThreads; i++) {
+    QThread *t = new QThread();
+    t->setObjectName("Imputation Worker Thread");
+    t->start();
+    gThreads << t;
+  }
+
+  SingleBaumRunner runner;
+
+  // One worker per thread
+  for (int i = 0; i < nThreads; i++) {
+    SingleBaumWorker *worker = new SingleBaumWorker(dag, gl, seed, nSamplingsPerIndividual, lowmem);
+    runner.moveWorkerToThread(worker, gThreads[i]);
+  }
 
   int nSamples = gl.nSamples();
-  for (int single = 0; single < nSamples; single++)
-  {
-    SEND_PROG_MSG("%s: sample %d of %d...", whichIteration, single + 1, nSamples);
+  runner.start(nSamples);
 
-    QList<HapPair> newHaps = baum.randomSample(single);
+  while (runner.hasNextWorkerResult()) {
+    QList<HapPair> newHaps = runner.nextWorkerResult();
+    int curSample = runner.nextResultIdx();
+    SEND_PROG_MSG("%s: sample %d of %d...", whichIteration, curSample, nSamples);
 
-    if (markersAreReversed)
-    {
+    if (markersAreReversed) {
       for (int h = 0; h < newHaps.length(); h++)
         sampledHaps.append(HapPair(newHaps[h], true));
     } else
       sampledHaps.append(newHaps);
   }
-
   // runStats.sampleNanos(System.nanoTime() - t0);
 }
 
@@ -346,6 +383,31 @@ ConstrainedAlleleProbs ImputeDriver::LSImpute(const CurrentData &cd, const Par &
 {
   SEND_PROG_MSG("Preparing to impute (marker window) data...");
 
+  // Should expect our gThreads initialized by previous ::sample calls
+  Q_ASSERT(gThreads.size() > 0 && gThreads.size() == par.nThreads());
+
+  LSImputeRunner runner;
+
+  double scaleFactor = 1e-6;
+
+  // One worker per thread
+  for (int i = 0; i < par.nThreads(); i++) {
+    LSImputeWorker* worker = new LSImputeWorker(par, cd, targetHapPairs, scaleFactor);
+    runner.moveWorkerToThread(worker, gThreads[i]);
+  }
+
+  int nSamples = targetHapPairs.nSamples();
+  runner.start(nSamples);
+
+  QList<HapAlleleProbs> hapAlProbList;
+  while (runner.hasNextWorkerResult()) {
+    QList<HapAlleleProbs> haps = runner.nextWorkerResult();
+    int curSample = runner.nextResultIdx();
+    SEND_PROG_MSG("Imputing for sample %d of %d...", curSample, nSamples);
+
+    hapAlProbList << haps;
+  }
+/*
   double scaleFactor = 1e-6;
   PositionMap imputationMap(scaleFactor);
 
@@ -364,7 +426,7 @@ ConstrainedAlleleProbs ImputeDriver::LSImpute(const CurrentData &cd, const Par &
     hapAlProbList.append(hb.randomHapSample(hap1));
     hapAlProbList.append(hb.randomHapSample(hap2));
   }
-
+*/
   SEND_PROG_MSG("Outputting (marker window) data...");
 
   return ConstrainedAlleleProbs(targetHapPairs, hapAlProbList, cd.markerIndices());
