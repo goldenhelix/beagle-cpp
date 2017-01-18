@@ -59,13 +59,12 @@ class SocketReader : public QObject
   Q_OBJECT;
 
 public:
-  SocketReader(QString pipeName)
-    : _pipeName(pipeName)
+  SocketReader(int ipcPort)
+    : _ipcPort(ipcPort)
   {}
 
   QByteArray readAll(QString &outErr){
-    int port = _pipeName.toInt();
-    _socket.connectToHost("127.0.0.1", port, QIODevice::ReadOnly);
+    _socket.connectToHost("127.0.0.1", _ipcPort, QIODevice::ReadOnly);
     if(_socket.state() != QAbstractSocket::ConnectedState){
       QEventLoop wait;
       connect(&_socket, SIGNAL(connected()), &wait, SLOT(quit()));
@@ -101,7 +100,7 @@ public slots:
   }
 
 private:
-  QString _pipeName;
+  int _ipcPort;
   QTcpSocket _socket;
   QBuffer _buffer;
 };
@@ -145,7 +144,7 @@ private:
 class StreamDataParser
 {
 public:
-  StreamDataParser(QString pipeName, ControlStream& control, QString inputToken);
+  StreamDataParser(int ipcPort, ControlStream& control, QString inputToken);
   bool readSampleNames();
   QList<QByteArray> sampleNames() const { return _sampleNames; }
 
@@ -171,12 +170,12 @@ private:
   QList<QByteArray> _sampleNames;
   QList<Record> _recordBuffer;
 
-  QString _pipeName;
+  int _ipcPort;
   ControlStream& _control;
 };
 
-StreamDataParser::StreamDataParser(QString pipeName, ControlStream& control, QString inputToken)
-  : _pipeName(pipeName), _control(control), _inputToken(inputToken)
+StreamDataParser::StreamDataParser(int ipcPort, ControlStream& control, QString inputToken)
+  : _ipcPort(ipcPort), _control(control), _inputToken(inputToken)
 {
 }
 
@@ -184,7 +183,7 @@ bool StreamDataParser::readSampleNames()
 {
   _control.sendMessage("READ_SAMPLES", _inputToken);
 
-  SocketReader reader(_pipeName);
+  SocketReader reader(_ipcPort);
   QString err;
   QByteArray data = reader.readAll(err);
   if(!err.isEmpty()){
@@ -216,7 +215,7 @@ bool StreamDataParser::hasNextRec()
   // Fill up record buffer
   _control.sendMessage("READ_RECORDS", _inputToken);
 
-  SocketReader reader(_pipeName);
+  SocketReader reader(_ipcPort);
   QString err;
   QByteArray data = reader.readAll(err);
   if(!err.isEmpty()){
@@ -261,7 +260,7 @@ bool StreamDataParser::hasNextRec()
 class StreamRefDataReader : public RefDataReader
 {
 public:
-  StreamRefDataReader(QString pipeName, ControlStream& control, QString inputToken);
+  StreamRefDataReader(int ipcPort, ControlStream& control, QString inputToken);
 
   bool canAdvanceWindow() const { return _nextRecordExists; }
   bool hasNextRec() const { return _nextRecordExists; }
@@ -281,8 +280,8 @@ private:
   StreamDataParser _parser;
 };
 
-StreamRefDataReader::StreamRefDataReader(QString pipeName, ControlStream& control, QString inputToken)
-  : _parser(pipeName, control, inputToken)
+StreamRefDataReader::StreamRefDataReader(int ipcPort, ControlStream& control, QString inputToken)
+  : _parser(ipcPort, control, inputToken)
 {
   if (!_parser.readSampleNames()) {
     control.sendError("Expected sample names");
@@ -339,7 +338,7 @@ void StreamRefDataReader::assembleNextRefRec()
 class StreamTargetDataReader : public TargDataReader
 {
 public:
-  StreamTargetDataReader(QString pipeName, ControlStream& control, QString inputToken);
+  StreamTargetDataReader(int ipcPort, ControlStream& control, QString inputToken);
 
   bool canAdvanceWindow() const { return _nextRecordExists; }
   bool hasNextRec() const { return _nextRecordExists; }
@@ -358,9 +357,9 @@ private:
   StreamDataParser _parser;
 };
 
-StreamTargetDataReader::StreamTargetDataReader(QString pipeName, ControlStream& control,
+StreamTargetDataReader::StreamTargetDataReader(int ipcPort, ControlStream& control,
                                                QString inputToken)
-  : _parser(pipeName, control, inputToken)
+  : _parser(ipcPort, control, inputToken)
 {
   if (!_parser.readSampleNames()) {
     control.sendError("Expected sample names");
@@ -413,7 +412,7 @@ void StreamTargetDataReader::assembleNextTargetRec()
 class StreamDataWriter : public ImputeDataWriter
 {
 public:
-  StreamDataWriter(QString pipeName, ControlStream& control, const Samples& samples);
+  StreamDataWriter(int ipcPort, ControlStream& control, const Samples& samples);
   void writeHeader();
   void writeEOF() {}
 protected:
@@ -428,15 +427,15 @@ private:
   void outputInfo();
   void outputFormat();
 
-  QString _pipeName;
+  int _ipcPort;
   ControlStream& _control;
   QBuffer _buffer;
   QDataStream _out;
   QTcpSocket _socket;
 };
 
-StreamDataWriter::StreamDataWriter(QString pipeName, ControlStream& control, const Samples& samples)
-  : ImputeDataWriter(samples), _pipeName(pipeName), _control(control)
+StreamDataWriter::StreamDataWriter(int ipcPort, ControlStream& control, const Samples& samples)
+  : ImputeDataWriter(samples), _ipcPort(ipcPort), _control(control)
 {
 }
 
@@ -488,7 +487,7 @@ void StreamDataWriter::finalizeForWindow()
   QByteArray data = _buffer.data();
   qDebug("finished window. Sending %d bytes", data.size());
 
-  _socket.connectToHost("127.0.0.1", _pipeName.toInt(), QIODevice::WriteOnly);
+  _socket.connectToHost("127.0.0.1", _ipcPort, QIODevice::WriteOnly);
   if(_socket.state() != QAbstractSocket::ConnectedState){
     QEventLoop wait;
     QObject::connect(&_socket, SIGNAL(connected()), &wait, SLOT(quit()));
@@ -521,21 +520,21 @@ int main(int argc, char* argv[])
     control.sendError(err);
     return 1;
   }
-  if(opts.pipeName.isEmpty()) {
-    control.sendError("No --pipename param provided.\n\nExpected a QTcpServer server name to communicate over with a QDataStream.\n\nIf you are seeing this, you are probably trying to run this program outside of the SVS sub-process context it was designed for.");
+  if(opts.ipcPort < 0) {
+    control.sendError("No --ipcPort param provided.\n\nExpected a localhost port to communicate over with a QDataStream.\n\nIf you are seeing this, you are probably trying to run this program outside of the SVS sub-process context it was designed for.");
     return 1;
   }
 
   control.sendMessage("STARTUP_COMPLETE");
 
   // QThread::msleep(15000);
-  StreamTargetDataReader tr(opts.pipeName, control, opts.targetFilePath);
+  StreamTargetDataReader tr(opts.ipcPort, control, opts.targetFilePath);
 
-  StreamDataWriter dw(opts.pipeName, control, tr.samples());
+  StreamDataWriter dw(opts.ipcPort, control, tr.samples());
 
   if (opts.readRefData()) {
     // Reference and target data both exist. Open the reference data.
-    StreamRefDataReader rr(opts.pipeName, control, opts.refFilePath);
+    StreamRefDataReader rr(opts.ipcPort, control, opts.refFilePath);
 
     AllData ad;
     ImputeDriver::phaseAndImpute(ad, tr, rr, dw, opts.window(), opts);

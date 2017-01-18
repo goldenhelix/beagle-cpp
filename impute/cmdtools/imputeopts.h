@@ -11,7 +11,7 @@ public:
   QString refFilePath;
   QString targetFilePath;
 
-  QString pipeName; //Only used in an IPC context
+  int ipcPort; //Only used in an IPC context
 
   int window() const { return _window; }    // Test value could be 4 .
   int overlap() const { return _overlap; }  // Test value could be 2 .
@@ -90,6 +90,7 @@ bool ImputeOpts::parseArgs(QStringList args, QString& outErr)
   _ne = Par::ne();
   _err = Par::err();
   _gprobs = false;
+  ipcPort = -1;
 
   args.takeFirst();  // Pop app name
 
@@ -113,8 +114,12 @@ bool ImputeOpts::parseArgs(QStringList args, QString& outErr)
 
       if (opt.toLower() == "out") {
         outFilePath = param;
-      } else if (opt.toLower() == "pipename") {
-        pipeName = param;
+      } else if (opt.toLower() == "ipcport") {
+        ipcPort = param.toInt(&ok);
+        if (!ok) {
+          outErr = "Param ipcPort must be an integer.";
+          return false;
+        }
       } else if (opt.toLower() == "window") {
         _window = param.toInt(&ok);
         if (!ok) {
