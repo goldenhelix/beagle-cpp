@@ -15,7 +15,7 @@ public:
 
   int window() const { return _window; }    // Test value could be 4 .
   int overlap() const { return _overlap; }  // Test value could be 2 .
-  /// int nThreads() const { return _nThreads; }    // Test value could be 1 .
+  int nThreads() const { return _nThreads; }    // Test value could be 4 .
   int nSamplingsPerIndividual() const
   {
     return _nSamplingsPerIndividual;
@@ -35,7 +35,7 @@ public:
 private:
   int _window;
   int _overlap;
-  /// int _nThreads;
+  int _nThreads;
   int _nSamplingsPerIndividual;
   bool _lowmem;
   int _burnin_its;
@@ -61,7 +61,7 @@ void printUsage(FILE* fh = stdout)
   out << "  --out=file_name       Sends output to file (default: stdout)\n";
   out << "  --window=50000\n";
   out << "  --overlap=3000\n";
-  /// out << "  --nThreads=4\n";
+  out << "  --nThreads=4\n";
   out << "  --nSamplingsPerIndividual=4\n";
   out << "  --lowmem=true\n";
   out << "  --burninits=5\n";
@@ -79,7 +79,7 @@ bool ImputeOpts::parseArgs(QStringList args, QString& outErr)
 {
   _window = Par::window();
   _overlap = Par::overlap();
-  /// _nThreads = Par::nThreads();
+  _nThreads = Par::nThreads();
   _nSamplingsPerIndividual = Par::nSamplingsPerIndividual();
   _lowmem = Par::lowMem();
   _burnin_its = Par::burnin_its();
@@ -128,13 +128,13 @@ bool ImputeOpts::parseArgs(QStringList args, QString& outErr)
           return false;
         }
       }
-      /// else if (opt.toLower() == "nthreads") {
-      ///   _nThreads = param.toInt(&ok);
-      ///   if (!ok) {
-      ///     outErr = "Param nthreads must be an integer.";
-      ///     return false;
-      ///   }
-      /// }
+      else if (opt.toLower() == "nthreads") {
+        _nThreads = param.toInt(&ok);
+        if (!ok) {
+          outErr = "Param nthreads must be an integer.";
+          return false;
+        }
+      }
       else if (opt.toLower() == "nsamplingsperindividual") {
         _nSamplingsPerIndividual = param.toInt(&ok);
         if (!ok) {
