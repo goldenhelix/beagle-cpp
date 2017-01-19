@@ -1,6 +1,6 @@
 /* Copyright notice.... */
-#ifndef IOUTILITIES_H
-#define IOUTILITIES_H
+#ifndef IOINTERFACE_H
+#define IOINTERFACE_H
 
 #include "impute/markers.h"
 #include "impute/samples.h"
@@ -28,6 +28,7 @@ public:
   virtual float cluster() const { return (float) 0.005; }
   virtual float ne() const { return 1000000.0; }
   virtual float err() const { return (float) 0.0001; }
+  virtual float mapscale() const { return (float) 1.0; }
 };
 
 class GenericDataReader

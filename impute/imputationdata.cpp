@@ -1,5 +1,6 @@
 #include "impute/imputationdata.h"
 
+#include <float.h>
 #include <math.h>
 
 #define MIN_CM_DIST     1e-7

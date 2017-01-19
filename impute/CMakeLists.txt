@@ -7,11 +7,14 @@ set(IMPUTE_HEADERS
   genotypecorrection.h
   hapalleleprobs.h
   haplotypepair.h
+  ibshapsegments.h
   imputationdata.h
   imputedriver.h
   iointerface.h
   markers.h
+  samplerdata.h
   samples.h
+  singlepermittedstates.h
   workerrunner.h
   vcfemission.h
 )
@@ -23,11 +26,14 @@ set(IMPUTE_SOURCES
   genotypecorrection.cpp
   hapalleleprobs.cpp
   haplotypepair.cpp
+  ibshapsegments.cpp
   imputationdata.cpp
   imputedriver.cpp
   iointerface.cpp
   markers.cpp
+  samplerdata.cpp
   samples.cpp
+  singlepermittedstates.cpp
   workerrunner.cpp
   vcfemission.cpp
 )
