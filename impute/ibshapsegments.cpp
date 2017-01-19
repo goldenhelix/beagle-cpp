@@ -317,7 +317,7 @@ void IbsHapSegments::matches(int hap, int window, IndexMap &map) const
              "IbsHapSegments::matches",
              "map.size() != 0");
 
-  for (int h : _idSets[window][hap])
+  foreach (int h, _idSets[window][hap])
   {
     if (h!=hap)
       map.put(h, window);
