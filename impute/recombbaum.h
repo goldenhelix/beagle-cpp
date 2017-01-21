@@ -1,5 +1,5 @@
-#ifndef BAUMHMM_H
-#define BAUMHMM_H
+#ifndef RECOMBBAUM_H
+#define RECOMBBAUM_H
 
 #include "impute/markers.h"
 #include "impute/samples.h"
@@ -8,20 +8,29 @@
 #include "impute/dag.h"
 
 /**
- * Class {@code SingleNodes} stores ordered node pairs and associated values.
+ * Class {@code RecombSingleNodes} stores ordered node pairs and
+ * associated values.
  *
- * "Instances of class {@code SingleNodes} are not thread safe."
+ * "Instances of class {@code RecombSingleNodes} are not thread safe."
  */
-class SingleNodes
+class RecombSingleNodes
 {
 public:
 
   /**
-   * Creates a new instance of {@code SingleNodes} that has an
+   * Creates a new instance of {@code RecombSingleNodes} that has an
    * initial value of 0 for each ordered node pair. The first node
    * has index 0.
    */
-  SingleNodes();
+  RecombSingleNodes();
+
+  /**
+   * Initialize the number of nodes this object will handle.
+   *
+   * @param nNodes the maximum number of distinct nodes
+   * which will be paired to form ordered node pairs
+   */
+  void initialize(int nNodes);
 
   /**
    * Adds the specified positive value to the stored value of the specified
@@ -39,62 +48,69 @@ public:
   int size() const { return _size; }
 
   /**
-   * Returns the first node of the specified node pair in the list of
-   * node pairs with non-zero value.  Repeated invocations of this
-   * method with the same parameter will return the same value if
-   * node values are not modified between invocations. If
-   * {@code (index >= 0 && index < this.size())}, then the following
-   * expression will always evaluate to {@code true}:<br>
-   * {@code (this.value(this.enumNode1(index),
-   * this.enumNode2(index)) == this.enumValue(index))}.
-   *
-   * @param index an index in a list of node pairs with non-zero
-   * value
-   * @return the first node of the specified node pair in a list of
-   * node pairs with non-zero value
+   * Returns the number of nodes.
    */
+  int nNodes() { return _nNodes; }
+
+  /*******************************************************************
+  /++
+   + Returns the first node of the specified node pair in the list of
+   + node pairs with non-zero value.  Repeated invocations of this
+   + method with the same parameter will return the same value if
+   + node values are not modified between invocations. If
+   + {@code (index >= 0 && index < this.size())}, then the following
+   + expression will always evaluate to {@code true}:<br>
+   + {@code (this.value(this.enumNode1(index),
+   + this.enumNode2(index)) == this.enumValue(index))}.
+   +
+   + @param index an index in a list of node pairs with non-zero
+   + value
+   + @return the first node of the specified node pair in a list of
+   + node pairs with non-zero value
+   +/
   int enumNode1(int index) const {
     checkSize(index);
     return _node1[_index[index]];
   }
 
-  /**
-   * Returns the second node of the specified node pair in a list of
-   * node pairs with non-zero value.  Repeated invocations of this
-   * method with the same parameter will return the same value if
-   * node values are not modified between invocations. If
-   * {@code (index >= 0 && index < this.size())}, then the following
-   * expression will always evaluate to {@code true}:<br>
-   * {@code (this.value(this.enumNode1(index),
-   * this.enumNode2(index)) == this.enumValue(index))}.
-   *
-   * @param index an index in a list of node pairs with non-zero value
-   * @return the second node of the specified node pair in a list of
-   * node pairs with non-zero value
-   */
+  /++
+   + Returns the second node of the specified node pair in a list of
+   + node pairs with non-zero value.  Repeated invocations of this
+   + method with the same parameter will return the same value if
+   + node values are not modified between invocations. If
+   + {@code (index >= 0 && index < this.size())}, then the following
+   + expression will always evaluate to {@code true}:<br>
+   + {@code (this.value(this.enumNode1(index),
+   + this.enumNode2(index)) == this.enumValue(index))}.
+   +
+   + @param index an index in a list of node pairs with non-zero value
+   + @return the second node of the specified node pair in a list of
+   + node pairs with non-zero value
+   +/
   int enumNode2(int index) const {
     checkSize(index);
     return _node2[_index[index]];
   }
 
-  /**
-   * Returns the value of the specified node pair in a list of
-   * node pairs with non-zero value.  Repeated invocations of this
-   * method with the same parameter will return the same value if
-   * node values are not modified between invocations. If
-   * {@code (index >= 0 && index < this.size())}, then the following
-   * expression will always evaluate to {@code true}:<br>
-   * {@code (this.value(this.enumNode1(index),
-   * this.enumNode2(index)) == this.enumValue(index))}.
-   *
-   * @param index an index in a list of node pairs with non-zero value
-   * @return the value of the specified ordered node pair in a list of
-   * node pairs with non-zero value
-   */
+  /++
+   + Returns the value of the specified node pair in a list of
+   + node pairs with non-zero value.  Repeated invocations of this
+   + method with the same parameter will return the same value if
+   + node values are not modified between invocations. If
+   + {@code (index >= 0 && index < this.size())}, then the following
+   + expression will always evaluate to {@code true}:<br>
+   + {@code (this.value(this.enumNode1(index),
+   + this.enumNode2(index)) == this.enumValue(index))}.
+   +
+   + @param index an index in a list of node pairs with non-zero value
+   + @return the value of the specified ordered node pair in a list of
+   + node pairs with non-zero value
+   +/
   float enumValue(int index) const {
     checkSize(index);
     return _value[_index[index]];
   }
+  ********************************************************************/
 
   /**
    * Returns the value of the specified node pair.
@@ -104,6 +120,27 @@ public:
    * @return the value of the specified node pair
    */
   float value(int node1, int node2) const;
+
+  /**
+   * Returns the sum of the values of the node pairs that have the specified
+   * first node
+   *
+   * @param node1 a node
+   */
+  float sumNode1Value(int node1) const { return _sumNode1Value[node1]; }
+
+  /**
+   * Returns the sum of the values of the node pairs that have the specified
+   * second node.
+   *
+   * @param node2 a node
+   */
+  float sumNode2Value(int node2) const { return _sumNode2Value[node2]; }
+
+  /**
+   * Returns the sum of the values of all node pairs.
+   */
+  float sumValue() const { return _sumValue; }
 
   /**
    * Sets the value of each ordered node pair to 0.
@@ -124,6 +161,8 @@ private:
   void rehash();
   void checkSize(int index) const;
 
+  int _nNodes;
+
   int _size;
   int _capacity; // required to be a power of 2
   int _rehashThreshold;
@@ -132,27 +171,38 @@ private:
   QVector<int> _node1;
   QVector<int> _node2;
   QVector<float> _value;
+  QVector<float> _sumNode1Value;
+  QVector<float> _sumNode2Value;
+  float _sumValue;
 };
 
+class SamplerData;
+class SinglePermittedStates;
+
 /**
- * Class {@code SingleBaumLevel} computes forward and backward Baum
+ * Class {@code RecombSingleBaumLevel} computes forward and backward Baum
  * values at a level of a hidden Markov model (HMM) whose states are
  * ordered edge pairs of a leveled directed acyclic graph (DAG).
  *
- * "Instances of class {@code SingleBaumLevel} are not thread-safe."
+ * "Instances of class {@code RecombSingleBaumLevel} are not thread-safe."
  */
-class SingleBaumLevel
+class RecombSingleBaumLevel
 {
 public:
 
   /**
-   * Constructs a new {@code SingleBaumLevel} instance from the specified
-   * data.
-   * @param dag the directed acyclic graph that the determines transition
-   * probabilities
-   * @param gl the emission probabilities
+   * Constructs a new {@code RecombSingleBaumLevel} instance from the
+   * specified data.
+   * @param samplerData the analysis data
    */
-  SingleBaumLevel(Dag *dag, SplicedGL *gl);
+  RecombSingleBaumLevel(const SamplerData &samplerData);
+
+
+  /**
+   * Resets the size of this level to 0 and clears the QLists in
+   * this level.
+   */
+  void reset();
 
   /**
    * Sets the Baum forward algorithm values for this level of the HMM
@@ -162,11 +212,14 @@ public:
    * the HMM.
    *
    * @param nodes child node pair values at the previous level of the HMM
+   * @param permittedStates the permitted diploid model states
    * @param marker the level of the HMM at which the Baum forward algorithm
    * values will be computed
    * @param sample a sample index
    */
-  void setForwardValues(SingleNodes &nodes, int marker, int sample);
+  void setForwardValues(RecombSingleNodes &nodes,
+                        SinglePermittedStates &permittedStates,
+                        int marker, int sample);
 
   /**
    * Stores the Baum forward algorithm child node pair values for this
@@ -174,7 +227,14 @@ public:
    *
    * @param nodes the node pair values that will be set
    */
-  void setChildNodes(SingleNodes &nodes);
+  void setChildNodes(RecombSingleNodes &nodes);
+
+  /**
+   * Initializes the node pair values for the Baum backward algorithm.
+   *
+   * @param nodes the node pair values to be initialized
+   */
+  // void setInitialBackwardValues(RecombSingleNodes &nodes);
 
   /**
    * Sets the Baum backward algorithm values for this level of the HMM
@@ -185,18 +245,18 @@ public:
    *
    * @param nodes parent node pair values at the next level of HMM
    */
-  // void setBackwardValues(SingleNodes &nodes);
+  // void setBackwardValues(RecombSingleNodes &nodes);
 
   /**
    * Returns the directed acyclic graph that determines the transition
    * probabilities.
    */
-  Dag &dag() const { return *_dag; }
+  const ImmutableDag &dag() const { return _dag; }
 
   /**
    * Returns the emission probabilities.
    */
-  SplicedGL &gl() const { return *_gl; }
+  const SplicedGL &gl() const { return _gl; }
 
   /**
    * Return the level of the HMM.
@@ -207,6 +267,11 @@ public:
    * Return the number of possible genotypes at this level of the HMM.
    */
   // int nGenotypes() const { return _nGenotypes; }
+
+  /**
+   * Returns the current capacity of this level.
+   */
+  // int capacity() const { return _edges1.length(); }
 
   /**
    * Return the number of states with nonzero forward probability at
@@ -242,7 +307,7 @@ public:
    */
   int parentNode1(int state) const {
     checkIndex(state);
-    return _dag->parentNode(_marker, _edges1[state]);
+    return _dag.parentNode(_marker, _edges1[state]);
   }
 
   /**
@@ -253,7 +318,7 @@ public:
    */
   int parentNode2(int state) const {
     checkIndex(state);
-    return _dag->parentNode(_marker, _edges2[state]);
+    return _dag.parentNode(_marker, _edges2[state]);
   }
 
   /**
@@ -264,7 +329,7 @@ public:
    */
   int childNode1(int state) const {
     checkIndex(state);
-    return _dag->childNode(_marker, _edges1[state]);
+    return _dag.childNode(_marker, _edges1[state]);
   }
 
   /**
@@ -275,7 +340,7 @@ public:
    */
   int childNode2(int state) const {
     checkIndex(state);
-    return _dag->childNode(_marker, _edges2[state]);
+    return _dag.childNode(_marker, _edges2[state]);
   }
 
   /**
@@ -284,7 +349,7 @@ public:
    *
    * @param state an index of a HMM state with nonzero forward probability
    */
-  int symbol1(int state) const { return _dag->symbol(_marker, edge1(state)); }
+  int symbol1(int state) const { return _dag.symbol(_marker, edge1(state)); }
 
   /**
    * Returns the symbol for the second edge of the specified HMM state
@@ -292,7 +357,7 @@ public:
    *
    * @param state an index of a HMM state with nonzero forward probability
    */
-  int symbol2(int state) const { return _dag->symbol(_marker, edge2(state)); }
+  int symbol2(int state) const { return _dag.symbol(_marker, edge2(state)); }
 
   /**
    * Returns the normalized forward value for the specified HMM state
@@ -341,11 +406,14 @@ public:
   }
 
 private:
-  void setStates(const SingleNodes &nodes);
+  void setStates(const RecombSingleNodes &nodes,
+                 SinglePermittedStates &permittedStates);
+  float fwdValue(int edge1, int edge2, const RecombSingleNodes &nodes);
   void checkIndex(int state) const;
 
-  Dag *_dag;
-  SplicedGL *_gl;
+  const SamplerData &_samplerData;
+  const ImmutableDag &_dag;
+  const SplicedGL &_gl;
 
   int _marker;
   int _sample;
@@ -359,69 +427,70 @@ private:
   float _bwdValueSum;
 };
 
+class RestrictedDag;
 
 /**
- * <p>Class {@code SingleBaum} implements the Baum forward and backward
- * algorithms for a hidden Markov model (HMM) of an individual's genotype data.
- * </p>
- * "Instances of class {@code SingleBaum} are not thread-safe."
+ * Class {@code RecombSingleBaum} implements the Baum forward and
+ * backward algorithms for a hidden Markov model (HMM) of an individual's
+ * genotype data. The HMM transition probabilities model recent
+ * genetic recombination by allowing jumps between states that are not
+ * connected by a node.
+ *
+ * "Instances of class {@code RecombSingleBaum} are not thread-safe."
  */
-class SingleBaum
+class RecombSingleBaum
 {
 public:
 
   /**
-   * Creates a new {@code SingleBaum} instance from the specified data.
+   * Creates a new {@code RecombSingleBaum} instance from the specified data.
    *
-   * @param dag the directed acyclic graph that determines the
-   * transition probabilities
-   * @param gl the emission probabilities
+   * @param samplerData the analysis data
    * @param seed the random seed
    * @param nSamplingsPerIndividual the number of haplotype pairs that
    * will be sampled for each individual
    * @param lowMem {@code true} if a low memory algorithm should be used, and
    * {@code false} otherwise
    */
-  SingleBaum(Dag &dag, SplicedGL &gl, int seed, int nSamplingsPerIndividual,
-             bool lowMem);
+  RecombSingleBaum(const SamplerData &samplerData, int seed, int nSamplingsPerIndividual,
+                   bool lowMem);
 
   QList<HapPair> randomSample(int sample);
 
-  // QList<HapPair> randomSample(int sample, QList<double> gtProbs);
+  // QList<HapPair> randomSample(int sample, QList<double> gProbs);
 
-  Dag &dag() const {
-    return *_dag;
-  }
+  const ImmutableDag &dag() const { return _dag; }
 
-  SplicedGL &gl() const {
-    return *_gl;
-  }
+  const SplicedGL &gl() const { return _gl; }
 
   int nSamplingsPerIndividual() const {
     return _nSamplingsPerIndividual;
   }
 
-  int seed() const {
-    return _seed;
-  }
+  int seed() const { return _seed; }
 
 private:
+  void pruneLevels();
+  /// int estMeanSize();
   QList<HapPair> hapList(int sample) const;
-  void initSampleAlleles(const SingleBaumLevel &level, int sample);
-  int initialRandomState(const SingleBaumLevel &level, int copy);
-  double parentSum(const SingleBaumLevel &level, int sample, int state) const;
-  void sampleAlleles(const SingleBaumLevel &level, int sample);
-  int randomPreviousState(const SingleBaumLevel &level, int node1,
-                          int node2, double nodeValue, int copy);
-  SingleBaumLevel &nextLevel();
+  void initSampleAlleles(const RecombSingleBaumLevel &level, int sample);
+  int initialRandomState(const RecombSingleBaumLevel &level, int copy);
+  void saveCurrentData(const RecombSingleBaumLevel &level, int sample,
+                       int copy, int stateIndex);
+  void sampleAlleles(const RecombSingleBaumLevel &level, int sample);
+  int randomPreviousState(const RecombSingleBaumLevel &level, int copy);
+  RecombSingleBaumLevel &nextLevel();
 
-  SingleBaumLevel &currentLevel() { return _levels[_arrayIndex]; }
+  RecombSingleBaumLevel &currentLevel() { return _levels[_arrayIndex]; }
 
-  SingleBaumLevel &previousLevel(int sample);
-  void forwardAlgorithm(int sample);
+  RecombSingleBaumLevel &previousLevel(int sample,
+                                       SinglePermittedStates &permittedStates);
+  void forwardAlgorithm(int sample, SinglePermittedStates &permittedStates);
 
-  Dag *_dag;
-  SplicedGL *_gl;
+  const SamplerData &_samplerData;
+  const ImmutableDag &_dag;
+  const RestrictedDag &_rdag;
+  const SplicedGL &_gl;
   int _nMarkers;
   int _nSamplingsPerIndividual;
   long _seed;
@@ -429,16 +498,19 @@ private:
 
   QList<int> _node1;
   QList<int> _node2;
+  QList<float> _baseTrProb;
+  QList<float> _maxSum;
   QList<double> _nodeValue;
 
   QList< QList<int> > _alleles1;
   QList< QList<int> > _alleles2;
 
-  QList<SingleBaumLevel> _levels;
-  SingleNodes _fwdNodes;
+  QList<RecombSingleBaumLevel> _levels;
+  RecombSingleNodes _fwdNodes;
 
   int _windowIndex;
   int _arrayIndex;
 };
 
 #endif
+

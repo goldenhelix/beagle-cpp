@@ -7,8 +7,6 @@
 
 #define MIN_VALUE_FOR_BAUM      100.0 * FLT_MIN
 
-#ifdef USE_ORIGINAL_VERSION_OF_SINGLENODES
-
 #define LOAD_FACTOR             0.75
 
 static qint64 hash1(int node1, int node2)
@@ -140,53 +138,6 @@ void SingleNodes::clear()
   }
   _size = 0;
 }
-#else
-void SingleNodes::sumUpdate(int node1, int node2, float value)
-{
-  Q_ASSERT_X(node1 >= 0, "SingleNodes::sumUpdate", "node1 < 0");
-  Q_ASSERT_X(node2 >= 0, "SingleNodes::sumUpdate", "node2 < 0");
-  Q_ASSERT_X(value > 0.0, "SingleNodes::sumUpdate", "value <= 0.0");
-
-  IntPair p(node1, node2);
-
-#ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
-  if(!_nodes.contains(p))
-    _orderedPairs.append(p);
-#endif
-
-  _nodes.insert(p, _nodes.value(p, 0.0) + value);
-}
-
-#ifndef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
-QMapIterator<IntPair, float> SingleNodes::nodeIterator()
-{
-  QMapIterator<IntPair, float> i(_nodes);
-  return i;
-}
-#endif
-
-float SingleNodes::value(int node1, int node2) const
-{
-  Q_ASSERT_X(node1 >= 0,
-             "SingleNodes::value",
-             "node1 < 0");
-  Q_ASSERT_X(node2 >= 0,
-             "SingleNodes::value",
-             "node2 < 0");
-
-  IntPair p(node1, node2);
-  return _nodes[p];
-}
-
-void SingleNodes::clear()
-{
-  _nodes.clear();
-
-#ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
-  _orderedPairs.clear();
-#endif
-}
-#endif
 
 SingleBaumLevel::SingleBaumLevel(Dag *dag, SplicedGL *gl)
   : _marker(-1), _sample(-1), _size(0), _dag(dag), _gl(gl),
@@ -216,25 +167,11 @@ void SingleBaumLevel::setStates(const SingleNodes &nodes)
   _edges1.clear();
   _edges2.clear();
   _fwdValues.clear();
-#ifdef USE_ORIGINAL_VERSION_OF_SINGLENODES
+
   for (int j=0, n=nodes.size(); j<n; ++j) {
     int node1 = nodes.enumNode1(j);
     int node2 = nodes.enumNode2(j);
-#else
-#ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
-  for (int j=0, n=nodes.size(); j<n; ++j) {
-    int node1 = nodes.node1(j);
-    int node2 = nodes.node2(j);
-#else
-  QMapIterator<IntPair, float> nit = nodes.nodeIterator();
-  while (nit.hasNext())
-  {
-    nit.next();
-    IntPair ip = nit.key();
-    int node1 = ip.firstInt();
-    int node2 = ip.secondInt();
-#endif
-#endif
+
     for (int i1=0, nI1=_dag->nOutEdges(_marker, node1); i1<nI1; ++i1)
     {
       int edge1 = _dag->outEdge(_marker, node1, i1);
@@ -250,15 +187,9 @@ void SingleBaumLevel::setStates(const SingleNodes &nodes)
           _edges2.append(edge2);
           float tp1 = _dag->condEdgeProb(_marker, edge1);
           float tp2 = _dag->condEdgeProb(_marker, edge2);
-#ifdef USE_ORIGINAL_VERSION_OF_SINGLENODES
+
           float nodeValue = nodes.enumValue(j);
-#else
-#ifdef KEEP_TRACK_OF_ORDER_IN_SINGLENODES
-          float nodeValue = nodes.value(j);
-#else
-          float nodeValue = nit.value();
-#endif
-#endif
+
           float fwdValue = ep * nodeValue * (tp1 * tp2);
 
           if (fwdValue < MIN_VALUE_FOR_BAUM  &&  nodeValue > 0.0)
@@ -289,57 +220,6 @@ void SingleBaumLevel::setChildNodes(SingleNodes &nodes)
     nodes.sumUpdate(node1, node2, _fwdValues[k]);
   }
 }
-
-/*
-void SingleBaumLevel::setBackwardValues(SingleNodes &nodes)
-{
-  _bwdValues.clear();
-  for (int j=0; j < _size; ++j)
-  {
-    int node1 = _dag->childNode(_marker, _edges1[j]);
-    int node2 = _dag->childNode(_marker, _edges2[j]);
-    float backwardValue = nodes.value(node1, node2);
-    _bwdValues.append(backwardValue);
-    _bwdValueSum += backwardValue;
-  }
-  nodes.clear();
-
-  // float gtProbsSum = 0f;
-
-  for (int j=0; j < _size; ++j)
-  {
-    _bwdValues[j] /= _bwdValueSum;
-    int edge1 = _edges1[j];
-    int edge2 = _edges2[j];
-    int symb1 = symbol1(j);
-    int symb2 = symbol2(j);
-    float tp1 = _dag->condEdgeProb(_marker, edge1);
-    float tp2 = _dag->condEdgeProb(_marker, edge2);
-
-    // float stateProb = fwdValues[j] * bwdValues[j];
-    // int gtIndex = BasicGL.genotype(symb1, symb2);
-    // // gtProbs assumed to be initialized in setForwardValues() method
-    // gtProbs[gtIndex] += stateProb;
-    // gtProbsSum += stateProb;
-
-    float ep = _gl->gl(_marker, _sample, symb1, symb2);
-    float bwdValue = _bwdValues[j] * (tp1 * tp2) * ep;
-    if (bwdValue < MIN_VALUE_FOR_BAUM && _bwdValues[j] > 0.0)
-      bwdValue = MIN_VALUE_FOR_BAUM;
-
-    if (bwdValue > 0.0)
-    {
-      int pn1 = _dag->parentNode(_marker, edge1);
-      int pn2 = _dag->parentNode(_marker, edge2);
-      nodes.sumUpdate(pn1, pn2, bwdValue);
-    }
-  }
-
-  // for (int j=0; j<nGenotypes; ++j) {
-  //     gtProbs[j] /= gtProbsSum;
-  // }
-}
-*/
 
 void SingleBaumLevel::checkIndex(int state) const
 {

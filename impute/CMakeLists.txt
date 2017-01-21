@@ -12,6 +12,7 @@ set(IMPUTE_HEADERS
   imputedriver.h
   iointerface.h
   markers.h
+  recombbaum.h
   samplerdata.h
   samples.h
   singlepermittedstates.h
@@ -31,6 +32,7 @@ set(IMPUTE_SOURCES
   imputedriver.cpp
   iointerface.cpp
   markers.cpp
+  recombbaum.cpp
   samplerdata.cpp
   samples.cpp
   singlepermittedstates.cpp
