@@ -5,84 +5,46 @@
 #include "impute/ibshapsegments.h"
 
 template <class E>
-class SortedStartSet
+class SortedSet
 {
  public:
-  SortedStartSet() {}
+  SortedSet() {}
 
   bool insert(const E &element)
   {
-    if(_startMap.contains(element.start()))
+    if(_sortMap.contains(element))
       return false;
     else
     {
-      _startMap.insert(element.start(), element);
+      _sortMap.insert(element, element);
       return true;
     }
   }
 
-  bool contains(const E &element) const { return _startMap.contains(element.start()); }
+  bool contains(const E &element) const { return _sortMap.contains(element); }
 
   bool remove(const E &element)
   {
-    if(_startMap.contains(element.start()))
+    if(_sortMap.contains(element))
     {
-      _startMap.remove(element.start());
+      _sortMap.remove(element);
       return true;
     }
     else
       return false;
   }
 
-  QMapIterator<int, E> iterator() const { return QMapIterator<int, E>(_startMap); }
+  QMapIterator<E, E> iterator() const { return QMapIterator<E, E>(_sortMap); }
 
-  void clear() { _startMap.clear(); }
+  void clear() { _sortMap.clear(); }
 
-  QList<E> wholeList() const { return _startMap.values(); }  // (Needed only for SortedStartSet)
+  QList<E> wholeList() const { return _sortMap.values(); }
 
 private:
-  QMap<int, E> _startMap;
+  QMap<E, E> _sortMap;
 };
 
-template <class E>
-class SortedEndSet
-{
-public:
-  SortedEndSet() {}
-
-  bool insert(const E &element)
-  {
-    if(_endMap.contains(element.end()))
-      return false;
-    else
-    {
-      _endMap.insert(element.end(), element);
-      return true;
-    }
-  }
-
-  bool contains(const E &element) const { return _endMap.contains(element.end()); }
-
-  bool remove(const E &element)
-  {
-    if(_endMap.contains(element.end()))
-    {
-      _endMap.remove(element.end());
-      return true;
-    }
-    else
-      return false;
-  }
-
-  QMapIterator<int, E> iterator() const { return QMapIterator<int, E>(_endMap); }
-
-  void clear() { _endMap.clear(); }
-
-private:
-  QMap<int, E> _endMap;
-};
-
-template <class E>
+template <class E, class F>
 class Node
 {
 public:
@@ -96,7 +58,8 @@ public:
                "element does not overlap center.");
 
     bool addedStart = sortedStart.insert(element);
-    bool addedEnd = sortedEnd.insert(element);
+    F elementF(element);
+    bool addedEnd = sortedEnd.insert(elementF);
 
     Q_ASSERT_X(addedStart == addedEnd,
                "Node<E>::add",
@@ -108,10 +71,10 @@ public:
   bool contains(const E &element) const
   {
     bool startContains = sortedStart.contains(element);
-
-    Q_ASSERT_X(startContains == sortedEnd.contains(element),
+    F elementF(element);
+    Q_ASSERT_X(startContains == sortedEnd.contains(elementF),
                "Node<E>::contains",
-               "startContains != sortedEnd.contains(element)");
+               "startContains != sortedEnd.contains(elementF)");
 
     return startContains;
   }
@@ -119,7 +82,8 @@ public:
   bool remove(const E &element)
   {
     bool removedStart = sortedStart.remove(element);
-    bool removedEnd = sortedEnd.remove(element);
+    F elementF(element);
+    bool removedEnd = sortedEnd.remove(elementF);
 
     Q_ASSERT_X(removedStart == removedEnd,
                "Node<E>::remove",
@@ -133,7 +97,7 @@ public:
     if (point <= center)
     {
       bool finished = false;
-      QMapIterator<int, E> it = sortedStart.iterator();
+      QMapIterator<E, E> it = sortedStart.iterator();
       while (it.hasNext() && finished==false) {
         const E &e = it.next().value();
         if (e.start() <= point) {
@@ -146,9 +110,9 @@ public:
     }
     else {
       bool finished = false;
-      QMapIterator<int, E> it = sortedEnd.iterator();
+      QMapIterator<F, F> it = sortedEnd.iterator();
       while (it.hasNext() && finished==false) {
-        const E &e = it.next().value();
+        const E &e = it.next().value();  // This will downcast from const F& to const E& .
         if (e.end() >= point) {
           collection.append(e);
         }
@@ -163,7 +127,7 @@ public:
   {
     if (end < center) {
       bool finished = false;
-      QMapIterator<int, E> it = sortedStart.iterator();
+      QMapIterator<E, E> it = sortedStart.iterator();
       while (it.hasNext() && finished==false) {
         const E &e = it.next().value();
         if (e.start() <= end) {
@@ -176,9 +140,9 @@ public:
     }
     else if (start > center) {
       bool finished = false;
-      QMapIterator<int, E> it = sortedEnd.iterator();
+      QMapIterator<F, F> it = sortedEnd.iterator();
       while (it.hasNext() && finished==false) {
-        const E &e = it.next().value();
+        const E &e = it.next().value();  // This will downcast from const F& to const E& .
         if (start <= e.end()) {
           collection.append(e);
         }
@@ -195,7 +159,7 @@ public:
   void intersectAll(int start, int end, QList<E> &collection) const
   {
     bool finished = false;
-    QMapIterator<int, E> it = sortedStart.iterator();
+    QMapIterator<E, E> it = sortedStart.iterator();
     while (it.hasNext() && finished==false) {
       const E &e = it.next().value();
       if (e.start() <= start) {
@@ -215,11 +179,11 @@ public:
   }
 
   int center;
-  SortedStartSet<E> sortedStart;
-  SortedEndSet<E> sortedEnd;
-  Node<E> *parent;
-  Node<E> *leftChild;
-  Node<E> *rightChild;
+  SortedSet<E> sortedStart;
+  SortedSet<F> sortedEnd;
+  Node<E, F> *parent;
+  Node<E, F> *leftChild;
+  Node<E, F> *rightChild;
 };
 
 /**
@@ -231,8 +195,10 @@ public:
 
  * @param <E> the class of objects ({@code IntInterval} or {@code
  * HapSegment}) stored by {@code this}.
+ * @param <F> the end-sorted counterpart of class {@code HapSegment},
+ * namely, {@code HapSegmentES}.
  */
-template <class E>
+template <class E, class F>
 class CenteredIntIntervalTree
 {
 public:
@@ -262,7 +228,7 @@ public:
    */
   CenteredIntIntervalTree(int nMarkers, const QList<E> &ibsSegs) : _start(0), _size(0)
   {
-	  initialize(nMarkers, ibsSegs);
+    initialize(nMarkers, ibsSegs);
   }
 
   ~CenteredIntIntervalTree()
@@ -296,7 +262,7 @@ public:
   bool add(const E &element)
   {
     Q_ASSERT_X(element.start() >= _start  &&  element.end() <= _end,
-               "CenteredIntIntervalTree<E>::add",
+               "CenteredIntIntervalTree<E, F>::add",
                "element out of range.");
 
     bool added = add(_root, element);
@@ -327,12 +293,20 @@ public:
 
   int size() const { return _size; }
 
-  QList<E> toQList() const
+  void getDumpInfo(int &start, int &end, int &size, Node<E, F> *&root) const
   {
-    QList<E> list;
-    toQList(_root, list);
-    return list;
+    start = _start;
+    end = _end;
+    size = _size;
+    root = _root;
   }
+
+  /// QList<E> toQList() const
+  /// {
+  ///   QList<E> list;
+  ///   toQList(_root, list);
+  ///   return list;
+  /// }
 
 private:
   void initializeRootNode()
@@ -343,10 +317,11 @@ private:
 
     int length = (_end - _start + 1);
     int center = _start + (length/2);
-    _root = new Node<E>(center);
+    _root = new Node<E, F>(center);
+    _root->parent = 0;
   }
 
-  void clear(Node<E> *&tree)
+  void clear(Node<E, F> *&tree)
   {
     if (!tree) {
       return;
@@ -358,12 +333,12 @@ private:
     tree = 0;
   }
 
-  bool add(Node<E> *tree, const E &element)
+  bool add(Node<E, F> *tree, const E &element)
   {
     if (element.end() < tree->center) {
       if (!tree->leftChild) {
         int nextOffset = findNextOffset(tree);
-        tree->leftChild = new Node<E>(tree->center - nextOffset);
+        tree->leftChild = new Node<E, F>(tree->center - nextOffset);
         tree->leftChild->parent = tree;
       }
       return add(tree->leftChild, element);
@@ -371,7 +346,7 @@ private:
     else if (element.start() > tree->center) {
       if (!tree->rightChild) {
         int nextOffset = findNextOffset(tree);
-        tree->rightChild = new Node<E>(tree->center + nextOffset);
+        tree->rightChild = new Node<E, F>(tree->center + nextOffset);
         tree->rightChild->parent = tree;
       }
       return add(tree->rightChild, element);
@@ -381,7 +356,7 @@ private:
     }
   }
 
-  int findNextOffset(Node<E> *node) const {
+  int findNextOffset(Node<E, F> *node) const {
     int lastOffset;
     if (!node->parent) {
       lastOffset = (_end - _start + 1)/2;
@@ -396,7 +371,7 @@ private:
     return offset;
   }
 
-  bool contains(Node<E> *tree, const E &element) const {
+  bool contains(Node<E, F> *tree, const E &element) const {
     if (!tree) {
       return false;
     }
@@ -411,7 +386,7 @@ private:
     }
   }
 
-  bool remove(Node<E> *tree, const E &element) {
+  bool remove(Node<E, F> *tree, const E &element) {
     if (!tree) {
       return false;
     }
@@ -426,7 +401,7 @@ private:
     }
   }
 
-  void intersect(Node<E> *tree, int point, QList<E> &collection) const {
+  void intersect(Node<E, F> *tree, int point, QList<E> &collection) const {
     if (!tree) {
       return;
     }
@@ -439,7 +414,7 @@ private:
     }
   }
 
-  void intersectPart(Node<E> *tree, int start, int end, QList<E> &collection) const {
+  void intersectPart(Node<E, F> *tree, int start, int end, QList<E> &collection) const {
     if (!tree) {
       return;
     }
@@ -452,7 +427,7 @@ private:
     }
   }
 
-  void intersectAll(Node<E> *tree, int start, int end, QList<E> &collection) const {
+  void intersectAll(Node<E, F> *tree, int start, int end, QList<E> &collection) const {
     if (!tree) {
       return;
     }
@@ -465,19 +440,19 @@ private:
     }
   }
 
-  void toQList(Node<E> *tree, QList<E> &list) const {
-    if (!tree) {
-      return;
-    }
-    toQList(tree->leftChild, list);
-    list.append(tree->sortedStart.wholeList());
-    toQList(tree->rightChild, list);
-  }
+  /// void toQList(Node<E, F> *tree, QList<E> &list) const {
+  ///   if (!tree) {
+  ///     return;
+  ///   }
+  ///   toQList(tree->leftChild, list);
+  ///   list.append(tree->sortedStart.wholeList());
+  ///   toQList(tree->rightChild, list);
+  /// }
 
   int _start;
   int _end;
   int _size;
-  Node<E> *_root;
+  Node<E, F> *_root;
 };
 
 
@@ -573,16 +548,22 @@ public:
 
 private:
   void extendSegment(QList<HapSegment> &extendedSegs, int hap, const QList<HapSegment> &ibsSegs) const;
-  void convertToIndices(int marker, const CenteredIntIntervalTree<HapSegment> &tree,
+  void convertToIndices(int marker, const CenteredIntIntervalTree<HapSegment, HapSegmentES> &tree,
                         IndexSet &set) const;
 
+  int modifyStart(const HapSegment &targetHS, CenteredIntIntervalTree<HapSegment, HapSegmentES> &tree) const;
+  int modifyEnd(const HapSegment &targetHS, CenteredIntIntervalTree<HapSegment, HapSegmentES> &tree) const;
+
   const RestrictedDag &_rdag;
+
+  const QList<double>& _pos;
+  double _ibdExtend;
 
   int _nMarkers;
   IndexSet _indices1;
   IndexSet _indices2;
-  CenteredIntIntervalTree<HapSegment> _tree1;
-  CenteredIntIntervalTree<HapSegment> _tree2;
+  CenteredIntIntervalTree<HapSegment, HapSegmentES> _tree1;
+  CenteredIntIntervalTree<HapSegment, HapSegmentES> _tree2;
 
   int _marker;
   int _i1;

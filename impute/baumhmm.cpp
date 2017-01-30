@@ -139,11 +139,11 @@ void SingleNodes::clear()
   _size = 0;
 }
 
-SingleBaumLevel::SingleBaumLevel(Dag *dag, SplicedGL *gl)
+SingleBaumLevel::SingleBaumLevel(const Dag &dag, const SplicedGL &gl)
   : _marker(-1), _sample(-1), _size(0), _dag(dag), _gl(gl),
     _fwdValueSum(0.0), _bwdValueSum(0.0)
 {
-  Q_ASSERT_X(dag->markers() == gl->markers(),
+  Q_ASSERT_X(dag.markers() == gl.markers(),
              "SingleBaumLevel::SingleBaumLevel",
              "inconsistent markers");
 }
@@ -172,21 +172,21 @@ void SingleBaumLevel::setStates(const SingleNodes &nodes)
     int node1 = nodes.enumNode1(j);
     int node2 = nodes.enumNode2(j);
 
-    for (int i1=0, nI1=_dag->nOutEdges(_marker, node1); i1<nI1; ++i1)
+    for (int i1=0, nI1=_dag.nOutEdges(_marker, node1); i1<nI1; ++i1)
     {
-      int edge1 = _dag->outEdge(_marker, node1, i1);
-      int symbol1 = _dag->symbol(_marker, edge1);
-      for (int i2=0, nI2=_dag->nOutEdges(_marker, node2); i2<nI2; ++i2)
+      int edge1 = _dag.outEdge(_marker, node1, i1);
+      int symbol1 = _dag.symbol(_marker, edge1);
+      for (int i2=0, nI2=_dag.nOutEdges(_marker, node2); i2<nI2; ++i2)
       {
-        int edge2 = _dag->outEdge(_marker, node2, i2);
-        int symbol2 = _dag->symbol(_marker, edge2);
-        float ep = _gl->gl(_marker, _sample, symbol1, symbol2);
+        int edge2 = _dag.outEdge(_marker, node2, i2);
+        int symbol2 = _dag.symbol(_marker, edge2);
+        float ep = _gl.gl(_marker, _sample, symbol1, symbol2);
         if (ep > 0.0)
         {
           _edges1.append(edge1);
           _edges2.append(edge2);
-          float tp1 = _dag->condEdgeProb(_marker, edge1);
-          float tp2 = _dag->condEdgeProb(_marker, edge2);
+          float tp1 = _dag.condEdgeProb(_marker, edge1);
+          float tp2 = _dag.condEdgeProb(_marker, edge2);
 
           float nodeValue = nodes.enumValue(j);
 
@@ -215,8 +215,8 @@ void SingleBaumLevel::setChildNodes(SingleNodes &nodes)
 {
   nodes.clear();
   for (int k=0; k<_size; ++k) {
-    int node1 = _dag->childNode(_marker, _edges1[k]);
-    int node2 = _dag->childNode(_marker, _edges2[k]);
+    int node1 = _dag.childNode(_marker, _edges1[k]);
+    int node2 = _dag.childNode(_marker, _edges2[k]);
     nodes.sumUpdate(node1, node2, _fwdValues[k]);
   }
 }
@@ -227,8 +227,8 @@ void SingleBaumLevel::checkIndex(int state) const
 }
 
 
-SingleBaum::SingleBaum(Dag &dag, SplicedGL &gl, int seed, int nSamplingsPerIndividual,
-                       bool lowMem) : _windowIndex(-9999), _arrayIndex(-9999)
+SingleBaum::SingleBaum(const Dag &dag, const SplicedGL &gl, int seed, int nSamplingsPerIndividual,
+                       bool lowMem) : _dag(dag), _gl(gl), _windowIndex(-9999), _arrayIndex(-9999)
 {
   Q_ASSERT_X(dag.markers() == gl.markers(),
              "SingleBaum::SingleBaum",
@@ -236,9 +236,6 @@ SingleBaum::SingleBaum(Dag &dag, SplicedGL &gl, int seed, int nSamplingsPerIndiv
   Q_ASSERT_X(nSamplingsPerIndividual >= 1,
              "SingleBaum::SingleBaum",
              "nSamplingsPerIndividual < 1");
-
-  _dag = &dag;
-  _gl = &gl;
 
   _nMarkers = dag.nLevels();
   _nSamplingsPerIndividual = nSamplingsPerIndividual;
@@ -263,7 +260,7 @@ SingleBaum::SingleBaum(Dag &dag, SplicedGL &gl, int seed, int nSamplingsPerIndiv
     size = (int) (sqrt(1.0 + 8.0*dag.nLevels())/2.0) + 2;
 
   for (int j=0; j < size; ++j)
-    _levels.append(SingleBaumLevel(&dag, &gl));
+    _levels.append(SingleBaumLevel(dag, gl));
 }
 
 QList<HapPair> SingleBaum::randomSample(int sample)
@@ -282,7 +279,7 @@ QList<HapPair> SingleBaum::hapList(int sample) const
 {
   QList<HapPair> hList;
   for (int copy=0; copy < _nSamplingsPerIndividual; ++copy) {
-    HapPair hpair(_gl->markers(), _gl->samples(), sample,
+    HapPair hpair(_gl.markers(), _gl.samples(), sample,
                   _alleles1[copy], _alleles2[copy]);
     hList.append(hpair);
   }
@@ -325,11 +322,11 @@ double SingleBaum::parentSum(const SingleBaumLevel &level, int sample, int state
   double fwdValue = level.forwardValuesSum()*level.forwardValue(state);
   int edge1 = level.edge1(state);
   int edge2 = level.edge2(state);
-  double tp1 = _dag->condEdgeProb(marker, edge1);
-  double tp2 = _dag->condEdgeProb(marker, edge2);
-  int symbol1 = _dag->symbol(marker, edge1);
-  int symbol2 = _dag->symbol(marker, edge2);
-  double ep = _gl->gl(marker, sample, symbol1, symbol2);
+  double tp1 = _dag.condEdgeProb(marker, edge1);
+  double tp2 = _dag.condEdgeProb(marker, edge2);
+  int symbol1 = _dag.symbol(marker, edge1);
+  int symbol2 = _dag.symbol(marker, edge2);
+  double ep = _gl.gl(marker, sample, symbol1, symbol2);
   return fwdValue / ( ep*tp1*tp2 );
 }
 

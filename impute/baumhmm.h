@@ -152,7 +152,7 @@ public:
    * probabilities
    * @param gl the emission probabilities
    */
-  SingleBaumLevel(Dag *dag, SplicedGL *gl);
+  SingleBaumLevel(const Dag &dag, const SplicedGL &gl);
 
   /**
    * Sets the Baum forward algorithm values for this level of the HMM
@@ -191,12 +191,12 @@ public:
    * Returns the directed acyclic graph that determines the transition
    * probabilities.
    */
-  Dag &dag() const { return *_dag; }
+  const Dag &dag() const { return _dag; }
 
   /**
    * Returns the emission probabilities.
    */
-  SplicedGL &gl() const { return *_gl; }
+  const SplicedGL &gl() const { return _gl; }
 
   /**
    * Return the level of the HMM.
@@ -242,7 +242,7 @@ public:
    */
   int parentNode1(int state) const {
     checkIndex(state);
-    return _dag->parentNode(_marker, _edges1[state]);
+    return _dag.parentNode(_marker, _edges1[state]);
   }
 
   /**
@@ -253,7 +253,7 @@ public:
    */
   int parentNode2(int state) const {
     checkIndex(state);
-    return _dag->parentNode(_marker, _edges2[state]);
+    return _dag.parentNode(_marker, _edges2[state]);
   }
 
   /**
@@ -264,7 +264,7 @@ public:
    */
   int childNode1(int state) const {
     checkIndex(state);
-    return _dag->childNode(_marker, _edges1[state]);
+    return _dag.childNode(_marker, _edges1[state]);
   }
 
   /**
@@ -275,7 +275,7 @@ public:
    */
   int childNode2(int state) const {
     checkIndex(state);
-    return _dag->childNode(_marker, _edges2[state]);
+    return _dag.childNode(_marker, _edges2[state]);
   }
 
   /**
@@ -284,7 +284,7 @@ public:
    *
    * @param state an index of a HMM state with nonzero forward probability
    */
-  int symbol1(int state) const { return _dag->symbol(_marker, edge1(state)); }
+  int symbol1(int state) const { return _dag.symbol(_marker, edge1(state)); }
 
   /**
    * Returns the symbol for the second edge of the specified HMM state
@@ -292,7 +292,7 @@ public:
    *
    * @param state an index of a HMM state with nonzero forward probability
    */
-  int symbol2(int state) const { return _dag->symbol(_marker, edge2(state)); }
+  int symbol2(int state) const { return _dag.symbol(_marker, edge2(state)); }
 
   /**
    * Returns the normalized forward value for the specified HMM state
@@ -344,8 +344,8 @@ private:
   void setStates(const SingleNodes &nodes);
   void checkIndex(int state) const;
 
-  Dag *_dag;
-  SplicedGL *_gl;
+  const Dag &_dag;
+  const SplicedGL &_gl;
 
   int _marker;
   int _sample;
@@ -382,19 +382,19 @@ public:
    * @param lowMem {@code true} if a low memory algorithm should be used, and
    * {@code false} otherwise
    */
-  SingleBaum(Dag &dag, SplicedGL &gl, int seed, int nSamplingsPerIndividual,
+  SingleBaum(const Dag &dag, const SplicedGL &gl, int seed, int nSamplingsPerIndividual,
              bool lowMem);
 
   QList<HapPair> randomSample(int sample);
 
   // QList<HapPair> randomSample(int sample, QList<double> gtProbs);
 
-  Dag &dag() const {
-    return *_dag;
+  const Dag &dag() const {
+    return _dag;
   }
 
-  SplicedGL &gl() const {
-    return *_gl;
+  const SplicedGL &gl() const {
+    return _gl;
   }
 
   int nSamplingsPerIndividual() const {
@@ -420,8 +420,8 @@ private:
   SingleBaumLevel &previousLevel(int sample);
   void forwardAlgorithm(int sample);
 
-  Dag *_dag;
-  SplicedGL *_gl;
+  const Dag &_dag;
+  const SplicedGL &_gl;
   int _nMarkers;
   int _nSamplingsPerIndividual;
   long _seed;

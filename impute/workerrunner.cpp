@@ -118,7 +118,7 @@ void SingleBaumRunner::resultsReady(int sampleIdx, int workerId, QList<HapPair> 
 // SingleBaumWorker
 // ----------------
 
-SingleBaumWorker::SingleBaumWorker(Dag& dag, SplicedGL& gl, int seed, int nSamplingsPerIndividual,
+SingleBaumWorker::SingleBaumWorker(const Dag& dag, const SplicedGL& gl, int seed, int nSamplingsPerIndividual,
                                    bool lowmem)
   : _baum(dag, gl, seed, nSamplingsPerIndividual, lowmem)
 {

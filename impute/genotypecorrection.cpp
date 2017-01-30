@@ -52,13 +52,6 @@ Edit::Edit(const Edit &other)
 static void copyAlleles(const HapPair &hapPair, QList<int> &alleles1,
                         QList<int> &alleles2)
 {
-  Q_ASSERT_X(hapPair.nMarkers()==alleles1.length(),
-             "copyAlleles (genotypecorrection.cpp)",
-             "hapPair.nMarkers() != alleles1.length()");
-  Q_ASSERT_X(alleles1.length() == alleles2.length(),
-             "copyAlleles (genotypecorrection.cpp)",
-             "alleles1.length() != alleles2.length()");
-
   alleles1.clear();
   alleles2.clear();
 

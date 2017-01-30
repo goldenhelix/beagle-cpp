@@ -41,9 +41,36 @@ int IndexSet::enumeratedValue(int enumIndex) const
   return _indices[enumIndex];
 }
 
-SinglePermittedStates::SinglePermittedStates(const RestrictedDag &rdag, int sample)
-  : _rdag(rdag), _marker(-1), _i1(0), _i2(0), _edge1(-1), _edge2(-1), _rev(false)
+static void dumpNode(int depth, Node<HapSegment, HapSegmentES> *node, char *type)
 {
+  if(!node)
+    return;
+
+  dumpNode(depth + 1, node->leftChild, "L");
+  globalRsb.dumpTSegs(node->center, type, depth, node->sortedStart.wholeList());
+  dumpNode(depth + 1, node->rightChild, "R");
+}
+
+static void dumpTree(int hap, const CenteredIntIntervalTree<HapSegment, HapSegmentES> &tree)
+{
+  if (globalRsb.okToDump())
+  {
+    int start;
+    int end;
+    int size;
+    Node<HapSegment, HapSegmentES> *root;
+    tree.getDumpInfo(start, end, size, root);
+    globalRsb.treeHeader(hap, start, end, size);
+    dumpNode(0, root, ">");
+  }
+}
+
+
+SinglePermittedStates::SinglePermittedStates(const RestrictedDag &rdag, int sample)
+  : _rdag(rdag), _marker(-1), _i1(0), _i2(0), _edge1(-1), _edge2(-1), _rev(false),
+    _pos(rdag.pos()), _ibdExtend(rdag.ibdExtend())
+{
+  globalRsb.setNewSample(sample);
   int nHaps;
   QList<HapSegment> list1;
   QList<HapSegment> list2;
@@ -62,12 +89,16 @@ SinglePermittedStates::SinglePermittedStates(const RestrictedDag &rdag, int samp
 
   _tree1.initialize(_nMarkers, extList1);
   _tree2.initialize(_nMarkers, extList2);
+  /// dumpTree(hap1, _tree1);
+  /// dumpTree(hap2, _tree2);
 }
 
 void SinglePermittedStates::extendSegment(QList<HapSegment> &extendedSegs,
                                           int hap, const QList<HapSegment> &ibsSegs) const
 {
-  CenteredIntIntervalTree<HapSegment> tree(_nMarkers, ibsSegs);
+  /// globalRsb.dumpHSegs(hap, ibsSegs);
+  CenteredIntIntervalTree<HapSegment, HapSegmentES> tree(_nMarkers, ibsSegs);
+  /// dumpTree(hap, tree);
 
   // permit states traversed by hap
   int lastMarker = _nMarkers-1;
@@ -76,21 +107,51 @@ void SinglePermittedStates::extendSegment(QList<HapSegment> &extendedSegs,
   // permit states traversed by IBS haps
   for (int k=0, n=ibsSegs.size(); k<n; ++k) {
     HapSegment targetHS = ibsSegs[k];
-    int start = _rdag.modifyStart(targetHS, tree);
-    int end  = _rdag.modifyEnd(targetHS, tree);
+    int start = modifyStart(targetHS, tree);
+    int end  = modifyEnd(targetHS, tree);
     extendedSegs.append( HapSegment(targetHS.hap(), start, end) );
   }
+  /// globalRsb.dumpHSegs(hap, extendedSegs);
+}
+
+int SinglePermittedStates::modifyStart(const HapSegment &targetHS, CenteredIntIntervalTree<HapSegment, HapSegmentES> &tree) const
+{
+  int targetHsStart = targetHS.start();
+  int maxStart = IbsHapSegUtility::lowerBoundIndex(_pos, 0, _pos[targetHsStart] - _ibdExtend);
+
+  int minEnd = targetHS.end();
+
+  QList<HapSegment> list;
+  tree.intersectAll(maxStart, minEnd, list);
+  /// globalRsb.dumpModifier("Start: ", maxStart, minEnd, list);
+  return list.isEmpty() ? maxStart : targetHS.start();
+}
+
+int SinglePermittedStates::modifyEnd(const HapSegment &targetHS, CenteredIntIntervalTree<HapSegment, HapSegmentES> &tree) const
+{
+  int maxStart = targetHS.start();
+
+  double targetValue = _pos[targetHS.end()] + _ibdExtend;
+  int minEnd = IbsHapSegUtility::lowerBoundIndex(_pos, 0, targetValue);
+
+  if(minEnd == _pos.length()  ||  _pos[minEnd] > targetValue)  // end is inclusive
+    --minEnd;
+
+  QList<HapSegment> list;
+  tree.intersectAll(maxStart, minEnd, list);
+  /// globalRsb.dumpModifier("End: ", maxStart, minEnd, list);
+  return list.isEmpty() ? minEnd : targetHS.end();
 }
 
 void SinglePermittedStates::convertToIndices(int marker,
-                                             const CenteredIntIntervalTree<HapSegment> &tree,
-                                             IndexSet &set) const
+  const CenteredIntIntervalTree<HapSegment, HapSegmentES> &tree,
+  IndexSet &set) const
 {
   set.clear();
 
   QList<HapSegment> hsegs;
   tree.intersect(marker, hsegs);
-
+  /// globalRsb.dumpMSegs(marker, hsegs);
   foreach(HapSegment hs, hsegs)
     set.add(_rdag._hapStates[marker][hs.hap()]);
 }
@@ -105,6 +166,9 @@ void SinglePermittedStates::setMarker(int marker)
   _rev = false;
   convertToIndices(marker, _tree1, _indices1);
   convertToIndices(marker, _tree2, _indices2);
+  /// globalRsb.dumpIndices(marker, _indices1);
+  /// globalRsb.dumpIndices(marker, _indices2);
+  /// globalRsb.cr();
 }
 
 void SinglePermittedStates::next()
@@ -139,5 +203,24 @@ void SinglePermittedStates::next()
       }
     }
   }
+  /// globalRsb.dumpNext(_rev, _edge1, _edge2, _i1, _i2);
 }
 
+void RSBDump::dumpIndices(int m, const IndexSet &indices)
+{
+  if (_okToDump)
+  {
+    _out.write("m");
+    _out.write(QByteArray::number(m));
+    _out.write(": ");
+    for (int e = 0; e < indices.size(); e++)
+    {
+      _out.write(" i");
+      _out.write(QByteArray::number(e));
+      _out.write(": ");
+      _out.write(QByteArray::number(indices.enumeratedValue(e)));
+    }
+    cr();
+    _out.flush();
+  }
+}

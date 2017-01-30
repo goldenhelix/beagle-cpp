@@ -269,7 +269,7 @@ void TargetData::setCdData(CurrentData &cd, const Par &par, const SampleHapPairs
   // cd._refSampleHapPairs is left alone.
   // cd._restrictedRefSampleHapPairs is left alone.
 
-  // cd._recombRate = recombRate(targetMarkers, genMap, par.mapscale());
+  // cd._recombRate = recombRate(cd._targetMarkers, genMap, par.mapscale());
 }
 
 bool AllData::canAdvanceWindow(const TargDataReader &tr, const RefDataReader &rr) const
@@ -343,7 +343,7 @@ void AllData::setCdData(CurrentData &cd, const Par &par, const SampleHapPairs &o
   cd._refSampleHapPairs = _refSampleHapPairs;
   cd._restrictedRefSampleHapPairs = SampleHapPairs(cd._refSamples, _targetRefHapPairs, false);
 
-  // cd._recombRate = recombRate(targetMarkers, genMap, par.mapscale());
+  // cd._recombRate = recombRate(cd._targetMarkers, genMap, par.mapscale());
 }
 
 Samples AllData::allSamples(const TargDataReader &tr, const RefDataReader &rr)

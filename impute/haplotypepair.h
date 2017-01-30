@@ -96,6 +96,9 @@ public:
   HapPairs(const HapPairs &other);
 
   HapPairs() : _isReversed(false), _numOfMarkersM1(-1) {}
+
+  virtual ~HapPairs(){}
+
   /**
   * Returns the allele for the specified marker and haplotype.
   * @param marker a marker index
@@ -156,6 +159,7 @@ public:
    * @param hapPair a haplotype pair index
    */
   int sampleIndex(int hapPair) const { return _hapPairs[hapPair].sampleIndex(); }
+
 protected:
   void checkAndExtractMarkers(bool reverse);
 
@@ -180,6 +184,9 @@ public:
 
   SampleHapPairs(const SampleHapPairs &other) : HapPairs(other), _samples(other._samples) {}
   SampleHapPairs() : HapPairs() {}
+
+  virtual ~SampleHapPairs() {}
+
   virtual int allele1(int marker, int hapPair) const { return HapPairs::allele1(marker, hapPair); }
   virtual int allele2(int marker, int hapPair) const { return HapPairs::allele2(marker, hapPair); }
   virtual int allele(int marker, int haplotype) const
@@ -282,12 +289,16 @@ public:
   GLSampleHapPairs(const GLSampleHapPairs &otherGL, bool checkRef = false, bool reverse = false);
 
   GLSampleHapPairs() : SampleHapPairs() {}
+
+  virtual ~GLSampleHapPairs(){}
+
   /**
    * Returns {@code true} if the observed data for each marker and
    * sample includes a phased genotype that has no missing alleles,
    * and returns {@code false} otherwise.
    */
   virtual bool isRefData() const { return true; }
+
   int allele(int marker, int haplotype) const;
   int allele1(int marker, int hapPair) const;
   int allele2(int marker, int hapPair) const;
@@ -372,12 +383,16 @@ public:
    * Default constructor.
    */
   SplicedGL() : GLSampleHapPairs(), _isRefData(false) {}
+
+  virtual ~SplicedGL(){}
+
   /**
    * Returns {@code true} if the observed data for each marker and
    * sample includes a phased genotype that has no missing alleles,
    * and returns {@code false} otherwise.
    */
   bool isRefData() const { return _isRefData; }
+
   /**
    * Returns the probability of the observed data for the specified marker
    * and sample if the specified pair of ordered alleles is the true
@@ -387,7 +402,7 @@ public:
    * @param allele1 the first allele index
    * @param allele2 the second allele index
    */
-  float gl(int marker, int sample, int allele1, int allele2) const;
+  virtual float gl(int marker, int sample, int allele1, int allele2) const;
 
   /**
    * Returns {@code true} if the observed data for the specified
@@ -424,10 +439,10 @@ public:
   FuzzyGL(const SplicedGL &gl, float err, bool reverse);
 
   FuzzyGL() : SplicedGL() {}
-  float gl(int marker, int sample, int a1, int a2);
+  float gl(int marker, int sample, int a1, int a2) const;
 
 private:
-  float phasedGL(int obs1, int obs2, int a1, int a2);
+  float phasedGL(int obs1, int obs2, int a1, int a2) const;
 
   float _ee;
   float _ef;

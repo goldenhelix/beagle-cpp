@@ -29,6 +29,8 @@ public:
   virtual float ne() const { return 1000000.0; }
   virtual float err() const { return (float) 0.0001; }
   virtual float mapscale() const { return (float) 1.0; }
+  virtual float ibdlength() const { return (float) 0.07; }
+  virtual float ibdextend() const { return (float) 0.13; }
 };
 
 class GenericDataReader
@@ -254,7 +256,7 @@ public:
    * marker window preceding the splice point with the previous marker window:
    * {@code this.targetMarkers().restrict(0, this.prevTargetSplice())}
    */
-  SampleHapPairs initHaps() const { return _initHaps; }
+  // const SampleHapPairs &initHaps() const { return _initHaps; }
   /**
    * Returns the parent-offspring relationships.
    */
@@ -356,7 +358,7 @@ public:
    * Returns the genotype likelihoods for the
    * target samples at the target data markers.
    */
-  SplicedGL targetGL() const { return _targetGL; }
+  const SplicedGL &targetGL() const { return _targetGL; }
   /**
    * Returns an array whose initial element is {@code 0} and whose
    * {@code j}-th element for {@code j > 0} is the recombination rate

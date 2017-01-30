@@ -52,66 +52,6 @@ public:
    */
   int nNodes() { return _nNodes; }
 
-  /*******************************************************************
-  /++
-   + Returns the first node of the specified node pair in the list of
-   + node pairs with non-zero value.  Repeated invocations of this
-   + method with the same parameter will return the same value if
-   + node values are not modified between invocations. If
-   + {@code (index >= 0 && index < this.size())}, then the following
-   + expression will always evaluate to {@code true}:<br>
-   + {@code (this.value(this.enumNode1(index),
-   + this.enumNode2(index)) == this.enumValue(index))}.
-   +
-   + @param index an index in a list of node pairs with non-zero
-   + value
-   + @return the first node of the specified node pair in a list of
-   + node pairs with non-zero value
-   +/
-  int enumNode1(int index) const {
-    checkSize(index);
-    return _node1[_index[index]];
-  }
-
-  /++
-   + Returns the second node of the specified node pair in a list of
-   + node pairs with non-zero value.  Repeated invocations of this
-   + method with the same parameter will return the same value if
-   + node values are not modified between invocations. If
-   + {@code (index >= 0 && index < this.size())}, then the following
-   + expression will always evaluate to {@code true}:<br>
-   + {@code (this.value(this.enumNode1(index),
-   + this.enumNode2(index)) == this.enumValue(index))}.
-   +
-   + @param index an index in a list of node pairs with non-zero value
-   + @return the second node of the specified node pair in a list of
-   + node pairs with non-zero value
-   +/
-  int enumNode2(int index) const {
-    checkSize(index);
-    return _node2[_index[index]];
-  }
-
-  /++
-   + Returns the value of the specified node pair in a list of
-   + node pairs with non-zero value.  Repeated invocations of this
-   + method with the same parameter will return the same value if
-   + node values are not modified between invocations. If
-   + {@code (index >= 0 && index < this.size())}, then the following
-   + expression will always evaluate to {@code true}:<br>
-   + {@code (this.value(this.enumNode1(index),
-   + this.enumNode2(index)) == this.enumValue(index))}.
-   +
-   + @param index an index in a list of node pairs with non-zero value
-   + @return the value of the specified ordered node pair in a list of
-   + node pairs with non-zero value
-   +/
-  float enumValue(int index) const {
-    checkSize(index);
-    return _value[_index[index]];
-  }
-  ********************************************************************/
-
   /**
    * Returns the value of the specified node pair.
    *
@@ -452,7 +392,7 @@ public:
    * @param lowMem {@code true} if a low memory algorithm should be used, and
    * {@code false} otherwise
    */
-  RecombSingleBaum(const SamplerData &samplerData, int seed, int nSamplingsPerIndividual,
+  RecombSingleBaum(const SamplerData &samplerData /* , int seed */ , int nSamplingsPerIndividual,   /// %%%
                    bool lowMem);
 
   QList<HapPair> randomSample(int sample);

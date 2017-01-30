@@ -223,6 +223,8 @@ float RecombSingleBaumLevel::fwdValue(int edge1, int edge2, const RecombSingleNo
   int symbol2 = _dag.symbol(_marker, edge2);
   float emProb = _gl.gl(_marker, _sample, symbol1, symbol2);
 
+  /// globalRsb.dumpFwd1(_marker, symbol1, symbol2, emProb);
+
   if (emProb > 0.0) {
     float pRecom = _samplerData.pRecomb(_marker);
     float rec0 = (1-pRecom)*(1-pRecom);
@@ -232,10 +234,14 @@ float RecombSingleBaumLevel::fwdValue(int edge1, int edge2, const RecombSingleNo
     float ep2 = _dag.condEdgeProb(_marker, edge2);
     float ep = ep1*ep2;
 
+    /// globalRsb.dumpFwd2(pRecom, rec0, rec1, rec2, ep1, ep2);
+
     int pn1 = _dag.parentNode(_marker, edge1);
     int pn2 = _dag.parentNode(_marker, edge2);
     float pnp1 = _dag.parentProb(_marker, pn1);
     float pnp2 = _dag.parentProb(_marker, pn2);
+
+    /// globalRsb.dumpFwd3(pn1, pn2, pnp1, pnp2);
 
     fwdValue = rec0*emProb*ep*nodes.value(pn1, pn2);
     fwdValue += rec1*emProb*ep*pnp2*nodes.sumNode1Value(pn1);
@@ -245,6 +251,9 @@ float RecombSingleBaumLevel::fwdValue(int edge1, int edge2, const RecombSingleNo
       fwdValue = MIN_VALUE_FOR_BAUM;
     }
   }
+
+  /// globalRsb.cr();
+
   return fwdValue;
 }
 
@@ -264,11 +273,11 @@ void RecombSingleBaumLevel::checkIndex(int state) const
 }
 
 
-RecombSingleBaum::RecombSingleBaum(const SamplerData &samplerData, int seed,
+RecombSingleBaum::RecombSingleBaum(const SamplerData &samplerData, /* int seed, */       /// %%%
                                    int nSamplingsPerIndividual, bool lowMem)
   : _samplerData(samplerData), _rdag(samplerData.rdag()), _dag(samplerData.rdag().dag()),
   _gl(samplerData.gl()), _windowIndex(-9999), _arrayIndex(-9999),
-  _seed(seed), _nSamplingsPerIndividual(nSamplingsPerIndividual)
+  /* _seed(seed), */ _nSamplingsPerIndividual(nSamplingsPerIndividual)                   /// %%%
 {
   Q_ASSERT_X(nSamplingsPerIndividual >= 1,
              "RecombSingleBaum::RecombSingleBaum",
@@ -322,31 +331,6 @@ void RecombSingleBaum::pruneLevels()
     _levels[j].reset();
 }
 
-/***
-void RecombSingleBaum::pruneLevels()
-{
-  int meanSize = estMeanSize();
-  int capacityThreshold = 3*meanSize;
-  int newCapacity = 3*meanSize/2 + 1;
-  for (int j=0; j < _levels.length(); ++j) {
-    if (_levels[j].capacity() > capacityThreshold) {
-      _levels[j].reset(newCapacity);
-    }
-  }
-}
-
-int RecombSingleBaum::estMeanSize()
-{
-  int nLevelsToSample = 20;
-  int sizeSum = 0;
-  for (int j=0; j<nLevelsToSample; ++j) {
-    /// sizeSum += levels[random.nextInt(levels.length())].size();   /// %%%%%%%%
-    sizeSum += levels[j % _levels.length()].size();                  /// %%%%%%%%
-  }
-  return (int) (sizeSum / nLevelsToSample);
-}
-***/
-
 QList<HapPair> RecombSingleBaum::hapList(int sample) const
 {
   QList<HapPair> hList;
@@ -398,6 +382,9 @@ void RecombSingleBaum::saveCurrentData(const RecombSingleBaumLevel &level, int s
     / _gl.gl(m, sample, s1, s2);
   _alleles1[copy][m] = s1;
   _alleles2[copy][m] = s2;
+
+  /// globalRsb.dumpSCD(m, e1, e2, s1, s2, _node1[copy], _node2[copy], p1, p2, _maxSum[copy], level.forwardValue(stateIndex),
+  ///                   level.forwardValuesSum(), _gl.gl(m, sample, s1, s2));
 }
 
 void RecombSingleBaum::sampleAlleles(const RecombSingleBaumLevel &level, int sample)
@@ -476,4 +463,3 @@ void RecombSingleBaum::forwardAlgorithm(int sample,
   for (int marker = 0; marker < _nMarkers; marker++)
     nextLevel().setForwardValues(_fwdNodes, permittedStates, marker, sample);
 }
-

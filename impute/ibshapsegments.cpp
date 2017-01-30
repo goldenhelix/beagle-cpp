@@ -104,15 +104,16 @@ private:
 class Haplotype
 {
 public:
-  Haplotype(int hapIndex, int first, int second)
-    : _hapIndex(hapIndex), _first(first), _second(second) {}
+  Haplotype(const SampleHapPairs &haps, int hapIndex, int start, int end)
+    : _haps(haps), _hapIndex(hapIndex), _start(start), _end(end) {}
 
   bool operator<(const Haplotype &other) const;
 
 private:
+  const SampleHapPairs& _haps;
   int _hapIndex;
-  int _first;
-  int _second;
+  int _start;
+  int _end;
 };
 
 IndexMap::IndexMap(int maxKey, int nil)
@@ -151,12 +152,25 @@ void IndexMap::clear()
 
 bool Haplotype::operator< (const Haplotype &other) const
 {
-  if(_hapIndex != other._hapIndex)
-    return _hapIndex < other._hapIndex;
-  else if(_first != other._first)
-    return _first < other._first;
-  else
-    return _second < other._second;
+  // Optimizations made possible by our actual usage--we assume:
+  //
+  // (1) We're working with references to the same SampleHapPairs object;
+  // (2) Both starts are the same.
+  // (3) Both ends are the same.
+  //
+  // Our test is to compare the (possibly different) haplotypes at the
+  // (usually or always) different haplotype indices over the same
+  // marker range using the same haplotype list.
+
+  int otherHapIndex = other._hapIndex;
+
+  for(int m=_start; m < _end; m++)
+  {
+    if(_haps.allele(m, _hapIndex) != _haps.allele(m, otherHapIndex))
+      return (_haps.allele(m, _hapIndex) < _haps.allele(m, otherHapIndex));
+  }
+
+  return false;    // All equal--therefore, neither one is less than the other.
 }
 
 int IbsHapSegUtility::lowerBoundIndex(const QList<double> &pos, int first, double value)
@@ -200,6 +214,19 @@ bool HapSegment::operator< (const HapSegment &other) const
     return (_hap < other._hap);
 }
 
+HapSegmentES::HapSegmentES(const HapSegment &hs)
+  : HapSegment(hs.hap(), hs.start(), hs.end()) {}
+
+bool HapSegmentES::operator< (const HapSegmentES &other) const
+{
+  if (_end != other._end)
+    return (_end > other._end);     // Means "less than" here in this context....
+  else if (_start != other._start)
+    return (_start < other._start);
+  else
+    return (_hap < other._hap);
+}
+
 
 void IbsHapSegments::initialize(const SampleHapPairs &haps, const QList<double> &pos, double minIbsLength)
 {
@@ -209,6 +236,8 @@ void IbsHapSegments::initialize(const SampleHapPairs &haps, const QList<double> 
   _minIbsLength = minIbsLength;
   findWindowStarts();
   findIdSets();
+  /// globalRsb.dumpWs(_windowStarts);
+  /// globalRsb.dumpIdSets(_idSets);
 }
 
 void IbsHapSegments::checkArguments(const SampleHapPairs &haps, const QList<double> &pos,
@@ -260,7 +289,7 @@ void IbsHapSegments::fillOneIdSet(int ipFirst, int ipSecond)
   QMap< Haplotype, QList<int> > idSetMap;
   for(int hapIndex=0; hapIndex < nHaps; hapIndex++)
   {
-    Haplotype newHap(hapIndex, ipFirst, ipSecond);
+    Haplotype newHap(_haps, hapIndex, ipFirst, ipSecond);
     idSetMap[newHap].append(hapIndex);
   }   
 
@@ -337,7 +366,7 @@ int IbsHapSegments::extend(IndexMap &prev, IndexMap &next) const
       next.put(hap, prevStart);
       prev.put(hap, INDEXMAP_DEL_VALUE);
       if (prevStart < minStart)
-	minStart = prevStart;
+      minStart = prevStart;
     }
   }
   return minStart;
@@ -393,5 +422,294 @@ int IbsHapSegments::findInclusiveEnd(int hap1, int hap2, int end) const
     ++end;
 
   return end-1;
+}
+
+RSBDump globalRsb;
+
+void RSBDump::setOkToDump(bool otd)
+{
+  /*
+  _okToDump = otd;
+  if(otd)
+  {
+    if (!_outHasBeenOpened)
+    {
+      _out.setFileName("rsbdump9k4.txt");
+      if (!_out.open(QIODevice::WriteOnly)) {
+        printf("Unable to write to the text file.\n");
+        return;
+      }
+      _outHasBeenOpened = true;
+    }
+  }
+  */
+  _okToDump = false;
+}
+
+void RSBDump::setNewSample(int sampNum)
+{
+  if(_okToDump)
+  {
+    _out.flush();
+    _sampleNum = sampNum;
+    _out.write("SAMPLE ");
+    _out.write(QByteArray::number(_sampleNum));
+    _out.write(":\n");
+    if (sampNum > 0)
+      _okToDump = false;
+  }
+}
+
+void RSBDump::dumpNext(int rv, int e1, int e2, int i1, int i2)
+{
+  if(_okToDump)
+  {
+    _out.write(" rv");
+    _out.write(QByteArray::number(rv));
+    _out.write(" e1");
+    _out.write(QByteArray::number(e1));
+    _out.write(" e2");
+    _out.write(QByteArray::number(e2));
+    _out.write(" i1");
+    _out.write(QByteArray::number(i1));
+    _out.write(" i2");
+    _out.write(QByteArray::number(i2));
+    cr();
+  }
+}
+
+void RSBDump::dumpFwd1(int m, int sy1, int sy2, float emp)
+{
+  if(_okToDump)
+  {
+    _out.write(" m");
+    _out.write(QByteArray::number(m));
+    _out.write(" sy1_");
+    _out.write(QByteArray::number(sy1));
+    _out.write(" sy2_");
+    _out.write(QByteArray::number(sy2));
+    _out.write(" emp: ");
+    _out.write(QByteArray::number(emp, 'f', 3));
+  }
+}
+
+void RSBDump::dumpFwd2(float pr, float r0, float r1, float r2, float ep1, float ep2)
+{
+  if(_okToDump)
+  {
+    _out.write(" pr: ");
+    _out.write(QByteArray::number(pr, 'f', 3));
+    _out.write(" r0: ");
+    _out.write(QByteArray::number(r0, 'f', 3));
+    _out.write(" r1: ");
+    _out.write(QByteArray::number(r1, 'f', 3));
+    _out.write(" r2: ");
+    _out.write(QByteArray::number(r2, 'f', 3));
+    _out.write(" ep1: ");
+    _out.write(QByteArray::number(ep1, 'f', 3));
+    _out.write(" ep2: ");
+    _out.write(QByteArray::number(ep2, 'f', 3));
+  }
+}
+
+void RSBDump::dumpFwd3(int pn1, int pn2, float pnp1, float pnp2)
+{
+  if(_okToDump)
+  {
+    _out.write(" pn1: ");
+    _out.write(QByteArray::number(pn1));
+    _out.write(" pn2: ");
+    _out.write(QByteArray::number(pn2));
+    _out.write(" pnp1: ");
+    _out.write(QByteArray::number(pnp1, 'f', 3));
+  }
+}
+
+void RSBDump::cr()
+{
+  if(_okToDump)
+    _out.write("\n");
+}
+
+void RSBDump::dumpSCD(int m, int e1, int e2, int s1, int s2, int node1, int node2, float p1, float p2,
+                      float maxSum, float fv, float fs, float gl)
+{
+  _out.write(" m: ");
+  _out.write(QByteArray::number(m));
+  _out.write(" e1: ");
+  _out.write(QByteArray::number(e1));
+  _out.write(" e2: ");
+  _out.write(QByteArray::number(e2));
+  _out.write(" s1: ");
+  _out.write(QByteArray::number(s1));
+  _out.write(" s2: ");
+  _out.write(QByteArray::number(s2));
+  _out.write(" node1: ");
+  _out.write(QByteArray::number(node1));
+  _out.write(" node2: ");
+  _out.write(QByteArray::number(node2));
+  _out.write(" p1: ");
+  _out.write(QByteArray::number(p1, 'f', 3));
+  _out.write(" p2: ");
+  _out.write(QByteArray::number(p2, 'f', 3));
+  _out.write(" maxSum: ");
+  _out.write(QByteArray::number(maxSum, 'f', 3));
+  _out.write(" fv: ");
+  _out.write(QByteArray::number(fv, 'f', 3));
+  _out.write(" fs: ");
+  _out.write(QByteArray::number(fs, 'f', 3));
+  _out.write(" gl: ");
+  _out.write(QByteArray::number(gl, 'f', 3));
+  _out.write("\n");
+  _out.flush();
+}
+
+void RSBDump::dumpWs(const QList<int> &ws)
+{
+  if(_okToDump)
+  {
+    _out.write("Window Starts:");
+
+    for(int i=0; i<ws.length(); i++)
+    {
+      if(i % 20 == 0)
+        cr();
+      else
+        _out.write("/");
+      _out.write(QByteArray::number(ws[i]));
+    }
+    cr();
+  }
+}
+
+void RSBDump::dumpIdSets(const QList< QVector< QList<int> > > &idSets)
+{
+  if(_okToDump)
+  {
+    for(int o=0; o < idSets.length(); o++)
+    {
+      _out.write("ID Set ");
+      _out.write(QByteArray::number(o));
+      _out.write(":");
+      cr();
+      QVector< QList<int> > middle = idSets[o];
+      for(int m=0; m < middle.length(); m++)
+      {
+        QList<int> inner = middle[m];
+        for(int i=0; i < inner.length(); i++)
+        {
+          _out.write(" ");
+          _out.write(QByteArray::number(inner[i]));
+        }
+        cr();
+      }
+    }
+  }
+}
+
+void RSBDump::dumpHSegs(int hap, const QList<HapSegment> &ibsSegs)
+{
+  if (_okToDump)
+  {
+    _out.write("Hap ");
+    _out.write(QByteArray::number(hap));
+    _out.write(":");
+    cr();
+    foreach(HapSegment seg, ibsSegs)
+    {
+      _out.write(" ");
+      _out.write(QByteArray::number(seg.hap()));
+      _out.write("/");
+      _out.write(QByteArray::number(seg.start()));
+      _out.write("/");
+      _out.write(QByteArray::number(seg.end()));
+      cr();
+    }
+    _out.flush();
+  }
+}
+
+void RSBDump::treeHeader(int hap, int start, int end, int size)
+{
+  _out.write("Tree from Hap ");
+  _out.write(QByteArray::number(hap));
+  _out.write("--Start ");
+  _out.write(QByteArray::number(start));
+  _out.write(" End ");
+  _out.write(QByteArray::number(end));
+  _out.write(" Size ");
+  _out.write(QByteArray::number(size));
+  _out.write(":");
+  cr();
+}
+
+void RSBDump::dumpTSegs(int center, char *type, int depth, const QList<HapSegment> &ibsSegs)
+{
+  for (int margin = 0; margin < depth - 1; margin++)
+    _out.write(" ");
+  _out.write(type);
+  _out.write(" Center: ");
+  _out.write(QByteArray::number(center));
+  cr();
+  foreach(HapSegment seg, ibsSegs)
+  {
+    for (int margin = 0; margin < depth - 1; margin++)
+      _out.write(" ");
+    _out.write(type);
+    _out.write(" ");
+    _out.write(QByteArray::number(seg.hap()));
+    _out.write("/");
+    _out.write(QByteArray::number(seg.start()));
+    _out.write("/");
+    _out.write(QByteArray::number(seg.end()));
+    cr();
+  }
+  _out.flush();
+}
+
+void RSBDump::dumpMSegs(int marker, const QList<HapSegment> &ibsSegs)
+{
+  if (_okToDump)
+  {
+    _out.write("Marker ");
+    _out.write(QByteArray::number(marker));
+    _out.write(":");
+    cr();
+    foreach(HapSegment seg, ibsSegs)
+    {
+      _out.write(" ");
+      _out.write(QByteArray::number(seg.hap()));
+      _out.write("/");
+      _out.write(QByteArray::number(seg.start()));
+      _out.write("/");
+      _out.write(QByteArray::number(seg.end()));
+      cr();
+    }
+    _out.flush();
+  }
+}
+
+void RSBDump::dumpModifier(char *svse, int maxStart, int minEnd, const QList<HapSegment> &ibsSegs)
+{
+  if (_okToDump)
+  {
+    _out.write(svse);
+    _out.write(" maxStart ");
+    _out.write(QByteArray::number(maxStart));
+    _out.write(" minEnd ");
+    _out.write(QByteArray::number(minEnd));
+    _out.write(":  ");
+    foreach(HapSegment seg, ibsSegs)
+    {
+      _out.write(" ");
+      _out.write(QByteArray::number(seg.hap()));
+      _out.write("/");
+      _out.write(QByteArray::number(seg.start()));
+      _out.write("/");
+      _out.write(QByteArray::number(seg.end()));
+    }
+    cr();
+    _out.flush();
+  }
 }
 

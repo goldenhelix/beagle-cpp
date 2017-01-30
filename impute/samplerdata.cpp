@@ -4,6 +4,9 @@
 #include "impute/iointerface.h"
 #include "impute/haplotypepair.h"
 
+#include "impute/ibshapsegments.h"
+#include "impute/singlepermittedstates.h"
+
 #include <QLinkedList>
 #include <QMutableLinkedListIterator>
 
@@ -102,6 +105,7 @@ void RestrictedDag::singleStates(int sample, int &outNMarkers, int &outNHaps,
 void RestrictedDag::ibsSegs(QList<HapSegment> &outHapSegs, int hap) const
 {
   _hapSegments.filteredFind(outHapSegs, hap);
+  /// globalRsb.dumpSegs(hap, outHapSegs);
   containmentFilter(outHapSegs, END_FILTER);
 }
 
@@ -144,34 +148,6 @@ void RestrictedDag::containmentFilter(QList<HapSegment> &outIbsSegments,
   }
 }
 
-int RestrictedDag::modifyStart(const HapSegment &targetHS, CenteredIntIntervalTree<HapSegment> &tree) const
-{
-  int targetHsStart = targetHS.start();
-  int maxStart = IbsHapSegUtility::lowerBoundIndex(_pos, targetHsStart, _pos[targetHsStart] - _ibdExtend);
-
-  int minEnd = targetHS.end();
-
-  QList<HapSegment> list;
-  tree.intersectAll(maxStart, minEnd, list);
-  return list.isEmpty() ? maxStart : targetHS.start();
-}
-
-int RestrictedDag::modifyEnd(const HapSegment &targetHS, CenteredIntIntervalTree<HapSegment> &tree) const
-{
-  int maxStart = targetHS.start();
-
-  int targetHsEnd = targetHS.end();
-  double targetValue = _pos[targetHsEnd] + _ibdExtend;
-  int minEnd = IbsHapSegUtility::lowerBoundIndex(_pos, targetHsEnd, targetValue);
-
-  if(minEnd == _pos.length()  ||  _pos[minEnd] > targetValue)  // end is inclusive
-    --minEnd;
-
-  QList<HapSegment> list;
-  tree.intersectAll(maxStart, minEnd, list);
-  return list.isEmpty() ? minEnd : targetHS.end();
-}
-
 SamplerData::SamplerData(const RestrictedDag &rdag, const Par &par, const CurrentData &cd,
                          bool revMarkers /* , RunStats runStats */ )
   : _rdag(rdag), _par(par), _revMarkers(revMarkers)
@@ -204,3 +180,4 @@ float SamplerData::err() const
 {
   return _par.err();
 }
+

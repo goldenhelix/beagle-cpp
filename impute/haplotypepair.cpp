@@ -372,10 +372,8 @@ SplicedGL::SplicedGL(const SampleHapPairs &haps, const GLSampleHapPairs &otherGL
 }
 
 SplicedGL::SplicedGL(const GLSampleHapPairs &otherGL, bool reverse)
-  : GLSampleHapPairs(otherGL, false, reverse)
-{
-  _isRefData = otherGL.isRefData();
-}
+  : GLSampleHapPairs(otherGL, false, reverse), _isRefData(otherGL.isRefData())
+{}
 
 void SplicedGL::checkSamples()
 {
@@ -450,7 +448,7 @@ FuzzyGL::FuzzyGL(const SplicedGL &gl, float err, bool reverse) : SplicedGL(gl, r
   _ff = f * f;
 }
 
-float FuzzyGL::gl(int marker, int sample, int a1, int a2)
+float FuzzyGL::gl(int marker, int sample, int a1, int a2) const
 {
   // following algorithm is for both diallelic and multi-allelic markers
   int obs1 = allele1(marker, sample);
@@ -466,7 +464,7 @@ float FuzzyGL::gl(int marker, int sample, int a1, int a2)
     return SplicedGL::gl(marker, sample, a1, a2);
 }
 
-float FuzzyGL::phasedGL(int obs1, int obs2, int a1, int a2)
+float FuzzyGL::phasedGL(int obs1, int obs2, int a1, int a2) const
 {
   if (obs1 == a1) {
     return obs2 == a2 ? _ff : _ef;

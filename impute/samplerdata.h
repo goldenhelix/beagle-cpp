@@ -3,7 +3,6 @@
 #define SAMPLERDATA_H
 
 #include "impute/ibshapsegments.h"
-#include "impute/singlepermittedstates.h"
 
 class ImmutableDag;
 
@@ -60,8 +59,8 @@ protected:
    * Other methods and variables needing access from the SinglePermittedStates object:
    */
 
-  int modifyStart(const HapSegment &targetHS, CenteredIntIntervalTree<HapSegment> &tree) const;
-  int modifyEnd(const HapSegment &targetHS, CenteredIntIntervalTree<HapSegment> &tree) const;
+  const QList<double>& pos() const { return _pos; }
+  double ibdExtend() const { return _ibdExtend; }
 
   QList< QVector<int> > _hapStates;
 

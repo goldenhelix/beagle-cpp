@@ -11,6 +11,8 @@
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
 
+class SamplerData;
+
 namespace ImputeDriver
 {
   void phaseAndImpute(InputData &data, TargDataReader &targReader, RefDataReader &refReader,
@@ -96,7 +98,7 @@ namespace ImputeDriver
   /**
    * "Lower-level utility" for performing sampling.
    */
-  void sample(Dag &dag, SplicedGL &gl, int seed, bool markersAreReversed,
+  void sample(const Dag &dag, const SplicedGL &gl, int seed, bool markersAreReversed,
               int nSamplingsPerIndividual, QList<HapPair> &sampledHaps,
               int nThreads, bool lowmem, char *whichIteration);
 
@@ -123,8 +125,8 @@ namespace ImputeDriver
   /**
    * "Lower-level utility" for performing (phasing 4.1) sampling.
    */
-  // void recombSample(const SamplerData &samplerData, const Par &par,
-  //                   QList<HapPair> &sampledHaps, char *whichIteration);
+  void recombSample(const SamplerData &samplerData, const Par &par,
+                    QList<HapPair> &sampledHaps, char *whichIteration);
 
   QList<HapPair> correctGenotypes(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs);
 

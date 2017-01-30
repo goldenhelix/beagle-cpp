@@ -4,6 +4,8 @@
 
 #include "impute/haplotypepair.h"
 
+#include <QFile>
+
 #include <QVector>
 
 namespace IbsHapSegUtility
@@ -58,10 +60,39 @@ public:
 
   bool operator< (const HapSegment &other) const;
 
-private:
+protected:
   int _hap;
   int _start;
   int _end;
+};
+
+/**
+ * Class {@code HapSegmentES} is a {@code HapSegment} which orders
+ * first by {@code this.end()}, then by {@code this.start()}, and
+ * finally by {@code this.hap()}.
+ */
+class HapSegmentES : public HapSegment
+{
+public:
+
+  /**
+   * Constructs a new {@code HapSegmentES} instance from a {@code
+   * HapSegment} instance.  @param hs the HapSegment instance
+   */
+  HapSegmentES(const HapSegment &hs);
+
+  /**
+   * Compares this object with the specified object for order.
+   * Returns true if this object is less than the specified object.
+   *
+   * {@code HapSegmentES} instances are ordered first by {@code
+   * this.end()}, then by {@code this.start()}, and finally by
+   * {@code this.hap()}.
+   *
+   * @param other the {@code HapSegmentES} to be compared
+   */
+
+  bool operator< (const HapSegmentES &other) const;
 };
 
 class IndexMap;
@@ -116,20 +147,22 @@ public:
    * are IBS with the specified haplotype and have length greater
    * than or equal to {@code this.minIbsLength()}.
    *
-   * @parma outHapSegs receives the list of haplotype segments to be returned
+   * (NOTE: This class is used by ibd code but not for Version 4.1 phasing.)
+   *
+   * @param outHapSegs receives the list of haplotype segments to be returned
    * @param hap the haplotype index
    */
-  void find(QList<HapSegment> &outHapSegs, int hap) const;  // (Used by ibd but not for 4.1 phasing....)
+  void find(QList<HapSegment> &outHapSegs, int hap) const;
 
   /**
    * Returns a list of haplotype segments for other haplotypes
    * that are IBS with the specified haplotype and that have length greater
    * than or equal to {@code this.minIbsLength()}. An IBS segment is
    * permitted (but not required) to be excluded from the returned
-   * list if both end-points of the IBD segment are interior points of
-   * another IBD segment.
+   * list if both end-points of the IBS segment are interior points of
+   * another IBS segment.
    *
-   * @parma outHapSegs receives the list of haplotype segments to be returned
+   * @param outHapSegs receives the list of haplotype segments to be returned
    * @param hap the haplotype index
    */
   void filteredFind(QList<HapSegment> &outHapSegs, int hap) const;
@@ -163,5 +196,40 @@ private:
   QList<int> _windowStarts; 
   QList< QVector< QList<int> > > _idSets;
 };
+
+class IndexSet;
+
+class RSBDump
+{
+public:
+  RSBDump() : _okToDump(false), _sampleNum(0) {}
+  void setOkToDump(bool otd);
+  void setNewSample(int sampNum);
+  void dumpNext(int rv, int e1, int e2, int i1, int i2);
+  void dumpFwd1(int m, int sy1, int sy2, float emp);
+  void dumpFwd2(float pr, float r0, float r1, float r2, float ep1, float ep2);
+  void dumpFwd3(int pn1, int pn2, float pnp1, float pnp2);
+  void cr();
+  void dumpSCD(int m, int e1, int e2, int s1, int s2, int node1, int node2, float p1, float p2, float maxSum, float fv, float fs, float gl);
+  void dumpIndices(int m, const IndexSet &indices);
+  void dumpHSegs(int hap, const QList<HapSegment> &ibsSegs);
+  void dumpMSegs(int marker, const QList<HapSegment> &ibsSegs);
+  void dumpWs(const QList<int> &ws);
+  void dumpIdSets(const QList< QVector< QList<int> > > &idSets);
+
+  bool okToDump() { return _okToDump; }
+  void treeHeader(int hap, int start, int end, int size);
+  void dumpTSegs(int center, char *type, int depth, const QList<HapSegment> &ibsSegs);
+  void dumpModifier(char *svse, int maxStart, int minEnd, const QList<HapSegment> &ibsSegs);
+
+private:
+  QFile _out;
+  bool _outHasBeenOpened;
+  bool _okToDump;
+  // int _levelNum;  // Merging also involves the previous level (in addition to later levels).
+  int _sampleNum;
+};
+
+extern RSBDump globalRsb;
 
 #endif

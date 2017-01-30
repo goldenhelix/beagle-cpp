@@ -75,7 +75,7 @@ class SingleBaumWorker : public ComputeWorker
   Q_OBJECT;
 
 public:
-  SingleBaumWorker(Dag& dag, SplicedGL& gl, int seed, int nSamplingsPerIndividual, bool lowmem);
+  SingleBaumWorker(const Dag& dag, const SplicedGL& gl, int seed, int nSamplingsPerIndividual, bool lowmem);
 
 public slots:
   void computeSample(int single, int workerId);
