@@ -87,6 +87,42 @@ private:
   SingleBaum _baum;
 };
 
+class RecombSingleBaumWorker;
+class RecombSingleBaumRunner : public ComputeRunner
+{
+  Q_OBJECT;
+
+public:
+  RecombSingleBaumRunner();
+  void moveWorkerToThread(RecombSingleBaumWorker* worker, QThread* thread);
+  QList<HapPair> nextWorkerResult();
+  bool hasResultsForSample(int sampleIdx) const;
+
+public slots:
+  void resultsReady(int sampleIdx, int workerId, QList<HapPair> result);
+
+private:
+  QHash< int, QList<HapPair> > _results; // to be retrieved results
+};
+
+class RecombSingleBaumWorker : public ComputeWorker
+{
+  Q_OBJECT;
+
+public:
+  RecombSingleBaumWorker(const SamplerData &samplerData, /* int seed, */
+                         int nSamplingsPerIndividual, bool lowmem);
+
+public slots:
+  void computeSample(int single, int workerId);
+
+signals:
+  void resultsReady(int sampleIdx, int workerId, QList<HapPair>);
+
+private:
+  RecombSingleBaum _rbaum;
+};
+
 class LSImputeWorker;
 class LSImputeRunner : public ComputeRunner
 {

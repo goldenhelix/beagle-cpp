@@ -8,6 +8,7 @@
 #include "impute/haplotypepair.h"
 #include "impute/iointerface.h"
 #include "impute/markers.h"
+#include "impute/recombbaum.h"
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
 

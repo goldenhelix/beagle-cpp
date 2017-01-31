@@ -133,6 +133,62 @@ void SingleBaumWorker::computeSample(int single, int workerId)
 }
 
 // ---------------
+// RecombSingleBaumRunner
+// ----------------
+
+// NOTE: QList<HapPair> has already been declared as a metatype.
+RecombSingleBaumRunner::RecombSingleBaumRunner()
+{
+  qRegisterMetaType< QList<HapPair> >();
+}
+
+void RecombSingleBaumRunner::moveWorkerToThread(RecombSingleBaumWorker* worker, QThread* thread)
+{
+  ComputeRunner::setupNewWorker(worker, thread);
+
+  // Our results signal
+  connect(worker, SIGNAL(resultsReady(int, int, QList<HapPair>)), this,
+          SLOT(resultsReady(int, int, QList<HapPair>)));
+}
+
+QList<HapPair> RecombSingleBaumRunner::nextWorkerResult()
+{
+  int idx = _retrievedSampleIdx++;
+  return _results.take(idx);
+}
+
+bool RecombSingleBaumRunner::hasResultsForSample(int sampleIdx) const
+{
+  return _results.contains(sampleIdx);
+}
+
+void RecombSingleBaumRunner::resultsReady(int sampleIdx, int workerId, QList<HapPair> result)
+{
+  _results[sampleIdx] = result;
+  sendWorkerNextSample(workerId);
+  if (sampleIdx == _retrievedSampleIdx)
+    emit nextResultArrived();
+}
+
+// ---------------
+// RecombSingleBaumWorker
+// ----------------
+
+RecombSingleBaumWorker::RecombSingleBaumWorker(const SamplerData &samplerData, /* int seed, */
+                                               int nSamplingsPerIndividual, bool lowmem)
+  : _rbaum(samplerData, /* seed, */ nSamplingsPerIndividual, lowmem)
+{
+}
+
+void RecombSingleBaumWorker::computeSample(int single, int workerId)
+{
+  if (workerId != _workerId)
+    return;
+  QList<HapPair> result = _rbaum.randomSample(single);
+  emit resultsReady(single, workerId, result);
+}
+
+// ---------------
 // LSImputeRunner
 // ----------------
 

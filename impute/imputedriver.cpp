@@ -90,8 +90,9 @@ QList<HapPair> ImputeDriver::phase(CurrentData &cd, const Par &par)
   {
     /// runStats.println(Const.nl + "Starting phasing iterations");
     hapPairs = ImputeDriver::runRecomb(cd, par, hapPairs);
-  } else
-  hapPairs = ConsensusPhaser::consensusPhase(hapPairs);
+  }
+  else
+    hapPairs = ConsensusPhaser::consensusPhase(hapPairs);
 
   return hapPairs;
 }
@@ -344,23 +345,37 @@ void ImputeDriver::recombSample(const SamplerData &samplerData, const Par &par,
                                 QList<HapPair> &sampledHaps, char *whichIteration)
 {
   // long t0 = System.nanoTime();
-  // int nThreads = par().nthreads();
+
+  int nThreads = par.nThreads();
   bool markersAreReversed = samplerData.markersAreReversed();
   // Random rand = new Random(par.seed());
 
-  RecombSingleBaum baum(samplerData, /* rand.nextLong(), */ par.nSamplingsPerIndividual(), par.lowMem());
+  for (int i = gThreads.size(); i < nThreads; i++) {
+    QThread *t = new QThread();
+    t->setObjectName("Imputation Worker Thread");
+    t->start();
+    gThreads << t;
+  }
+
+  RecombSingleBaumRunner runner;
+
+  // One worker per thread
+  for (int i = 0; i < nThreads; i++) {
+    RecombSingleBaumWorker *worker
+      = new RecombSingleBaumWorker(samplerData, /* rand.nextLong(), */
+                                   par.nSamplingsPerIndividual(), par.lowMem());
+    runner.moveWorkerToThread(worker, gThreads[i]);
+  }
 
   int nSamples = samplerData.nSamples();
-  for (int single = 0; single < nSamples; single++)
-  {
-    SEND_PROG_MSG("%s: sample %d of %d...", whichIteration, single + 1, nSamples);
+  runner.start(nSamples);
 
-    /// globalRsb.setNewSample(single);
+  while (runner.hasNextWorkerResult()) {
+    QList<HapPair> newHaps = runner.nextWorkerResult();
+    int curSample = runner.nextResultIdx();
+    SEND_PROG_MSG("%s: sample %d of %d...", whichIteration, curSample, nSamples);
 
-    QList<HapPair> newHaps = baum.randomSample(single);
-
-    if (markersAreReversed)
-    {
+    if (markersAreReversed) {
       for (int h = 0; h < newHaps.length(); h++)
         sampledHaps.append(HapPair(newHaps[h], true));
     } else
