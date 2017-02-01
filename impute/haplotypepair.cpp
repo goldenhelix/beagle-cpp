@@ -494,7 +494,7 @@ void MaskedEndsGL::checkMarkerAndSample(int marker, int sample) const
 
 void MaskedEndsGL::checkAllele(int marker, int allele) const
 {
-  Q_ASSERT_X(allele<0 || allele>=_gl.marker(marker).nAlleles(),
+  Q_ASSERT_X(allele >= 0  &&  allele < _gl.marker(marker).nAlleles(),
              "MaskedEndsGL::checkAllele",
              "allele<0 || allele>=_gl.marker(marker).nAlleles()");
 }
