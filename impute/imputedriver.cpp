@@ -135,7 +135,7 @@ QList<HapPair> ImputeDriver::runBurnin1(const CurrentData &cd, const Par &par,
   for (int j = 0; j < par.burnin_its(); ++j) {
     bool useRevDag = (j & 1) == 1;
 
-    char progressBuff[27];
+    char progressBuff[128];
     sprintf(progressBuff, "Burn-in iteration %d of %d", j + 1, par.burnin_its());
 
     hapPairs = ImputeDriver::sample(cd, par, hapPairs, useRevDag, progressBuff);
@@ -152,7 +152,7 @@ QList<HapPair> ImputeDriver::runBurnin2(const CurrentData &cd, const Par &par,
   for (int j = start; j < end; ++j) {
     bool useRevDag = (j & 1) == 1;
 
-    char progressBuff[33];
+    char progressBuff[128];
     sprintf(progressBuff, "Phasing (4.0) iteration %d of %d", j + 1 - start, par.phase40_its());
 
     hapPairs = ImputeDriver::sample(cd, par, hapPairs, useRevDag, progressBuff);
@@ -171,7 +171,7 @@ QList<HapPair> ImputeDriver::runRecomb(const CurrentData &cd, const Par &par, QL
   {
     bool useRevDag = (j & 1)==1;
 
-    char progressBuff[33];
+    char progressBuff[128];
     sprintf(progressBuff, "Phasing (4.1) iteration %d of %d", j + 1 - start, par.niterations());
 
     hapPairs = ImputeDriver::recombSample(cd, par, hapPairs, useRevDag, progressBuff);

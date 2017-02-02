@@ -130,6 +130,7 @@ signals:
 public slots:
   void markWritten(qint64 written){
     _toWrite -= written;
+    // qDebug("_toWrite: %d", _toWrite);
     if(_toWrite <= 0)
       emit finished();
   }
@@ -496,7 +497,7 @@ void StreamDataWriter::finalizeForWindow()
   SocketWriter writer(&_socket);
   writer.writeBlocking(data); //Wait till all bytes written
   _socket.close();
-  // qDebug("written!");
+  qDebug("written!");
 }
 
 int main(int argc, char* argv[])
