@@ -99,7 +99,7 @@ public:
       bool finished = false;
       QMapIterator<E, E> it = sortedStart.iterator();
       while (it.hasNext() && finished==false) {
-        const E &e = it.next().value();
+        E e = it.next().value();
         if (e.start() <= point) {
           collection.append(e);
         }
@@ -112,9 +112,10 @@ public:
       bool finished = false;
       QMapIterator<F, F> it = sortedEnd.iterator();
       while (it.hasNext() && finished==false) {
-        const E &e = it.next().value();  // This will downcast from const F& to const E& .
-        if (e.end() >= point) {
-          collection.append(e);
+        F f = it.next().value();
+        if (f.end() >= point) {
+          const F &fp = f;
+          collection.append(fp);   // This will downcast from f to e.
         }
         else {
           finished = true;
@@ -129,7 +130,7 @@ public:
       bool finished = false;
       QMapIterator<E, E> it = sortedStart.iterator();
       while (it.hasNext() && finished==false) {
-        const E &e = it.next().value();
+        E e = it.next().value();
         if (e.start() <= end) {
           collection.append(e);
         }
@@ -142,9 +143,10 @@ public:
       bool finished = false;
       QMapIterator<F, F> it = sortedEnd.iterator();
       while (it.hasNext() && finished==false) {
-        const E &e = it.next().value();  // This will downcast from const F& to const E& .
-        if (start <= e.end()) {
-          collection.append(e);
+        F f = it.next().value();
+        if (start <= f.end()) {
+          const F &fp = f;
+          collection.append(fp);   // This will downcast from f to e.
         }
         else {
           finished = true;
@@ -161,7 +163,7 @@ public:
     bool finished = false;
     QMapIterator<E, E> it = sortedStart.iterator();
     while (it.hasNext() && finished==false) {
-      const E &e = it.next().value();
+      E e = it.next().value();
       if (e.start() <= start) {
         if (e.end() >= end) {
           collection.append(e);
@@ -171,6 +173,23 @@ public:
         finished = true;
       }
     }
+  }
+
+  bool hasIntersectAll(int start, int end) const
+  {
+    QMapIterator<E, E> it = sortedStart.iterator();
+    while (it.hasNext()) {
+      E e = it.next().value();
+      if (e.start() <= start) {
+        if (e.end() >= end) {
+          return true;
+        }
+      }
+      else {
+        return false;
+      }
+    }
+    return false;
   }
 
   void clear() {
@@ -288,6 +307,8 @@ public:
   void intersectPart(int start, int end, QList<E> &collection) const { intersectPart(_root, start, end, collection); }
 
   void intersectAll(int start, int end, QList<E> &collection) const { intersectAll(_root, start, end, collection); }
+
+  bool hasIntersectAll(int start, int end) const { return hasIntersectAll(_root, start, end); }
 
   bool isEmpty() const { return _size==0; }
 
@@ -438,6 +459,23 @@ private:
     if (start > tree->center) {
       intersectAll(tree->rightChild, start, end, collection);
     }
+  }
+
+  bool hasIntersectAll(Node<E, F> *tree, int start, int end) const {
+
+    if (!tree)
+      return false;
+
+    if(tree->hasIntersectAll(start, end))
+      return true;
+
+    if (end < tree->center)
+      return hasIntersectAll(tree->leftChild, start, end);
+
+    if (start > tree->center)
+      return hasIntersectAll(tree->rightChild, start, end);
+
+    return false;
   }
 
   /// void toQList(Node<E, F> *tree, QList<E> &list) const {

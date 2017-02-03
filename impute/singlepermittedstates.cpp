@@ -121,10 +121,9 @@ int SinglePermittedStates::modifyStart(const HapSegment &targetHS, CenteredIntIn
 
   int minEnd = targetHS.end();
 
-  QList<HapSegment> list;
-  tree.intersectAll(maxStart, minEnd, list);
-  /// globalRsb.dumpModifier("Start: ", maxStart, minEnd, list);
-  return list.isEmpty() ? maxStart : targetHS.start();
+  bool hasIA = tree.hasIntersectAll(maxStart, minEnd);
+
+  return hasIA ? targetHS.start() : maxStart;
 }
 
 int SinglePermittedStates::modifyEnd(const HapSegment &targetHS, CenteredIntIntervalTree<HapSegment, HapSegmentES> &tree) const
@@ -137,10 +136,9 @@ int SinglePermittedStates::modifyEnd(const HapSegment &targetHS, CenteredIntInte
   if(minEnd == _pos.length()  ||  _pos[minEnd] > targetValue)  // end is inclusive
     --minEnd;
 
-  QList<HapSegment> list;
-  tree.intersectAll(maxStart, minEnd, list);
-  /// globalRsb.dumpModifier("End: ", maxStart, minEnd, list);
-  return list.isEmpty() ? minEnd : targetHS.end();
+  bool hasIA = tree.hasIntersectAll(maxStart, minEnd);
+
+  return hasIA ? targetHS.end() : minEnd;
 }
 
 void SinglePermittedStates::convertToIndices(int marker,
