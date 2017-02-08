@@ -20,6 +20,20 @@
   fflush(stderr);  \
 }
 
+#define SEND_CUR_MARKERS_IN_WINDOW(nmarkers) { \
+  fprintf(stderr, "MARKERS_IN_WINDOW\t%d\n", nmarkers); \
+  fflush(stderr);  \
+}
+
+#define STEP_BURNIN1 0
+#define STEP_BURNIN2 1
+#define STEP_PHASE41 2
+
+#define SEND_START_ITERATION(step, cur, total) {                      \
+  fprintf(stderr, "START_ITERATION\t%d\t%d\t%d\n", step, cur, total); \
+  fflush(stderr);  \
+}
+
 void ImputeDriver::phaseAndImpute(InputData &data, TargDataReader &targReader,
                                   RefDataReader &refReader, ImputeDataWriter &impWriter,
                                   int windowSize, const Par &par)
@@ -33,6 +47,7 @@ void ImputeDriver::phaseAndImpute(InputData &data, TargDataReader &targReader,
     SEND_PROG_MSG("Loading (marker window) data...");
 
     data.advanceWindow(overlap, par.window(), targReader, refReader);
+    SEND_CUR_MARKERS_IN_WINDOW(targReader.windowSize() - overlap);
     data.setCdData(cd, par, overlapHaps, targReader, refReader);
 
     if (cd.targetGL().isRefData())
@@ -76,6 +91,7 @@ QList<HapPair> ImputeDriver::phase(CurrentData &cd, const Par &par)
   SEND_PROG_MSG("Preparing for initialization...");
 
   QList<HapPair> hapPairs = ImputeDriver::initialHaps(cd, par);
+  int step = 0;
 
   if (par.burnin_its() > 0)
   {
@@ -141,6 +157,8 @@ QList<HapPair> ImputeDriver::runBurnin1(const CurrentData &cd, const Par &par,
     char progressBuff[128];
     sprintf(progressBuff, "Burn-in iteration %d of %d", j + 1, par.burnin_its());
 
+    SEND_START_ITERATION(STEP_BURNIN1, j, par.burnin_its());
+
     hapPairs = ImputeDriver::sample(cd, par, hapPairs, useRevDag, progressBuff);
   }
   return hapPairs;
@@ -156,7 +174,12 @@ QList<HapPair> ImputeDriver::runBurnin2(const CurrentData &cd, const Par &par,
     bool useRevDag = (j & 1) == 1;
 
     char progressBuff[128];
-    sprintf(progressBuff, "Phasing (4.0) iteration %d of %d", j + 1 - start, par.phase40_its());
+    if (par.niterations() > 0) // Don't call it 4.0 here when running in 4.1 mode
+      sprintf(progressBuff, "Second burn-in (4.0) iteration %d of %d", j + 1 - start, par.phase40_its());
+    else
+      sprintf(progressBuff, "Phasing (4.0) iteration %d of %d", j + 1 - start, par.phase40_its());
+
+    SEND_START_ITERATION(STEP_BURNIN2, j - start, par.phase40_its());
 
     hapPairs = ImputeDriver::sample(cd, par, hapPairs, useRevDag, progressBuff);
     cumHapPairs.append(hapPairs);
@@ -179,6 +202,7 @@ QList<HapPair> ImputeDriver::runRecomb(const CurrentData &cd, const Par &par, QL
     char progressBuff[128];
     sprintf(progressBuff, "Phasing (4.1) iteration %d of %d", j + 1 - start, par.niterations());
 
+    SEND_START_ITERATION(STEP_PHASE41, j - start, par.niterations());
     hapPairs = ImputeDriver::recombSample(cd, par, hapPairs, useRevDag, progressBuff);
     cumHapPairs.append(hapPairs);
   }
