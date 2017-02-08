@@ -1,16 +1,10 @@
 #ifndef IMPUTEDRIVER_H
 #define IMPUTEDRIVER_H
 
-#include "impute/baumhmm.h"
-#include "impute/consensusphaser.h"
 #include "impute/dag.h"
 #include "impute/hapalleleprobs.h"
 #include "impute/haplotypepair.h"
 #include "impute/iointerface.h"
-#include "impute/markers.h"
-#include "impute/recombbaum.h"
-#include "impute/samples.h"
-#include "impute/vcfemission.h"
 
 class SamplerData;
 

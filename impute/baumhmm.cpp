@@ -228,7 +228,7 @@ void SingleBaumLevel::checkIndex(int state) const
 
 
 SingleBaum::SingleBaum(const Dag &dag, const SplicedGL &gl, int seed, int nSamplingsPerIndividual,
-                       bool lowMem) : _dag(dag), _gl(gl), _windowIndex(-9999), _arrayIndex(-9999)
+                       bool lowMem) : _dag(dag), _gl(gl), _seed(seed), _windowIndex(-9999), _arrayIndex(-9999)
 {
   Q_ASSERT_X(dag.markers() == gl.markers(),
              "SingleBaum::SingleBaum",
@@ -239,8 +239,8 @@ SingleBaum::SingleBaum(const Dag &dag, const SplicedGL &gl, int seed, int nSampl
 
   _nMarkers = dag.nLevels();
   _nSamplingsPerIndividual = nSamplingsPerIndividual;
-  _seed = seed;
-  // _random = new Random(seed);
+
+  qsrand(seed);
 
   QList<int> zeroList;
   for(int j=0; j < _nMarkers; j++)
@@ -302,9 +302,13 @@ void SingleBaum::initSampleAlleles(const SingleBaumLevel &level, int sample)
 
 int SingleBaum::initialRandomState(const SingleBaumLevel &level, int copy)
 {
-  //////////////////  double d = random.nextDouble();
-  //////////////////  double d = 0.5;
+
+#ifdef SIMULATE_RANDOM
   double d = (double) copy / (double)(_nSamplingsPerIndividual + 1);
+#else
+  double d = (double) qrand() / (double) RAND_MAX;
+#endif
+
   double sum = 0.0;
   for (int j=0, n=level.size(); j<n; ++j) {
     sum += level.forwardValue(j);
@@ -348,10 +352,13 @@ void SingleBaum::sampleAlleles(const SingleBaumLevel &level, int sample)
 int SingleBaum::randomPreviousState(const SingleBaumLevel &level, int node1,
                                     int node2, double nodeValue, int copy)
 {
-  //////////////////  double d = random.nextDouble() * nodeValue;
-  //////////////////  double d = 0.5 * nodeValue;
-  //////////////////  double d = (double) copy / (double)(_nSamplingsPerIndividual + 1);    /// "LoRandom" version
-  double d = ((double)copy / (double)(_nSamplingsPerIndividual + 1)) * nodeValue;    /// "MidRandom" version
+
+#ifdef SIMULATE_RANDOM
+  double d = ((double)copy / (double)(_nSamplingsPerIndividual + 1)) * nodeValue;
+#else
+  double d = ((double) qrand() / (double) RAND_MAX) * nodeValue;
+#endif
+
   double sum = 0.0;
   for (int j=0, n=level.size(); j<n; ++j) {
     if ( node1==level.childNode1(j)

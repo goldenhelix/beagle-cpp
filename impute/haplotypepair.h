@@ -6,6 +6,9 @@
 #include "impute/samples.h"
 #include "impute/vcfemission.h"
 
+// define SIMULATE_RANDOM
+#define AF_LONG_FORMAT
+
 #include <QList>
 
 /**

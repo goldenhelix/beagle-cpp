@@ -1,9 +1,6 @@
 #ifndef BAUMHMM_H
 #define BAUMHMM_H
 
-#include "impute/markers.h"
-#include "impute/samples.h"
-#include "impute/vcfemission.h"
 #include "impute/haplotypepair.h"
 #include "impute/dag.h"
 

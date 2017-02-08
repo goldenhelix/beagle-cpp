@@ -273,18 +273,19 @@ void RecombSingleBaumLevel::checkIndex(int state) const
 }
 
 
-RecombSingleBaum::RecombSingleBaum(const SamplerData &samplerData, /* int seed, */       /// %%%
+RecombSingleBaum::RecombSingleBaum(const SamplerData &samplerData, int seed,
                                    int nSamplingsPerIndividual, bool lowMem)
   : _samplerData(samplerData), _rdag(samplerData.rdag()), _dag(samplerData.rdag().dag()),
   _gl(samplerData.gl()), _windowIndex(-9999), _arrayIndex(-9999),
-  /* _seed(seed), */ _nSamplingsPerIndividual(nSamplingsPerIndividual)                   /// %%%
+  _seed(seed), _nSamplingsPerIndividual(nSamplingsPerIndividual)
 {
   Q_ASSERT_X(nSamplingsPerIndividual >= 1,
              "RecombSingleBaum::RecombSingleBaum",
              "nSamplingsPerIndividual < 1");
 
   _nMarkers = samplerData.nMarkers();
-  // _random = new Random(seed);
+
+  qsrand(seed);
 
   QList<int> zeroList;
   for(int j=0; j < _nMarkers; j++)
@@ -345,14 +346,18 @@ QList<HapPair> RecombSingleBaum::hapList(int sample) const
 void RecombSingleBaum::initSampleAlleles(const RecombSingleBaumLevel &level, int sample)
 {
   for (int j=0; j < _nSamplingsPerIndividual; ++j)
-    saveCurrentData(level, sample, j, initialRandomState(level, j));  /// %%%%%%%%
+    saveCurrentData(level, sample, j, initialRandomState(level, j));
 }
 
 int RecombSingleBaum::initialRandomState(const RecombSingleBaumLevel &level, int copy)
 {
-  //////////////////  float d = random.nextFloat();
-  //////////////////  float d = 0.5;
+
+#ifdef SIMULATE_RANDOM
   float d = (float) copy / (float)(_nSamplingsPerIndividual + 1);
+#else
+  float d = (float) qrand() / (float) RAND_MAX;
+#endif
+
   float sum = 0.0f;
   for (int j=0, n=level.size(); j<n; ++j) {
     sum += level.forwardValue(j);
@@ -399,8 +404,13 @@ int RecombSingleBaum::randomPreviousState(const RecombSingleBaumLevel &level, in
   float np1 = _dag.parentProb(m+1, _node1[copy]);
   float np2 = _dag.parentProb(m+1, _node2[copy]);
   float pRecomb = _samplerData.pRecomb(m+1);
-  /// float d = random.nextFloat() * _maxSum[copy];                                   /// %%%%%%%%
-  float d = ((float) copy / (float)(_nSamplingsPerIndividual + 1)) * _maxSum[copy];   /// %%%%%%%%
+
+#ifdef SIMULATE_RANDOM
+  float d = ((float) copy / (float)(_nSamplingsPerIndividual + 1)) * _maxSum[copy];
+#else
+  float d = ((float) qrand() / (float) RAND_MAX) * _maxSum[copy];
+#endif
+
   float sum = 0.0f;
   for (int j=0, n=level.size(); j<n; ++j) {
     float tp = 0.0f;

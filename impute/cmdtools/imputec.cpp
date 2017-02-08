@@ -411,7 +411,7 @@ void VcfDataWriter::appendPhasedVariantData()
   if (_printDS) {
     for (int j = 1; j < _nAlleles; ++j) {
       _recs.write((j == 1) ? ":" : ",");
-      ////////////_recs.write(QByteArray::number(_dose[j], 'f', 8)); ////////////////
+      /// _recs.write(QByteArray::number(_dose[j], 'f', 8));
       _recs.write(asTrimString2(_dose[j]));
     }
   }
@@ -419,7 +419,7 @@ void VcfDataWriter::appendPhasedVariantData()
   if (_printGP) {
     for (int j = 0; j < _gtProbs.length(); ++j) {
       _recs.write((j == 0) ? ":" : ",");
-      ////////////_recs.write(QByteArray::number(_gtProbs[j], 'f', 8)); ////////////////
+      /// _recs.write(QByteArray::number(_gtProbs[j], 'f', 8));
       _recs.write(asTrimString2(_gtProbs[j]));
     }
   }
@@ -440,20 +440,25 @@ void VcfDataWriter::finishAndWriteRec()
 
   if (_printDS || _printGP) {
     _out.write("AR2=");
-    ////////////////_out.write(QByteArray::number(_r2Est.allelicR2(), 'f', 8)); ////////////////
+    /// _out.write(QByteArray::number(_r2Est.allelicR2(), 'f', 8));
     _out.write(QByteArray::number(_r2Est.allelicR2(), 'f', 2));
     _out.write(";DR2=");
-    ////////////////_out.write(QByteArray::number(_r2Est.doseR2(), 'f', 8)); ////////////////
+    /// _out.write(QByteArray::number(_r2Est.doseR2(), 'f', 8));
     _out.write(QByteArray::number(_r2Est.doseR2(), 'f', 2));
 
     for (int j = 1; j < _nAlleles; ++j) {
       _out.write((j == 1) ? ";AF=" : ",");
       double af = _cumAlleleProbs[j] / (2 * _r2Est.nGenotypes());
-      _out.write(QByteArray::number(af, 'f', 12)); ////////////////
-      ////////////////if(af >= .01  ||  af < .0001)
-      ////////////////  _out.write(asTrimString2(af));
-      ////////////////else
-      ////////////////  _out.write(QByteArray::number(af, 'f', 4));
+
+#ifdef AF_LONG_FORMAT
+      _out.write(QByteArray::number(af, 'f', 12));
+#else
+      if(af >= .01  ||  af < .0001)
+        _out.write(asTrimString2(af));
+      else
+        _out.write(QByteArray::number(af, 'f', 4));
+#endif
+
     }
 
     if (_isImputed[_mNum])

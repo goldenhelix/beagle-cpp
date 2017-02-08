@@ -174,9 +174,9 @@ void RecombSingleBaumRunner::resultsReady(int sampleIdx, int workerId, QList<Hap
 // RecombSingleBaumWorker
 // ----------------
 
-RecombSingleBaumWorker::RecombSingleBaumWorker(const SamplerData &samplerData, /* int seed, */
+RecombSingleBaumWorker::RecombSingleBaumWorker(const SamplerData &samplerData, int seed,
                                                int nSamplingsPerIndividual, bool lowmem)
-  : _rbaum(samplerData, /* seed, */ nSamplingsPerIndividual, lowmem)
+  : _rbaum(samplerData, seed, nSamplingsPerIndividual, lowmem)
 {
 }
 

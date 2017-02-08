@@ -54,7 +54,7 @@ static void storePhase(const QList<HapPair> &hapList, int marker, int a1, int a2
   }
 }
 
-static int relPhase(QVector<int> ph1, QVector<int> ph2 /*, Random rand */)
+static int relPhase(QVector<int> ph1, QVector<int> ph2)
 {
   Q_ASSERT_X(
       ph1.length() == ph2.length(), "relPhase (consensusphaser.cpp)", "ph1.length != ph2.length");
@@ -89,8 +89,13 @@ static int relPhase(QVector<int> ph1, QVector<int> ph2 /*, Random rand */)
   else if (oppCnt > identCnt)
     return ConsensusPhaser::OPPOSITE;
   else {
-    /// return rand.nextBoolean() ? ConsensusPhaser::IDENTICAL : ConsensusPhaser::OPPOSITE;
+
+#ifdef SIMULATE_RANDOM
     return ConsensusPhaser::IDENTICAL;
+#else
+    return (qrand() % 2) ? ConsensusPhaser::IDENTICAL : ConsensusPhaser::OPPOSITE;
+#endif
+
   }
 }
 
@@ -127,13 +132,18 @@ static QVector<int> gtCounts(const QList<HapPair> &hapList, const Markers &marke
 }
 
 static int consensusGT(const QList<HapPair> &hapList, const Markers &markers,
-                       int marker /*, Random random */)
+                       int marker)
 {
   QVector<int> gtc = gtCounts(hapList, markers, marker);
-
   int gtclen = gtc.length();
-  /// int start = random.nextInt(gtclen);
-  int start = gtclen / 2;
+  int start;
+
+#ifdef SIMULATE_RANDOM
+  start = gtclen / 2;
+#else
+  start = qrand() % gtclen;
+#endif
+
   int bestGt = start;
   for (int j = 1; j < gtclen; ++j) {
     int gt = start + j;
@@ -149,9 +159,9 @@ static int consensusGT(const QList<HapPair> &hapList, const Markers &markers,
 }
 
 static int hapPairWithConsensusGT(const QList<HapPair> &hapList, const Markers &markers,
-                                  int marker /*, Random random */)
+                                  int marker)
 {
-  int bestGT = consensusGT(hapList, markers, marker /*, random */);
+  int bestGT = consensusGT(hapList, markers, marker);
 
   for (int j = 0, n = hapList.size(); j < n; ++j) {
     const HapPair &hp = hapList[j];
@@ -165,7 +175,7 @@ static int hapPairWithConsensusGT(const QList<HapPair> &hapList, const Markers &
   return 0;
 }
 
-static HapPair consensus(const QList<HapPair> &hapList /*, Random rand */)
+static HapPair consensus(const QList<HapPair> &hapList)
 {
   const HapPair &firstHP = hapList[0];
   int sampleIndex = firstHP.sampleIndex();
@@ -179,7 +189,7 @@ static HapPair consensus(const QList<HapPair> &hapList /*, Random rand */)
   QList<int> alleles2;
 
   for (int m = 0; m < nMarkers; ++m) {
-    int hp = hapPairWithConsensusGT(hapList, markers, m /*, rand */);
+    int hp = hapPairWithConsensusGT(hapList, markers, m);
     // retrieve actual allele order to match input phased data
     int a1 = hapList[hp].allele1(m);
     int a2 = hapList[hp].allele2(m);
@@ -188,7 +198,7 @@ static HapPair consensus(const QList<HapPair> &hapList /*, Random rand */)
       if (lastConsensus != ConsensusPhaser::UNINITIALIZED)
       {
         ConsensusPhaser::Phase thisConsensus;
-                if (relPhase(lastPhase, currentPhase /*, rand */) == ConsensusPhaser::IDENTICAL)
+                if (relPhase(lastPhase, currentPhase) == ConsensusPhaser::IDENTICAL)
           thisConsensus = lastConsensus;
         else
           thisConsensus = flip(lastConsensus);
@@ -229,9 +239,9 @@ QList<HapPair> ConsensusPhaser::consensusPhase(const QList<HapPair> &hapPairs)
     return copy;
 
   checkMarkers(copy);
-  qStableSort(copy.begin(), copy.end(), hapsComparator);
+  qsrand(copy.size());
 
-  /// Random random = new Random(copy.size());
+  qStableSort(copy.begin(), copy.end(), hapsComparator);
 
   QList<HapPair> consensusPairs;
   int start = 0;
@@ -244,7 +254,7 @@ QList<HapPair> ConsensusPhaser::consensusPhase(const QList<HapPair> &hapPairs)
     if (end - start == 1)
       consensusPairs.append(copy[start]);
     else
-      consensusPairs.append(consensus(copy.mid(start, end - start) /*, random */));
+      consensusPairs.append(consensus(copy.mid(start, end - start)));
 
     start = end;
   }

@@ -87,13 +87,21 @@ static QList<Edit> getEdits(const HapPair &hapPair, const MaskedEndsGL &gl /*, R
       int glA2 = gl.allele2(marker, sample);
       if (glA1 >= 0  &&  glA2 >= 0)
       {
-        /////// if (gl.isPhased(marker, sample)==false && random.nextBoolean())
-        if (gl.isPhased(marker, sample)==false && (marker % 2))
-        {
+
+#ifdef SIMULATE_RANDOM
+        if (gl.isPhased(marker, sample) == false  &&  (marker % 2)) {
           int tmp = glA1;
           glA1 = glA2;
           glA2 = tmp;
         }
+#else
+        if (gl.isPhased(marker, sample) == false  &&  (qrand() % 2)) {
+          int tmp = glA1;
+          glA1 = glA2;
+          glA2 = tmp;
+        }
+#endif
+
         corrections.append(Edit(hapPair, marker, glA1, glA2));
       }
     }
@@ -137,7 +145,7 @@ static HapPair updatedHapPair(const HapPair &hapPair,
 
 void GenotypeCorrection::correct(QList<HapPair> &hapPairs, const MaskedEndsGL &gl, int seed)
 {
-  //// Random random = new Random(seed);
+  qsrand(seed);
 
   for (int j=0, n=hapPairs.size(); j<n; ++j)
   {

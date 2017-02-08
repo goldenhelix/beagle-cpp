@@ -1,5 +1,7 @@
 #include "impute/imputedriver.h"
 
+#include "impute/consensusphaser.h"
+#include "impute/baumhmm.h"
 #include "impute/samplerdata.h"
 #include "impute/recombbaum.h"
 #include "impute/imputationdata.h"
@@ -77,7 +79,6 @@ QList<HapPair> ImputeDriver::phase(CurrentData &cd, const Par &par)
 
   if (par.burnin_its() > 0)
   {
-    /// runStats.println(Const.nl + "Starting burn-in iterations");
     hapPairs = ImputeDriver::runBurnin1(cd, par, hapPairs);
   }
 
@@ -88,11 +89,13 @@ QList<HapPair> ImputeDriver::phase(CurrentData &cd, const Par &par)
 
   if (par.niterations() > 0)
   {
-    /// runStats.println(Const.nl + "Starting phasing iterations");
     hapPairs = ImputeDriver::runRecomb(cd, par, hapPairs);
   }
   else
+  {
+    SEND_PROG_MSG("Consensus phasing...");
     hapPairs = ConsensusPhaser::consensusPhase(hapPairs);
+  }
 
   return hapPairs;
 }
@@ -163,7 +166,9 @@ QList<HapPair> ImputeDriver::runBurnin2(const CurrentData &cd, const Par &par,
 
 QList<HapPair> ImputeDriver::runRecomb(const CurrentData &cd, const Par &par, QList<HapPair> hapPairs)
 {
+  SEND_PROG_MSG("Consensus phasing...");
   hapPairs = ConsensusPhaser::consensusPhase(hapPairs);
+
   QList<HapPair> cumHapPairs;
   int start = par.burnin_its() + par.phase40_its();
   int end = start + par.niterations();
@@ -177,8 +182,13 @@ QList<HapPair> ImputeDriver::runRecomb(const CurrentData &cd, const Par &par, QL
     hapPairs = ImputeDriver::recombSample(cd, par, hapPairs, useRevDag, progressBuff);
     cumHapPairs.append(hapPairs);
   }
+
+  SEND_PROG_MSG("Final consensus phasing...");
   hapPairs = ConsensusPhaser::consensusPhase(cumHapPairs);
+
+  SEND_PROG_MSG("Correcting genotypes...");
   hapPairs = correctGenotypes(cd, par, hapPairs);
+
   return hapPairs;
 }
 
@@ -257,33 +267,14 @@ QVector<float> ImputeDriver::getHapWeights(HapPairs haps, const CurrentData &cd)
   return fa;
 }
 
-    /*
-struct WorkerArgs {
-  Dag* dag;
-  SplicedGL* gl;
-  int seed;
-  int nSamplingsPerIndividual;
-  bool lowmem;
-  int sampleIdx;
-
-  WorkerArgs(Dag* dag_, SplicedGL* gl_, int seed_, int nSamplingsPerIndividual_, bool lowmem_, int sampleIdx_)
-    : dag(dag_), gl(gl_), seed(seed_), nSamplingsPerIndividual(nSamplingsPerIndividual_), lowmem(lowmem_), sampleIdx(sampleIdx_)
-  {}
-};
-
-QList<HapPair> runSingleBaumWork(WorkerArgs args)
-{
- SingleBaum baum(*args.dag, *args.gl, args.seed, args.nSamplingsPerIndividual, args.lowmem);
- return baum.randomSample(single);
-}
-    */
-
 QList<QThread*> gThreads; // Global thread pool
 
 void ImputeDriver::sample(const Dag &dag, const SplicedGL &gl, int seed, bool markersAreReversed,
                           int nSamplingsPerIndividual, QList<HapPair> &sampledHaps, int nThreads,
                           bool lowmem, char *whichIteration)
 {
+  qsrand(seed);
+
   for (int i = gThreads.size(); i < nThreads; i++) {
     QThread *t = new QThread();
     t->setObjectName("Imputation Worker Thread");
@@ -295,7 +286,7 @@ void ImputeDriver::sample(const Dag &dag, const SplicedGL &gl, int seed, bool ma
 
   // One worker per thread
   for (int i = 0; i < nThreads; i++) {
-    SingleBaumWorker *worker = new SingleBaumWorker(dag, gl, seed, nSamplingsPerIndividual, lowmem);
+    SingleBaumWorker *worker = new SingleBaumWorker(dag, gl, qrand(), nSamplingsPerIndividual, lowmem);
     runner.moveWorkerToThread(worker, gThreads[i]);
   }
 
@@ -320,11 +311,13 @@ QList<HapPair> ImputeDriver::recombSample(const CurrentData &cd, const Par &par,
                                           const QList<HapPair> &hapPairs,
                                           bool useRevDag, char *whichIteration)
 {
+  // globalRsb.setOkToDump(true);
+
+  SEND_PROG_MSG("%s: Consensus phasing...", whichIteration);
+  QList<HapPair> haps = ConsensusPhaser::consensusPhase(hapPairs);
+
   SEND_PROG_MSG("%s: Preparing DAG and IBS data...", whichIteration);
 
-  globalRsb.setOkToDump(true);
-
-  QList<HapPair> haps = ConsensusPhaser::consensusPhase(hapPairs);
   cd.addRestrictedRefHapPairs(haps);
 
   SampleHapPairs dagHaps(cd.allSamples(), haps, useRevDag);
@@ -334,7 +327,7 @@ QList<HapPair> ImputeDriver::recombSample(const CurrentData &cd, const Par &par,
 
   RestrictedDag rdag(dag, dagHaps, par.ibdlength(), par.ibdextend());
 
-  SamplerData samplerData(rdag, par, cd, useRevDag /* , runStats */ );
+  SamplerData samplerData(rdag, par, cd, useRevDag);
 
   QList<HapPair> sampledHaps;
   ImputeDriver::recombSample(samplerData, par, sampledHaps, whichIteration);
@@ -344,11 +337,10 @@ QList<HapPair> ImputeDriver::recombSample(const CurrentData &cd, const Par &par,
 void ImputeDriver::recombSample(const SamplerData &samplerData, const Par &par,
                                 QList<HapPair> &sampledHaps, char *whichIteration)
 {
-  // long t0 = System.nanoTime();
-
   int nThreads = par.nThreads();
   bool markersAreReversed = samplerData.markersAreReversed();
-  // Random rand = new Random(par.seed());
+
+  qsrand(par.seed());
 
   for (int i = gThreads.size(); i < nThreads; i++) {
     QThread *t = new QThread();
@@ -362,7 +354,7 @@ void ImputeDriver::recombSample(const SamplerData &samplerData, const Par &par,
   // One worker per thread
   for (int i = 0; i < nThreads; i++) {
     RecombSingleBaumWorker *worker
-      = new RecombSingleBaumWorker(samplerData, /* rand.nextLong(), */
+      = new RecombSingleBaumWorker(samplerData, qrand(),
                                    par.nSamplingsPerIndividual(), par.lowMem());
     runner.moveWorkerToThread(worker, gThreads[i]);
   }

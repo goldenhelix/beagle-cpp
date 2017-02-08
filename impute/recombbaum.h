@@ -392,7 +392,7 @@ public:
    * @param lowMem {@code true} if a low memory algorithm should be used, and
    * {@code false} otherwise
    */
-  RecombSingleBaum(const SamplerData &samplerData /* , int seed */ , int nSamplingsPerIndividual,   /// %%%
+  RecombSingleBaum(const SamplerData &samplerData, int seed, int nSamplingsPerIndividual,
                    bool lowMem);
 
   QList<HapPair> randomSample(int sample);

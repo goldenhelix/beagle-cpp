@@ -2,6 +2,8 @@
 #define WORKERRUNNER_H
 
 #include "impute/imputedriver.h"
+#include "impute/baumhmm.h"
+#include "impute/recombbaum.h"
 #include "impute/imputationdata.h"
 
 #include <QHash>
@@ -110,7 +112,7 @@ class RecombSingleBaumWorker : public ComputeWorker
   Q_OBJECT;
 
 public:
-  RecombSingleBaumWorker(const SamplerData &samplerData, /* int seed, */
+  RecombSingleBaumWorker(const SamplerData &samplerData, int seed,
                          int nSamplingsPerIndividual, bool lowmem);
 
 public slots:

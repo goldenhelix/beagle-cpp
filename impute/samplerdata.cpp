@@ -4,7 +4,6 @@
 #include "impute/iointerface.h"
 #include "impute/haplotypepair.h"
 
-#include "impute/ibshapsegments.h"
 #include "impute/singlepermittedstates.h"
 
 #include <QLinkedList>
