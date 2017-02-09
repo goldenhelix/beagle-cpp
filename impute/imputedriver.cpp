@@ -25,9 +25,12 @@
   fflush(stderr);  \
 }
 
+#define STEP_NEW_WINDOW -1
 #define STEP_BURNIN1 0
 #define STEP_BURNIN2 1
 #define STEP_PHASE41 2
+#define STEP_IMPUTE  3
+#define STEP_FINISH  4
 
 #define SEND_START_ITERATION(step, cur, total) {                      \
   fprintf(stderr, "START_ITERATION\t%d\t%d\t%d\n", step, cur, total); \
@@ -46,9 +49,10 @@ void ImputeDriver::phaseAndImpute(InputData &data, TargDataReader &targReader,
   {
     SEND_PROG_MSG("Loading (marker window) data...");
 
+    SEND_START_ITERATION(STEP_NEW_WINDOW, 0, 0);
     data.advanceWindow(overlap, par.window(), targReader, refReader);
-    SEND_CUR_MARKERS_IN_WINDOW(targReader.windowSize() - overlap);
     data.setCdData(cd, par, overlapHaps, targReader, refReader);
+    SEND_CUR_MARKERS_IN_WINDOW(cd.nMarkers() - overlap);
 
     if (cd.targetGL().isRefData())
       overlap = ImputeDriver::finishWindow(overlapHaps, cd, par, impWriter,
@@ -73,6 +77,7 @@ int ImputeDriver::finishWindow(SampleHapPairs &overlapHaps, const CurrentData &c
     {
       SEND_PROG_MSG("Outputting (marker window) data...");
 
+      SEND_START_ITERATION(STEP_FINISH, 0, 0);
       impWriter.printWindowOutput(cd, targetHapPairs, ConstrainedAlleleProbs(targetHapPairs), par);
     }
     else
@@ -415,6 +420,8 @@ ConstrainedAlleleProbs ImputeDriver::LSImpute(const CurrentData &cd, const Par &
 {
   SEND_PROG_MSG("Preparing to impute (marker window) data...");
 
+  SEND_START_ITERATION(STEP_IMPUTE, 0, 1);
+
   // Should expect our gThreads initialized by previous ::sample calls
   Q_ASSERT(gThreads.size() > 0 && gThreads.size() == par.nThreads());
 
@@ -460,6 +467,8 @@ ConstrainedAlleleProbs ImputeDriver::LSImpute(const CurrentData &cd, const Par &
   }
 */
   SEND_PROG_MSG("Outputting (marker window) data...");
+
+  SEND_START_ITERATION(STEP_FINISH, 0, 0);
 
   return ConstrainedAlleleProbs(targetHapPairs, hapAlProbList, cd.markerIndices());
 }
