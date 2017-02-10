@@ -221,8 +221,8 @@ public:
   /**
    * Returns the first target marker index in the overlap between this
    * marker window and the next marker window, or
-   * returns {@code this.nMarkers()} if there is no overlap or if there are
-   * no target markers in the overlap.
+   * returns {@code this.nTargetMarkers()} if there is no overlap or
+   * if there are no target markers in the overlap.
    */
   int nextTargetOverlapStart() const { return _nextTargetOverlapStart; }
   /**

@@ -52,7 +52,7 @@ void ImputeDriver::phaseAndImpute(InputData &data, TargDataReader &targReader,
     SEND_START_ITERATION(STEP_NEW_WINDOW, 0, 0);
     data.advanceWindow(overlap, par.window(), targReader, refReader);
     data.setCdData(cd, par, overlapHaps, targReader, refReader);
-    SEND_CUR_MARKERS_IN_WINDOW(cd.nMarkers() - overlap);
+    SEND_CUR_MARKERS_IN_WINDOW(cd.nextTargetOverlapStart());
 
     if (cd.targetGL().isRefData())
       overlap = ImputeDriver::finishWindow(overlapHaps, cd, par, impWriter,
