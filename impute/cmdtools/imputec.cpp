@@ -435,7 +435,21 @@ void VcfDataWriter::finishAndWriteRec()
   _out.write("\t");
   _out.write(_marker.allele(0));
   _out.write("\t");
-  _out.write((_marker.nAlleles() == 1) ? "." : _marker.allele(1));
+
+  int nAlleles = _marker.nAlleles();
+  if(nAlleles == 1)
+    _out.write(".");
+  else
+  {
+    _out.write(_marker.allele(1));
+
+    for(int na=2; na < nAlleles; na++)
+    {
+      _out.write(",");
+      _out.write(_marker.allele(na));
+    }
+  }
+
   _out.write("\t.\tPASS\t");  // QUAL  FILTER
 
   if (_printDS || _printGP) {
