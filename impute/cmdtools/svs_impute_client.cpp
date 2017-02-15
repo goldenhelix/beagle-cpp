@@ -251,7 +251,7 @@ bool StreamDataParser::hasNextRec()
     if(record.alleles.size() > 0)
       _recordBuffer << record; //Don't add all missing markers
   }
-  qDebug("read %d records in %d bytes", numRecords, data.size());
+  // qDebug("read %d records in %d bytes", numRecords, data.size());
   return true;
 }
 
@@ -486,7 +486,7 @@ void StreamDataWriter::finalizeForWindow()
 {
   _buffer.close();
   QByteArray data = _buffer.data();
-  qDebug("finished window. Sending %d bytes", data.size());
+  // qDebug("finished window. Sending %d bytes", data.size());
 
   _socket.connectToHost("127.0.0.1", _ipcPort, QIODevice::WriteOnly);
   if(_socket.state() != QAbstractSocket::ConnectedState){
@@ -497,7 +497,7 @@ void StreamDataWriter::finalizeForWindow()
   SocketWriter writer(&_socket);
   writer.writeBlocking(data); //Wait till all bytes written
   _socket.close();
-  qDebug("written!");
+  // qDebug("written!");
 }
 
 int main(int argc, char* argv[])
