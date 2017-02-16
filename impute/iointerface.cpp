@@ -125,15 +125,15 @@ void TargDataReader::restrictedAdvanceWindow(QList<int> &refIndices, int refOver
 
     if(rBest >= 0)
     {
-      ///// if(nextTargRec.marker() == nextMarkers.marker(rBest))   //////////////// TEST LOWER PORTION ON NORMAL DATA AS A REGRESSION TEST.......
-      ///// {
-      /////   // All alleles correspond between the two records. Use this
-      /////   // target record as is.
-      ///// 
-      /////   _vcfEmissions.append(nextTargRec);
-      ///// }
-      ///// else
-      ///// {
+      if(nextTargRec.marker() == nextMarkers.marker(rBest))
+      {
+        // All alleles correspond between the two records. Use this
+        // target record as is.
+      
+        _vcfEmissions.append(nextTargRec);
+      }
+      else
+      {
         // All of the target record's alleles match alleles in the
         // reference record, but the reference record also has other
         // alleles. We thus need to translate our allele numbers, and
@@ -165,7 +165,7 @@ void TargDataReader::restrictedAdvanceWindow(QList<int> &refIndices, int refOver
         translatedRec.storeAlleles(als1, als2, arePhased);
 
         _vcfEmissions.append(translatedRec);
-      ///// }
+      }
 
       refIndices.append(rBest);
 
