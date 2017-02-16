@@ -74,6 +74,30 @@ public:
    */
   int nGenotypes() const { return _d->nGenotypes; }
   /**
+   * Returns how well the "other" marker's alleles match up to "this"
+   * marker's alleles.
+   *
+   * If all of "this" marker's alleles match up to the "other"
+   * marker's alleles, with both lists matching the first allele, the
+   * number of total alleles in the "other" marker is returned.
+   *
+   * Otherwise, zero is returned.
+   *
+   * All alleles beyond the first allele in both lists must be sorted
+   * alphabetically.
+   */
+  int alleleMatchScore(const Marker &otherMarker) const;
+  /**
+   * Returns the translations of the allele numbers to be used in
+   * order to match the other marker's alleles. Presumably, these
+   * markers have a positive "match score" as defined by the method
+   * above.
+   *
+   * NOTE: Please add one to the other allele's value--this has been
+   * done as the quick way to account for missing values.
+   */
+  QList<int> alleleTranslateArray(const Marker &otherMarker) const;
+  /**
    * Returns true if the other Marker has the same chromosome,
    * position, and allele lists, and returns false otherwise.
    * Equality does not depend on the value of the ID field.

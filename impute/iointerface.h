@@ -87,7 +87,6 @@ public:
 
   int windowSize() const { return _vcfEmissions.length(); }
   QList<BitSetGT> vcfRecs() const { return _vcfEmissions; }
-  int restrictedCumMarkerCount() { return _restrictedCumMarkerCnt; }
 
   virtual bool canAdvanceWindow() const = 0;
 
@@ -109,7 +108,6 @@ protected:
   QList<BitSetGT> _oldVcfEmissions;
   QList<BitSetGT> _vcfEmissions;
 
-  int _restrictedCumMarkerCnt;
   int _restrictedSingleMarkerCnt;
   int _restrictedZeroMarkerCnt;
 };

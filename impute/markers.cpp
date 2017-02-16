@@ -44,6 +44,57 @@ int ChromeIds::getIndexIfIndexed(CString name)
     return -1;
 }
 
+static int alMatchScore(QList<CString> theseAlleles, QList<CString> otherAlleles)
+{
+  if(theseAlleles[0] != otherAlleles[0])
+    return 0;
+
+  int otherPos = 1;
+  int otherLength = otherAlleles.length();
+  for(int thisPos=1; thisPos < theseAlleles.length(); thisPos++)
+  {
+    while(otherPos < otherLength)
+    {
+      if(otherAlleles[otherPos] == theseAlleles[thisPos])
+        break;
+      if(otherAlleles[otherPos] > theseAlleles[thisPos])
+        return 0;  // No match for theseAlleles[thisPos]
+
+      otherPos++;
+    }
+
+    if(otherPos == otherLength)
+      return 0;    // No match for theseAlleles[thisPos]
+  }
+
+  return otherLength;
+}
+
+static QList<int> alTranslateArray(QList<CString> theseAlleles, QList<CString> otherAlleles)
+{
+  QList<int> transArray;
+  transArray.append(-1); // Plug in the missing-value value.
+  transArray.append(0);  // The first ("reference") alleles presumably match.
+
+  int otherPos = 1;
+  int otherLength = otherAlleles.length();
+  for(int thisPos=1; thisPos < theseAlleles.length(); thisPos++)
+  {
+    while(otherPos < otherLength)
+    {
+      if(otherAlleles[otherPos] == theseAlleles[thisPos])
+      {
+        transArray.append(otherPos);
+        break;
+      }
+
+      otherPos++;
+    }
+  }
+
+  return transArray;
+}
+
 void Marker::setIdInfo(int chromIndex, int pos, const CString &id)
 {
   _d->chromIndex = chromIndex;
@@ -71,6 +122,16 @@ CString Marker::id() const
     return _d->id;
   else
     return CString(QString("%1:%2").arg((QString)chrom()).arg(pos()));
+}
+
+int Marker::alleleMatchScore(const Marker &otherMarker) const
+{
+  return alMatchScore(_d->allelesInMarker, otherMarker.alleles());
+}
+
+QList<int> Marker::alleleTranslateArray(const Marker &otherMarker) const
+{
+  return alTranslateArray(_d->allelesInMarker, otherMarker.alleles());
 }
 
 // Do not be concerned about equality of the marker ID's.

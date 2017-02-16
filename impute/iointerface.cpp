@@ -61,8 +61,7 @@ int RefDataReader::currentChromIndex() const
     return -1;
 }
 
-TargDataReader::TargDataReader() : _restrictedCumMarkerCnt(0),
-                                   _restrictedSingleMarkerCnt(0),
+TargDataReader::TargDataReader() : _restrictedSingleMarkerCnt(0),
                                    _restrictedZeroMarkerCnt(0)
 {
 }
@@ -97,23 +96,123 @@ QList<int> TargDataReader::restrictedMakeNewWindow(const QList<int> &oldRefIndic
 void TargDataReader::restrictedAdvanceWindow(QList<int> &refIndices, int refOverlap,
                                              const Markers &nextMarkers)
 {
+  int currentChromIndex = nextMarkers.marker(0).chromIndex();
+  int numRefMarkers = nextMarkers.nMarkers();
+
+  int rStart = refOverlap;
+  while(hasNextRec() && nextRec().marker().chromIndex() == currentChromIndex)
+  {
+    BitSetGT nextTargRec = nextRec();
+    int curTargetPos = nextTargRec.marker().pos();
+
+    while(rStart < numRefMarkers  &&  nextMarkers.marker(rStart).pos() < curTargetPos)
+      rStart++;
+
+    int r = rStart;
+    int rBest = -1;
+    int bestMatchScore = 0;
+    while(r < numRefMarkers  &&  nextMarkers.marker(r).pos() == curTargetPos)
+    {
+      int matchScore = nextTargRec.marker().alleleMatchScore(nextMarkers.marker(r));
+      if(matchScore  &&  matchScore >= bestMatchScore)
+      {
+        rBest = r;
+        bestMatchScore = matchScore;
+      }
+
+      r++;
+    }
+
+    if(rBest >= 0)
+    {
+      ///// if(nextTargRec.marker() == nextMarkers.marker(rBest))   //////////////// TEST LOWER PORTION ON NORMAL DATA AS A REGRESSION TEST.......
+      ///// {
+      /////   // All alleles correspond between the two records. Use this
+      /////   // target record as is.
+      ///// 
+      /////   _vcfEmissions.append(nextTargRec);
+      ///// }
+      ///// else
+      ///// {
+        // All of the target record's alleles match alleles in the
+        // reference record, but the reference record also has other
+        // alleles. We thus need to translate our allele numbers, and
+        // make sure our marker information matches that of the
+        // reference marker.
+
+        Marker refMarker = nextMarkers.marker(rBest);
+
+        BitSetGT translatedRec(_samples);
+        translatedRec.setIdInfo(refMarker.chromIndex(), refMarker.pos(), refMarker.id());
+
+        foreach (QByteArray al, refMarker.alleles())
+          translatedRec.addAllele(al);
+
+        QList<int> trans = nextTargRec.marker().alleleTranslateArray(refMarker);
+
+        int nTargSamples = _samples.nSamples();
+        QVector<int> als1(nTargSamples);
+        QVector<int> als2(nTargSamples);
+        QVector<bool> arePhased(nTargSamples);
+
+        for(int ts=0; ts < nTargSamples; ts++)
+        {
+          als1[ts]      = trans[nextTargRec.allele1(ts) + 1];
+          als2[ts]      = trans[nextTargRec.allele2(ts) + 1];
+          arePhased[ts] = nextTargRec.isPhased(ts);
+        }
+
+        translatedRec.storeAlleles(als1, als2, arePhased);
+
+        _vcfEmissions.append(translatedRec);
+      ///// }
+
+      refIndices.append(rBest);
+
+      rStart = rBest + 1;              // Keep everything in a forward order, but allow for
+                                       // maybe another target record match in this position.
+      advanceRec();
+    }
+    else if(r < numRefMarkers)
+    {
+      // We had no match at this genomic position, but there are more
+      // reference markers in this window. Move on to later genomic
+      // positions that exist in this window in the reference and
+      // possibly exist in this window in the target.
+
+      rStart = r;
+      advanceRec();
+    }
+    else
+    {
+      // The last possible condition is that there are no further
+      // reference markers in this window. We therefore need to get
+      // out of our target-reading loop and "preserve" any pending
+      // target records for matching with future reference windows.
+
+      break;
+    }
+  }
+
+  /* Original Beagle algorithm:
   for (int j = refOverlap, n = nextMarkers.nMarkers(); j < n; ++j) {
     Marker m = nextMarkers.marker(j);
     if (hasNextRec() && nextRec().marker().chromIndex() == m.chromIndex()) {
-      while (hasNextRec() && nextRec().marker().pos() < m.pos())
+      while (hasNextRec() && nextRec().marker().pos() < m.pos())  /// %%%%% WHAT IF TARG. MARKER GOES INTO NEXT CHROMOSOME?
         advanceRec();
 
-      while (hasNextRec() && nextRec().marker().pos() == m.pos() &&
+      while (hasNextRec() && nextRec().marker().pos() == m.pos() &&  /// %%%%% (SAME COMMENT...) WHAT IF TARG. MARKER GOES INTO NEXT CHROMOSOME?
              (nextRec().marker() == m) == false)
         advanceRec();
     }
     if (hasNextRec() && nextRec().marker() == m) {
-      _restrictedCumMarkerCnt++;
+      /// _restrictedCumMarkerCnt++;  %%%%%%%%%% THIS IS NEVER USED....
       _vcfEmissions.append(nextRec());
       refIndices.append(j);
       advanceRec();
     }
   }
+  */
 
   if(!_vcfEmissions.length())
     _restrictedZeroMarkerCnt++;
@@ -126,8 +225,6 @@ void TargDataReader::restrictedAdvanceWindow(QList<int> &refIndices, int refOver
     markerlist.append(_vcfEmissions[i].marker());
 
   _markers = Markers(markerlist);
-
-  _restrictedCumMarkerCnt += _markers.nMarkers();
 }
 
 // Re-implementation of this method is optional.
