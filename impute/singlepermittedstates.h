@@ -40,7 +40,7 @@ class SortedSet
 
   bool hasIntersectAll(int start, int end) const
   {
-    QMap<E, E>::const_iterator i = _sortMap.constBegin();
+    typename QMap<E, E>::const_iterator i = _sortMap.constBegin();
 
     while(i != _sortMap.constEnd()  &&  i.value().start() <= start)
     {
@@ -222,6 +222,22 @@ public:
 
   bool hasIntersectAll(int start, int end) const
   {
+    /*
+    QMapIterator<E, E> it = sortedStart.iterator();
+    while (it.hasNext()) {
+      E e = it.next().value();
+      if (e.start() <= start) {
+        if (e.end() >= end) {
+          return true;
+        }
+      }
+      else {
+        return false;
+      }
+    }
+    return false;
+    */
+
     return sortedStart.hasIntersectAll(start, end);
   }
 
