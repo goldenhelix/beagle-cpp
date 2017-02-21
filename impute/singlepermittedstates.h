@@ -21,8 +21,6 @@ class SortedSet
     }
   }
 
-  bool contains(const E &element) const { return _sortMap.contains(element); }
-
   bool remove(const E &element)
   {
     if(_sortMap.contains(element))
@@ -34,11 +32,26 @@ class SortedSet
       return false;
   }
 
-  QMapIterator<E, E> iterator() const { return QMapIterator<E, E>(_sortMap); }
-
   void clear() { _sortMap.clear(); }
 
+  bool contains(const E &element) const { return _sortMap.contains(element); }
+  QMapIterator<E, E> iterator() const { return QMapIterator<E, E>(_sortMap); }
   QList<E> wholeList() const { return _sortMap.values(); }
+
+  bool hasIntersectAll(int start, int end) const
+  {
+    QMap<E, E>::const_iterator i = _sortMap.constBegin();
+
+    while(i != _sortMap.constEnd()  &&  i.value().start() <= start)
+    {
+      if(i.value().end() >= end)
+        return true;
+
+      i = _sortMap.lowerBound(E(0, i.value().start(), end));  // Hap, start, end
+    }
+
+    return false;
+  }
 
 private:
   QMap<E, E> _sortMap;
@@ -115,7 +128,39 @@ public:
         F f = it.next().value();
         if (f.end() >= point) {
           const F &fp = f;
-          collection.append(fp);   // This will downcast from f to e.
+          collection.append(fp);   // This will downcast from an F to an E.
+        }
+        else {
+          finished = true;
+        }
+      }
+    }
+  }
+
+  // Optimized version:
+  void intersect(int point, QVector<int> &collection) const
+  {
+    if (point <= center)
+    {
+      bool finished = false;
+      QMapIterator<E, E> it = sortedStart.iterator();
+      while (it.hasNext() && finished==false) {
+        E e = it.next().value();
+        if (e.start() <= point) {
+          collection.append(e.hap());
+        }
+        else {
+          finished = true;
+        }
+      }
+    }
+    else {
+      bool finished = false;
+      QMapIterator<F, F> it = sortedEnd.iterator();
+      while (it.hasNext() && finished==false) {
+        F f = it.next().value();
+        if (f.end() >= point) {
+          collection.append(f.hap());
         }
         else {
           finished = true;
@@ -146,7 +191,7 @@ public:
         F f = it.next().value();
         if (start <= f.end()) {
           const F &fp = f;
-          collection.append(fp);   // This will downcast from f to e.
+          collection.append(fp);   // This will downcast from an F to an E.
         }
         else {
           finished = true;
@@ -177,19 +222,7 @@ public:
 
   bool hasIntersectAll(int start, int end) const
   {
-    QMapIterator<E, E> it = sortedStart.iterator();
-    while (it.hasNext()) {
-      E e = it.next().value();
-      if (e.start() <= start) {
-        if (e.end() >= end) {
-          return true;
-        }
-      }
-      else {
-        return false;
-      }
-    }
-    return false;
+    return sortedStart.hasIntersectAll(start, end);
   }
 
   void clear() {
@@ -303,6 +336,8 @@ public:
   }
 
   void intersect(int point, QList<E> &collection) const { intersect(_root, point, collection); }
+  // Optimized overload:
+  void intersect(int point, QVector<int> &collection) const { intersect(_root, point, collection); }
 
   void intersectPart(int start, int end, QList<E> &collection) const { intersectPart(_root, start, end, collection); }
 
@@ -423,6 +458,20 @@ private:
   }
 
   void intersect(Node<E, F> *tree, int point, QList<E> &collection) const {
+    if (!tree) {
+      return;
+    }
+    tree->intersect(point, collection);
+    if (point < tree->center) {
+      intersect(tree->leftChild, point, collection);
+    }
+    else if (point > tree->center) {
+      intersect(tree->rightChild, point, collection);
+    }
+  }
+
+  // Optimized overload:
+  void intersect(Node<E, F> *tree, int point, QVector<int> &collection) const {
     if (!tree) {
       return;
     }
@@ -587,7 +636,7 @@ public:
 private:
   void extendSegment(QList<HapSegment> &extendedSegs, int hap, const QList<HapSegment> &ibsSegs) const;
   void convertToIndices(int marker, const CenteredIntIntervalTree<HapSegment, HapSegmentES> &tree,
-                        IndexSet &set) const;
+                        IndexSet &set);
 
   int modifyStart(const HapSegment &targetHS, CenteredIntIntervalTree<HapSegment, HapSegmentES> &tree) const;
   int modifyEnd(const HapSegment &targetHS, CenteredIntIntervalTree<HapSegment, HapSegmentES> &tree) const;
@@ -609,6 +658,9 @@ private:
   int _edge1;
   int _edge2;
   bool _rev;
+
+  QVector<int> _hsegHaps;
+  int _maxHaps;
 };
 
 #endif

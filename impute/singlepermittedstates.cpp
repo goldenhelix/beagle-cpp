@@ -68,7 +68,7 @@ static void dumpTree(int hap, const CenteredIntIntervalTree<HapSegment, HapSegme
 
 SinglePermittedStates::SinglePermittedStates(const RestrictedDag &rdag, int sample)
   : _rdag(rdag), _marker(-1), _i1(0), _i2(0), _edge1(-1), _edge2(-1), _rev(false),
-    _pos(rdag.pos()), _ibdExtend(rdag.ibdExtend())
+    _pos(rdag.pos()), _ibdExtend(rdag.ibdExtend()), _maxHaps(0)
 {
   globalRsb.setNewSample(sample);
   int nHaps;
@@ -91,6 +91,9 @@ SinglePermittedStates::SinglePermittedStates(const RestrictedDag &rdag, int samp
   _tree2.initialize(_nMarkers, extList2);
   /// dumpTree(hap1, _tree1);
   /// dumpTree(hap2, _tree2);
+
+  if(_maxHaps < nHaps)
+    _hsegHaps.reserve(nHaps);
 }
 
 void SinglePermittedStates::extendSegment(QList<HapSegment> &extendedSegs,
@@ -143,15 +146,22 @@ int SinglePermittedStates::modifyEnd(const HapSegment &targetHS, CenteredIntInte
 
 void SinglePermittedStates::convertToIndices(int marker,
   const CenteredIntIntervalTree<HapSegment, HapSegmentES> &tree,
-  IndexSet &set) const
+  IndexSet &set)
 {
   set.clear();
 
+  /*
   QList<HapSegment> hsegs;
   tree.intersect(marker, hsegs);
   /// globalRsb.dumpMSegs(marker, hsegs);
   foreach(HapSegment hs, hsegs)
     set.add(_rdag._hapStates[marker][hs.hap()]);
+  */
+
+  tree.intersect(marker, _hsegHaps);
+
+  foreach(int hshap, _hsegHaps)
+    set.add(_rdag._hapStates[marker][hshap]);
 }
 
 void SinglePermittedStates::setMarker(int marker)
@@ -162,8 +172,13 @@ void SinglePermittedStates::setMarker(int marker)
   _edge1 = -1;
   _edge2 = -1;
   _rev = false;
+
+  _hsegHaps.resize(0);
   convertToIndices(marker, _tree1, _indices1);
+
+  _hsegHaps.resize(0);
   convertToIndices(marker, _tree2, _indices2);
+
   /// globalRsb.dumpIndices(marker, _indices1);
   /// globalRsb.dumpIndices(marker, _indices2);
   /// globalRsb.cr();
