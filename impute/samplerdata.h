@@ -28,6 +28,8 @@ public:
   RestrictedDag(const ImmutableDag &dag, const SampleHapPairs &haps,
 		double ibdLength, double ibdExtend);
 
+  RestrictedDag& operator=(const RestrictedDag& other);
+
   /**
    * Returns the haplotypes used to construct {@code this}.
    */
@@ -112,6 +114,8 @@ class SamplerData
    */
   SamplerData(const RestrictedDag &rdag, const Par &par, const CurrentData &cd,
               bool revMarkers /* , RunStats runStats */ );
+ 
+  SamplerData& operator=(const SamplerData& other);
 
   /**
    * Returns {@code true} if the order of markers is reversed, and

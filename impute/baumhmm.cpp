@@ -148,6 +148,26 @@ SingleBaumLevel::SingleBaumLevel(const Dag &dag, const SplicedGL &gl)
              "inconsistent markers");
 }
 
+SingleBaumLevel& SingleBaumLevel::operator=(const SingleBaumLevel& other)
+{
+  //default assignment operator wont generate const casts
+  const_cast<Dag&>(_dag) = other._dag;
+  const_cast<SplicedGL&>(_gl) = other._gl;
+
+  _marker = other._marker;
+  _sample = other._sample;
+  _size = other._size;
+
+  _edges1 = other._edges1;
+  _edges2 = other._edges2;
+  _fwdValues = other._fwdValues;
+  _bwdValues = other._bwdValues;
+   
+  _fwdValueSum = other._fwdValueSum;
+  _bwdValueSum = other._bwdValueSum;
+  return *this;
+}
+
 void SingleBaumLevel::setForwardValues(SingleNodes &nodes, int marker, int sample)
 {
   _marker = marker;

@@ -151,6 +151,8 @@ public:
    */
   SingleBaumLevel(const Dag &dag, const SplicedGL &gl);
 
+  SingleBaumLevel& operator=(const SingleBaumLevel& other);
+
   /**
    * Sets the Baum forward algorithm values for this level of the HMM
    * and records the child node pair values in the specified

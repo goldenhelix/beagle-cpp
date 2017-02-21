@@ -137,7 +137,7 @@ public:
    */
   RecombSingleBaumLevel(const SamplerData &samplerData);
 
-
+  RecombSingleBaumLevel& operator=(const RecombSingleBaumLevel& other);
   /**
    * Resets the size of this level to 0 and clears the QLists in
    * this level.
