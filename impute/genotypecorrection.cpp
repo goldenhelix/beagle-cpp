@@ -16,6 +16,8 @@ public:
   Edit(const HapPair &hapPair, int marker, int newAllele1, int newAllele2);
   Edit(const Edit &other);
 
+  Edit& operator=(const Edit& other);
+
   const HapPair &hapPair() const { return _hapPair; }
   int marker() const { return _marker; }
   int newAllele1() const { return _newAllele1; }
@@ -48,6 +50,16 @@ Edit::Edit(const Edit &other)
   : _hapPair(other._hapPair), _marker(other._marker), _newAllele1(other._newAllele1),
     _newAllele2(other._newAllele2)
 { }
+
+
+Edit& Edit::operator=(const Edit &other){
+  //default copy constructor wont generate const_cast
+  const_cast<HapPair&>(_hapPair) = other._hapPair;
+  _marker = other._marker;
+  _newAllele1 = other._newAllele1;
+  _newAllele2 = other._newAllele2;
+  return *this;
+ }
 
 static void copyAlleles(const HapPair &hapPair, QList<int> &alleles1,
                         QList<int> &alleles2)

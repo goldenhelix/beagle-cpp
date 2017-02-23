@@ -45,6 +45,16 @@ RestrictedDag::RestrictedDag(const ImmutableDag &dag, const SampleHapPairs &haps
   _hapSegments.initialize(_haps, _pos, ibdLength);
 }
 
+RestrictedDag& RestrictedDag::operator=(const RestrictedDag& other)
+{
+  const_cast<SampleHapPairs&>(_haps) = other._haps;
+  const_cast<ImmutableDag&>(_dag) = other._dag;
+  _hapSegments = other._hapSegments;
+  _pos = other._pos;
+  _ibdExtend = other._ibdExtend;
+  return *this;
+}
+
 void RestrictedDag::initPos()
 {
   _pos = _dag.posArray();
@@ -153,6 +163,17 @@ SamplerData::SamplerData(const RestrictedDag &rdag, const Par &par, const Curren
 {
   _gl = FuzzyGL(cd.targetGL(), par.err(), revMarkers);
   findDagRecombRate(rdag.dag(), par.mapscale());
+}
+
+SamplerData& SamplerData::operator=(const SamplerData& other)
+{
+  const_cast<Par&>(_par) = other._par;
+  _revMarkers = other._revMarkers;
+
+  const_cast<RestrictedDag&>(_rdag) = other._rdag;
+  _gl = other._gl;
+  _recombRate = other._recombRate;
+  return *this;
 }
 
 void SamplerData::findDagRecombRate(const ImmutableDag &dag, float xdist)
